@@ -176,7 +176,7 @@ details.tips li { margin-bottom: 4px; }
       <label class="field"><span>Trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed</span></label>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads (use this if the file has no track)</span></label>
-      <div id="audioWarn" class="banner hidden">This route has recorded audio. If you add, remove or reorder stops, the old audio files no longer match. Send the downloaded GPX to Claude to make new audio files.</div>
+      <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
 
@@ -813,7 +813,12 @@ details.tips li { margin-bottom: 4px; }
       .then(function () { dlMsg('Route file saved. Updating the route list…'); return updateList(entry); })
       .then(function () {
         saveDraft(); updateWarn();
-        dlMsg('Published to ' + gh.repo + '. Wayside shows the change in 1 to 3 minutes; close and reopen it to see it.');
+        return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
+      })
+      .then(function (wf) {
+        dlMsg('Published to ' + gh.repo + '. ' + (wf ?
+          'Wayside is updated automatically, including new audio for changed stops. This usually takes 3 to 6 minutes. Progress: https://github.com/' + gh.repo + '/actions' :
+          'Wayside shows the change in 1 to 3 minutes; close and reopen it to see it.'));
       })
       .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
       .then(function () { els.publishBtn.disabled = false; });

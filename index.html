@@ -128,7 +128,6 @@ main {
 .tour .t-desc { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 3px; }
 .tour svg { width: 22px; height: 22px; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .tour:disabled { opacity: 0.6; }
-a.tour { text-decoration: none; }
 .dropzone {
   display: block; text-align: center; cursor: pointer;
   border: 2px dashed var(--line); border-radius: 14px; background: var(--surface);
@@ -378,11 +377,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
-    <h3>Create routes</h3>
-    <a class="tour" href="editor.html">
-      <span><span class="t-title">Wayside Studio</span><span class="t-desc">Add stops and texts to a route</span></span>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-    </a>
   </div>
 </aside>
 
@@ -457,13 +451,32 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.audioInfo.textContent = '';
   }
   function pad(n, w) { var s = String(n); while (s.length < w) s = '0' + s; return s; }
+  function spokenText(p) { return p.desc ? (p.name + '. ' + p.desc) : p.name; }
+  function hash8(text) {            // same fingerprint as tools/make_audio.py (FNV-1a over UTF-8)
+    var b = new TextEncoder().encode(text), h = 0x811c9dc5;
+    for (var i = 0; i < b.length; i++) { h ^= b[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+    return ('00000000' + h.toString(16)).slice(-8);
+  }
   function prepareAudio(base) {
     var token = audioToken;
     if (!base || !window.fetch) return;
     var w = Math.max(2, String(pois.length).length);
-    var jobs = pois.map(function (p, i) {
-      return { p: p, href: 'ture/' + encodeURIComponent(base) + '-' + pad(i + 1, w) + '.mp3' };
-    });
+    fetch('ture/' + encodeURIComponent(base) + '.audio.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (man) {
+        if (token !== audioToken) return;
+        var hashes = man && Array.isArray(man.stops) ? man.stops : null;
+        var jobs = [];
+        pois.forEach(function (p, i) {
+          var h = hash8(spokenText(p));
+          if (hashes && hashes[i] !== h) return;      // the text was changed after the audio was made
+          jobs.push({ p: p, href: 'ture/' + encodeURIComponent(base) + '-' + pad(i + 1, w) + '.mp3' + (hashes ? '?v=' + h : '') });
+        });
+        runAudioJobs(jobs, token);
+      });
+  }
+  function runAudioJobs(jobs, token) {
     var found = 0, next = 0;
     function one(job) {
       return fetch(job.href)
