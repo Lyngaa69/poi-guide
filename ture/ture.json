@@ -1,23 +1,23 @@
 [
   {
-    "navn": "Aarhus N til Thorsø (motorcykelrute fra Kurviger)",
+    "navn": "Aarhus N to Thorsø (motorcycle route from Kurviger)",
     "fil": "aarhus-n-thorso.gpx",
-    "beskrivelse": "82 km med rigtigt spor og 7 punkter, bl.a. Borum Eshøj og Tangeværket",
+    "beskrivelse": "82 km with a real track and 7 stops, including Borum Eshøj and Tangeværket",
     "radius": 300,
     "adaptiv": true
   },
   {
-    "navn": "Silkeborg til Ry via Himmelbjerget",
+    "navn": "Silkeborg to Ry via Himmelbjerget",
     "fil": "silkeborg-himmelbjerget-ry.gpx",
-    "beskrivelse": "7 punkter, ca. 20 km, med Hjejlen, Himmelbjerget og Margueritruten",
+    "beskrivelse": "7 stops, about 20 km, with Hjejlen, Himmelbjerget and the Marguerite Route area",
     "radius": 400,
     "adaptiv": true,
     "rute": "osrm"
   },
   {
-    "navn": "Silkeborg: Ladelundsvej til Padborgvej",
+    "navn": "Silkeborg: Ladelundsvej to Padborgvej",
     "fil": "silkeborg-ladelundsvej-padborgvej.gpx",
-    "beskrivelse": "Kort testtur med 6 punkter",
+    "beskrivelse": "Short test trip with 6 stops",
     "radius": 150,
     "adaptiv": false,
     "rute": "osrm"
