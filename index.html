@@ -3,46 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#5a3a26">
+<meta name="theme-color" content="#0b61c4">
 <title>Wayside – audio guide for the road</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
 :root {
-  --bg: #f3f0eb;
+  --bg: #eef4fa;
   --surface: #ffffff;
-  --line: #d9d2c8;
-  --text: #241b15;
-  --muted: #6c5f54;
-  --sign: #5a3a26;
-  --sign-text: #fbf6ee;
-  --ok: #2f7d4f;
-  --warn: #a4501b;
-  --scrim: rgba(20, 12, 8, 0.5);
+  --line: #d3e0ee;
+  --text: #0e2238;
+  --muted: #53687e;
+  --sign: #0b61c4;
+  --sign-grad: linear-gradient(135deg, #0a58b8 0%, #1479df 100%);
+  --sign-text: #ffffff;
+  --ok: #12805c;
+  --warn: #c2410c;
+  --scrim: rgba(8, 20, 36, 0.5);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1a130f;
-    --surface: #271c16;
-    --line: #43332a;
-    --text: #f4ece2;
-    --muted: #b3a393;
-    --ok: #6fcf97;
-    --warn: #f2a46a;
-    --scrim: rgba(0, 0, 0, 0.65);
+    --bg: #0b1a2b;
+    --surface: #12263c;
+    --line: #25405c;
+    --text: #e8f1fb;
+    --muted: #9db3c9;
+    --sign: #3b8fe8;
+    --ok: #5fd3a0;
+    --warn: #ff9b5e;
+    --scrim: rgba(0, 6, 14, 0.7);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1a130f;
-  --surface: #271c16;
-  --line: #43332a;
-  --text: #f4ece2;
-  --muted: #b3a393;
-  --ok: #6fcf97;
-  --warn: #f2a46a;
-  --scrim: rgba(0, 0, 0, 0.65);
+  --bg: #0b1a2b;
+  --surface: #12263c;
+  --line: #25405c;
+  --text: #e8f1fb;
+  --muted: #9db3c9;
+    --sign: #3b8fe8;
+  --ok: #5fd3a0;
+  --warn: #ff9b5e;
+  --scrim: rgba(0, 6, 14, 0.7);
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -74,7 +77,7 @@ p { margin: 0 0 10px; }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
-.logo { width: 32px; height: 32px; border-radius: 9px; background: var(--sign); display: grid; place-items: center; }
+.logo { width: 32px; height: 32px; border-radius: 9px; background: var(--sign-grad); display: grid; place-items: center; }
 .logo svg { width: 20px; height: 20px; fill: var(--sign-text); }
 .iconbtn {
   width: 46px; height: 46px; border-radius: 12px;
@@ -99,7 +102,7 @@ main {
 }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn.sign {
-  background: var(--sign); color: var(--sign-text);
+  background: var(--sign-grad); color: var(--sign-text);
   border: 3px solid var(--sign-text); box-shadow: 0 0 0 2px var(--sign);
   font-size: 1.1rem;
 }
@@ -148,7 +151,7 @@ main {
 .routebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .routename { color: var(--muted); font-size: 0.95rem; text-align: right; overflow-wrap: anywhere; }
 .nextsign {
-  background: var(--sign); color: var(--sign-text);
+  background: var(--sign-grad); color: var(--sign-text);
   border: 4px solid var(--sign-text); box-shadow: 0 0 0 3px var(--sign);
   border-radius: 14px; padding: 16px 18px; margin: 4px 3px 16px;
 }
@@ -166,9 +169,9 @@ main {
   width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; color: #fff;
   font: 700 12px/22px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.4);
 }
-.pin.m-poi { background: #5a3a26; }
-.pin.m-done { background: #2f7d4f; }
-.pin.m-next { background: #c4621f; }
+.pin.m-poi { background: #0b61c4; }
+.pin.m-done { background: #12805c; }
+.pin.m-next { background: #d9480f; }
 
 ul.pois { list-style: none; margin: 0; padding: 0; }
 ul.pois li {
@@ -1119,12 +1122,12 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     }
     layer.clearLayers();
     var base = track.length ? track : pois.map(function (p) { return [p.lat, p.lon]; });
-    L.polyline(base, { color: '#1b6fe0', weight: 4, opacity: 0.7, dashArray: track.length ? null : '8 8' }).addTo(layer);
+    L.polyline(base, { color: '#7c3aed', weight: 4, opacity: 0.7, dashArray: track.length ? null : '8 8' }).addTo(layer);
     var ni = nextIndex();
     if (ni > -1) {
       L.circle([pois[ni].lat, pois[ni].lon], {
         radius: parseFloat(els.radius.value) || 250,
-        color: '#c4621f', weight: 2, dashArray: '4 4', fill: false
+        color: '#d9480f', weight: 2, dashArray: '4 4', fill: false
       }).addTo(layer);
     }
     pois.forEach(function (p, i) {
@@ -1148,9 +1151,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       lmap.panTo([lastPos.latitude, lastPos.longitude], { animate: true });
     }
     els.routeBtn.classList.toggle('hidden', trackSource === 'file' || trackSource === 'osrm');
-    var lineTxt = trackSource === 'file' ? 'The blue line follows the track in the GPX file. ' :
-      trackSource === 'osrm' ? 'The blue line is a calculated driving route between the stops (OpenStreetMap data via OSRM), not necessarily the road you take. ' :
-      'The dashed blue line is a straight line between the stops in file order, not the road. ';
+    var lineTxt = trackSource === 'file' ? 'The purple line follows the track in the GPX file. ' :
+      trackSource === 'osrm' ? 'The purple line is a calculated driving route between the stops (OpenStreetMap data via OSRM), not necessarily the road you take. ' :
+      'The dashed purple line is a straight line between the stops in file order, not the road. ';
     els.mapHint.textContent = lineTxt + routeNote +
       ' The blue dot is your position and the dashed circle is the trigger radius around the next stop. Map: OpenStreetMap.';
   }
