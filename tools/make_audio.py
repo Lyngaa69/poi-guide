@@ -31,15 +31,24 @@ def below100(n):
     t, u = n // 10 * 10, n % 10
     return TENS[t] if u == 0 else UNITS[u] + 'og' + TENS[t]
 
+def digits(n):
+    return ' '.join(UNITS[int(c)] for c in str(n))
+
 def num(n):
     if n < 100: return below100(n)
     if n < 1000:
         h, r = divmod(n, 100)
         head = 'hundrede' if h == 1 else UNITS[h] + ' hundrede'
         return head if r == 0 else head + ' og ' + below100(r)
-    th, r = divmod(n, 1000)
-    head = 'tusind' if th == 1 else UNITS[th] + ' tusind'
-    return head if r == 0 else head + ' og ' + num(r)
+    if n < 1000000:
+        th, r = divmod(n, 1000)
+        head = 'tusind' if th == 1 else num(th) + ' tusind'
+        return head if r == 0 else head + ' og ' + num(r)
+    if n < 1000000000:
+        m, r = divmod(n, 1000000)
+        head = 'en million' if m == 1 else num(m) + ' millioner'
+        return head if r == 0 else head + ' og ' + num(r)
+    return digits(n)               # very long numbers are read digit by digit
 
 def year(n):
     if 1100 <= n < 2000:
@@ -51,7 +60,8 @@ def year(n):
 def normalize(t):
     t = t.replace('365discount', 'tre seks fem discount').replace("2020'erne", 'tyvetyverne')
     t = re.sub(r'\b(1[1-9]\d{2}|20\d{2})\b', lambda m: year(int(m.group(1))), t)
-    t = re.sub(r'\b(\d+),(\d+)\b', lambda m: num(int(m.group(1))) + ' komma ' + ' '.join(UNITS[int(c)] for c in m.group(2)), t)
+    t = re.sub(r'\b\d{1,3}(?:\.\d{3})+\b', lambda m: num(int(m.group(0).replace('.', ''))), t)   # 12.000 -> twelve thousand
+    t = re.sub(r'\b(\d+)[,.](\d+)\b', lambda m: num(int(m.group(1))) + ' komma ' + digits(m.group(2)), t)
     t = re.sub(r'\b\d+\b', lambda m: num(int(m.group(0))), t)
     return t
 
@@ -101,15 +111,17 @@ def plan_route(gpx):
         man = {}
     same_voice = man.get('voice') == VOICE_ID
     old = man.get('stops', []) if same_voice else []
+    failed = set(man.get('failed', [])) if same_voice else set()
     todo = []
     for i, h in enumerate(hashes, 1):
         mp3 = TURE / ('%s-%0*d.mp3' % (base, width, i))
-        if not (i <= len(old) and old[i - 1] == h and mp3.exists()):
+        unchanged = i <= len(old) and old[i - 1] == h
+        if not (unchanged and (mp3.exists() or i in failed)):
             todo.append(i)
     pat = re.compile('^' + re.escape(base) + r'-(\d+)\.mp3$')
     orphans = [p for p in TURE.iterdir() if (m := pat.match(p.name)) and int(m.group(1)) > len(stops)]
     manifest_ok = same_voice and man.get('stops') == hashes
-    return dict(base=base, stops=stops, hashes=hashes, width=width, todo=todo, orphans=orphans, manifest_ok=manifest_ok)
+    return dict(base=base, stops=stops, hashes=hashes, width=width, todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed)
 
 def all_plans():
     return [plan_route(g) for g in sorted(TURE.glob('*.gpx')) if read_stops(g)]
@@ -150,13 +162,20 @@ def main():
     for p in plans:
         for path in p['orphans']:
             path.unlink(); print('removed', path.name)
+        failed = set(p['failed']) - set(p['todo'])
         for i in p['todo']:
-            if voice is None: voice = load_voice()
             out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
-            make_mp3(voice, p['stops'][i - 1], out)
-            print('made', out.name)
+            try:
+                if voice is None: voice = load_voice()
+                make_mp3(voice, p['stops'][i - 1], out)
+                failed.discard(i)
+                print('made', out.name)
+            except Exception as e:          # keep going; Wayside uses the phone voice for this stop
+                failed.add(i)
+                if out.exists(): out.unlink()
+                print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, e))
         (TURE / (p['base'] + '.audio.json')).write_text(
-            json.dumps({'voice': VOICE_ID, 'stops': p['hashes']}, indent=2) + '\n', encoding='utf-8')
+            json.dumps({'voice': VOICE_ID, 'stops': p['hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     main()
