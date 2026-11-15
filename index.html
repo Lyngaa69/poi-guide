@@ -138,6 +138,10 @@ main {
 .dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+.search {
+  width: 100%; font: inherit; min-height: 48px; padding: 8px 12px; margin: 8px 0 14px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+}
 .sectionlabel { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 8px; }
 
 /* ---------- guide ---------- */
@@ -235,7 +239,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
     <span>Wayside</span>
   </div>
-  <button class="iconbtn" id="menuBtn" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="drawer">
+  <button class="iconbtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
 </header>
@@ -246,12 +250,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     <h1>Choose a route</h1>
     <p class="lede">Wayside reads out the stops along your route as you drive past them.</p>
 
-    <div id="tourBox" class="hidden">
-      <p class="sectionlabel">Ready-made routes</p>
-      <div id="tourList" class="tours"></div>
-    </div>
-
-    <p class="sectionlabel">Your own route</p>
+    <button class="tour hidden" id="openRoutes" type="button" style="margin-bottom:14px;">
+      <span><span class="t-title">Ready-made routes</span><span class="t-desc" id="routeCount"></span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
     <label class="dropzone" id="dropzone">
       <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
@@ -259,6 +261,16 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span>Waypoints become stops. A track or route is drawn on the map.</span>
     </label>
     <p class="status" id="loadStatus" role="status"></p>
+  </section>
+
+  <!-- Ready-made routes -->
+  <section id="routes" class="hidden">
+    <button class="linkbtn" id="routesBack" type="button">&larr; Back</button>
+    <h1>Ready-made routes</h1>
+    <input type="search" id="routeSearch" class="search" placeholder="Search routes" aria-label="Search routes" autocomplete="off">
+    <div id="tourList" class="tours"></div>
+    <p class="hint hidden" id="noRoutes">No routes match your search.</p>
+    <p class="status" id="routesStatus" role="status"></p>
   </section>
 
   <!-- Guide -->
@@ -297,14 +309,24 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 
 <div id="scrim"></div>
 
-<aside id="drawer" aria-label="Settings" aria-hidden="true">
+<aside id="drawer" aria-label="Menu" aria-hidden="true">
   <div class="drawer-head">
-    <h2>Settings</h2>
-    <button class="iconbtn" id="closeBtn" type="button" aria-label="Close settings">
+    <h2>Menu</h2>
+    <button class="iconbtn" id="closeBtn" type="button" aria-label="Close menu">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="drawer-body">
+    <h3 style="margin-top:14px;">Routes</h3>
+    <button class="tour hidden" id="menuRoutes" type="button" style="margin-bottom:8px;">
+      <span><span class="t-title">Ready-made routes</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <button class="tour" id="menuUpload" type="button">
+      <span><span class="t-title">Upload a GPX file</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+
     <h3>Triggering</h3>
     <label class="field">
       <span class="top"><span>Trigger radius</span><span class="val" id="radiusVal"></span></span>
@@ -336,7 +358,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <details class="tips">
       <summary>Voice tips for iPhone</summary>
-      <p>Safari only hands web pages some of the voices installed on your iPhone. Voices you download under Settings &gt; Accessibility &gt; Spoken Content &gt; Voices, especially Enhanced and Premium versions, may not show up here.</p>
+      <p>iPhone voices come in quality levels: Basic (&ldquo;super-compact&rdquo;), Standard, Enhanced and Premium. On many iPhones, Safari only gives web pages the Basic version of a voice, even if you have downloaded a better one under Settings &gt; Accessibility &gt; Spoken Content &gt; Voices.</p>
       <p>Turn on &ldquo;Show voices in all languages&rdquo; to see every voice Safari offers. The line under the voice list shows exactly which voice is in use.</p>
     </details>
 
@@ -370,7 +392,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     home: $('home'), guide: $('guide'), loadStatus: $('loadStatus'),
-    tourBox: $('tourBox'), tourList: $('tourList'), file: $('file'), dropzone: $('dropzone'),
+    tourList: $('tourList'), file: $('file'), dropzone: $('dropzone'),
+    openRoutes: $('openRoutes'), routeCount: $('routeCount'), routes: $('routes'), routesBack: $('routesBack'),
+    routeSearch: $('routeSearch'), noRoutes: $('noRoutes'), routesStatus: $('routesStatus'),
+    menuRoutes: $('menuRoutes'), menuUpload: $('menuUpload'),
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
@@ -490,7 +515,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function loadRoute(parsed, label, opts) {
     opts = opts || {};
     if (!parsed.pois.length) {
-      setLoadStatus('This file has no waypoints (<wpt>), so there are no stops to read out. Tracks and routes alone are not used as stops.', true);
+      notify('This file has no waypoints (<wpt>), so there are no stops to read out. Tracks and routes alone are not used as stops.');
       return;
     }
     stopGuide();
@@ -506,11 +531,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     syncLabels();
     els.routeName.textContent = label;
     setLoadStatus('');
-    els.home.classList.add('hidden');
-    els.guide.classList.remove('hidden');
+    show('guide');
     els.simBtn.disabled = false;
     els.resetBtn.disabled = false;
-    window.scrollTo(0, 0);
     renderList();
     updateNext();
     var noDesc = pois.filter(function (p) { return !p.desc; }).length;
@@ -521,17 +544,21 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function showHome() {
     stopGuide();
     pois = []; track = []; trackSource = ''; lastPos = null;
-    els.guide.classList.add('hidden');
-    els.home.classList.remove('hidden');
+    show('home');
     els.simBtn.disabled = true;
     els.resetBtn.disabled = true;
-    window.scrollTo(0, 0);
   }
   els.backBtn.addEventListener('click', showHome);
 
   function setLoadStatus(msg, bad) {
-    els.loadStatus.className = 'status' + (bad ? ' bad' : '');
-    els.loadStatus.textContent = msg || '';
+    [els.loadStatus, els.routesStatus].forEach(function (el) {
+      el.className = 'status' + (bad ? ' bad' : '');
+      el.textContent = msg || '';
+    });
+  }
+  function notify(msg) {          // errors can happen while any screen is visible
+    setLoadStatus(msg, true);
+    setStatus(msg, true);
   }
 
   function readFile(f) {
@@ -539,9 +566,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var reader = new FileReader();
     reader.onload = function () {
       try { loadRoute(parseGpx(String(reader.result)), f.name.replace(/\.gpx$/i, '')); }
-      catch (e) { setLoadStatus(e.message, true); }
+      catch (e) { notify(e.message); }
     };
-    reader.onerror = function () { setLoadStatus('The file could not be opened.', true); };
+    reader.onerror = function () { notify('The file could not be opened.'); };
     reader.readAsText(f);
   }
   els.file.addEventListener('change', function () {
@@ -559,46 +586,78 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     readFile(f);
   });
 
-  /* ---------- ready-made routes (tours/tours.json) ---------- */
+  /* ---------- ready-made routes (ture/ture.json) ---------- */
+  var tours = [];
+  function show(which) {
+    els.home.classList.toggle('hidden', which !== 'home');
+    els.routes.classList.toggle('hidden', which !== 'routes');
+    els.guide.classList.toggle('hidden', which !== 'guide');
+    window.scrollTo(0, 0);
+  }
+  function openRoutes() {
+    if (!tours.length) return;
+    if (els.drawer.classList.contains('open')) closeMenu();
+    els.routeSearch.value = '';
+    renderTours();
+    show('routes');
+  }
+  function renderTours() {
+    var q = els.routeSearch.value.trim().toLowerCase();
+    els.tourList.innerHTML = '';
+    var shown = 0;
+    tours.forEach(function (t) {
+      if (q && (t.navn + ' ' + (t.beskrivelse || '')).toLowerCase().indexOf(q) === -1) return;
+      shown++;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tour';
+      var left = document.createElement('span');
+      var title = document.createElement('span');
+      title.className = 't-title';
+      title.textContent = t.navn;
+      left.appendChild(title);
+      if (t.beskrivelse) {
+        var d = document.createElement('span');
+        d.className = 't-desc';
+        d.textContent = t.beskrivelse;
+        left.appendChild(d);
+      }
+      b.appendChild(left);
+      b.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
+      b.addEventListener('click', function () {
+        setLoadStatus('Loading route…');
+        fetch('ture/' + encodeURIComponent(t.fil))
+          .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
+          .then(function (txt) {
+            loadRoute(parseGpx(txt), t.navn, { radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm' });
+          })
+          .catch(function (e) { setLoadStatus('Could not load the route. ' + (e && e.message ? e.message : ''), true); });
+      });
+      els.tourList.appendChild(b);
+    });
+    els.noRoutes.classList.toggle('hidden', shown > 0);
+  }
   function loadTours() {
     if (!window.fetch) return;
     fetch('ture/ture.json', { cache: 'no-cache' })
       .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
       .then(function (list) {
-        if (!Array.isArray(list) || !list.length) return;
-        list.forEach(function (t) {
-          if (!t || !t.fil || !t.navn || String(t.fil).indexOf('..') !== -1 || String(t.fil).indexOf('/') !== -1) return;
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'tour';
-          var left = document.createElement('span');
-          var title = document.createElement('span');
-          title.className = 't-title';
-          title.textContent = t.navn;
-          left.appendChild(title);
-          if (t.beskrivelse) {
-            var d = document.createElement('span');
-            d.className = 't-desc';
-            d.textContent = t.beskrivelse;
-            left.appendChild(d);
-          }
-          b.appendChild(left);
-          b.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
-          b.addEventListener('click', function () {
-            setLoadStatus('Loading route…');
-            fetch('ture/' + encodeURIComponent(t.fil))
-              .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
-              .then(function (txt) {
-                loadRoute(parseGpx(txt), t.navn, { radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm' });
-              })
-              .catch(function (e) { setLoadStatus('Could not load the route. ' + (e && e.message ? e.message : ''), true); });
-          });
-          els.tourList.appendChild(b);
+        if (!Array.isArray(list)) return;
+        tours = list.filter(function (t) {
+          return t && t.fil && t.navn && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
         });
-        if (els.tourList.children.length) els.tourBox.classList.remove('hidden');
+        if (!tours.length) return;
+        els.openRoutes.classList.remove('hidden');
+        els.menuRoutes.classList.remove('hidden');
+        els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
       })
-      .catch(function () { /* no list: only upload is shown */ });
+      .catch(function () { /* no list: only upload is available */ });
   }
+  els.openRoutes.addEventListener('click', openRoutes);
+  els.menuRoutes.addEventListener('click', openRoutes);
+  els.routesBack.addEventListener('click', function () { show(pois.length ? 'guide' : 'home'); });
+  els.routeSearch.addEventListener('input', renderTours);
+  els.menuUpload.addEventListener('click', function () { closeMenu(); els.file.click(); });
 
   /* ---------- distance ---------- */
   function distance(lat1, lon1, lat2, lon2) {
@@ -619,10 +678,11 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var s = (v.voiceURI || '') + ' ' + (v.name || '');
     if (/premium/i.test(s)) return 'Premium';
     if (/enhanced|forbedret/i.test(s)) return 'Enhanced';
+    if (/super-compact/i.test(s)) return 'Basic';
     if (/compact/i.test(s)) return 'Standard';
     return '';
   }
-  function qualityRank(q) { return q === 'Premium' ? 0 : q === 'Enhanced' ? 1 : q === '' ? 2 : 3; }
+  function qualityRank(q) { return q === 'Premium' ? 0 : q === 'Enhanced' ? 1 : q === '' ? 2 : q === 'Standard' ? 3 : 4; }
   function langRank(l) { return /^da/i.test(l) ? 0 : /^en/i.test(l) ? 1 : 2; }
 
   function refreshVoices() {
@@ -631,11 +691,13 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       return;
     }
     var all = window.speechSynthesis.getVoices() || [];
-    var counts = {};
-    var entries = all.map(function (v) {
-      var base = v.voiceURI + '::' + v.name;
-      counts[base] = (counts[base] || 0) + 1;
-      return { v: v, key: base + '::' + counts[base], q: voiceQuality(v) };
+    var seen = {};
+    var entries = [];
+    all.forEach(function (v) {          // iOS can list the same voice twice; show it once
+      var key = v.voiceURI + '::' + v.name + '::' + v.lang;
+      if (seen[key]) return;
+      seen[key] = true;
+      entries.push({ v: v, key: key, q: voiceQuality(v) });
     });
     var showAll = els.allLangs.checked;
     voiceEntries = entries.filter(function (e) { return showAll || /^(da|en)/i.test(e.v.lang); });
@@ -662,8 +724,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       els.voice.value = voiceEntries[0].key;
     }
     var hasDa = voiceEntries.some(function (e) { return /^da/i.test(e.v.lang); });
-    els.voiceHint.textContent = hasDa ? '' :
-      'No Danish voice found. The stops are written in Danish, so they will sound odd with another voice. On iPhone, add one under Settings > Accessibility > Spoken Content > Voices > Danish, then reopen this page.';
+    var goodDa = voiceEntries.some(function (e) { return /^da/i.test(e.v.lang) && (e.q === 'Enhanced' || e.q === 'Premium'); });
+    els.voiceHint.textContent = !hasDa ?
+      'No Danish voice found. The stops are written in Danish, so they will sound odd with another voice. On iPhone, add one under Settings > Accessibility > Spoken Content > Voices > Danish, then reopen this page.' :
+      (goodDa ? '' : 'Safari only offers a basic-quality Danish voice on this device. See the voice tips below.');
     updateVoiceInfo();
   }
   function currentEntry() {
