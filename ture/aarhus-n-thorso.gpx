@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:trp="http://www.garmin.com/xmlschemas/TripExtensions/v1" version="1.1" creator="Kurviger" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Kurviger" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:trp="http://www.garmin.com/xmlschemas/TripExtensions/v1">
 	<metadata>
 		<name>Aarhus N - Thorsø</name>
 		<copyright author="OpenStreetMap contributors"/>
@@ -7,21 +8,35 @@
 		</link>
 		<time>2026-09-25T07:01:30.899Z</time>
 	</metadata>
-	
-	
-	
-	
-	
-	
-	
-	<wpt lat="56.194050" lon="10.178750"><name>Start: Aarhus Nord</name><desc>Turen går cirka 82 kilometer fra Aarhus Nord mod vest til Thorsø. Ruten er lagt i Kurviger til motorcykel.</desc></wpt>
-<wpt lat="56.215520" lon="10.023870"><name>Borum Eshøj</name><desc>Cirka 2,5 kilometer mod sydvest ligger Borum Eshøj, en stor gravhøj fra ældre bronzealder. I 1875 fandt man her tre egekister med velbevarede dragter. De er i dag udstillet på Moesgaard Museum.</desc></wpt>
-<wpt lat="56.355850" lon="9.827060"><name>Halvvejs</name><desc>Du har kørt cirka 41 kilometer og er omkring halvvejs.</desc></wpt>
-<wpt lat="56.369120" lon="9.790960"><name>Ulstrup Slot</name><desc>Cirka 3 kilometer mod nord ligger Ulstrup Slot ved Gudenåen. Det er en renæssanceborg, hvor byggeriet begyndte i 1581. Slottet er privat, men der er adgang til slotsgården, når der holdes arrangementer.</desc></wpt>
-<wpt lat="56.374280" lon="9.655250"><name>Bjerringbro</name><desc>Du kører forbi Bjerringbro ved Gudenåen. Gudenåen er Danmarks længste å, cirka 160 kilometer fra Tinnet til Randers Fjord. Byen er kendt som hjemsted for pumpeproducenten Grundfos.</desc></wpt>
-<wpt lat="56.356560" lon="9.594760"><name>Tangeværket og Tange Sø</name><desc>Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmuseum.</desc></wpt>
-<wpt lat="56.296690" lon="9.789320"><name>Slut: Thorsø</name><desc>Du er fremme ved Thorsø efter cirka 82 kilometer. Thorsø Kirke ligger cirka 500 meter mod nordøst.</desc></wpt>
-<rte>
+	<wpt lat="56.19405" lon="10.17875">
+		<name>Start: Aarhus Nord</name>
+		<desc>Turen går cirka 82 kilometer fra Aarhus Nord mod vest til Thorsø. Ruten er lagt i Kurviger til motorcykel.</desc>
+	</wpt>
+	<wpt lat="56.21552" lon="10.02387">
+		<name>Borum Eshøj</name>
+		<desc>Cirka 2,5 kilometer mod sydvest ligger Borum Eshøj, en stor gravhøj fra ældre bronzealder. I 1875 fandt man her tre egekister med velbevarede dragter. De er i dag udstillet på Moesgaard Museum.</desc>
+	</wpt>
+	<wpt lat="56.35585" lon="9.82706">
+		<name>Halvvejs</name>
+		<desc>Du har kørt cirka 41 kilometer og er omkring halvvejs.</desc>
+	</wpt>
+	<wpt lat="56.36912" lon="9.79096">
+		<name>Ulstrup Slot</name>
+		<desc>Cirka 3 kilometer mod nord ligger Ulstrup Slot ved Gudenåen. Det er en renæssanceborg, hvor byggeriet begyndte i 1581. Slottet er privat, men der er adgang til slotsgården, når der holdes arrangementer.</desc>
+	</wpt>
+	<wpt lat="56.37428" lon="9.65525">
+		<name>Bjerringbro</name>
+		<desc>Du kører forbi Bjerringbro ved Gudenåen. Gudenåen er Danmarks længste å, cirka 160 kilometer fra Tinnet til Randers Fjord. Byen er kendt som hjemsted for pumpeproducenten Grundfos.</desc>
+	</wpt>
+	<wpt lat="56.35656" lon="9.59476">
+		<name>Tangeværket og Tange Sø</name>
+		<desc>Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmuseum.</desc>
+	</wpt>
+	<wpt lat="56.29669" lon="9.78932">
+		<name>Slut: Thorsø</name>
+		<desc>Du er fremme ved Thorsø efter cirka 82 kilometer. Thorsø Kirke ligger cirka 500 meter mod nordøst.</desc>
+	</wpt>
+	<rte>
 		<name>Aarhus N - Thorsø</name>
 		<extensions>
 			<trp:Trip>
