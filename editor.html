@@ -77,6 +77,9 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe
 .dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+.routerow { display: flex; gap: 8px; align-items: stretch; }
+.routerow .tour { flex: 1; }
+.routerow > .btn { flex: none; }
 .sectionlabel { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
@@ -204,6 +207,12 @@ details.tips li { margin-bottom: 4px; }
         <p class="hint">Menu names on GitHub may differ a little. If your phone is lost, delete the token under the same settings.</p>
       </details>
 
+      <details class="tips hidden" id="deleteBox">
+        <summary>Delete this route</summary>
+        <p class="hint" style="margin-top:10px;">Removes the route from Wayside, including its audio files. You can restore it from the repository history on GitHub.</p>
+        <button class="btn small danger" id="deleteBtn" type="button" style="margin-top:8px;">Delete this route from Wayside</button>
+      </details>
+
       <details class="tips">
         <summary>Or download the files instead</summary>
         <div class="row" style="margin-top:10px;">
@@ -230,6 +239,7 @@ details.tips li { margin-bottom: 4px; }
     fileName: $('fileName'), title: $('title'), desc: $('desc'), radius: $('radius'), radiusVal: $('radiusVal'),
     adaptive: $('adaptive'), osrm: $('osrm'), audioWarn: $('audioWarn'),
     dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
+    deleteBox: $('deleteBox'), deleteBtn: $('deleteBtn'),
     publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
     ghToken: $('ghToken'), ghSave: $('ghSave'), ghForget: $('ghForget'), ghMsg: $('ghMsg')
   };
@@ -363,6 +373,7 @@ details.tips li { margin-bottom: 4px; }
     syncRadius();
     renderAll(true);
     checkAudio();
+    updateDeleteBox();
     saveDraft();
     els.mapStatus.textContent = track.length < 2 ?
       'This file has no track or route line, so a driving route is calculated from your stops once there are two or more.' : '';
@@ -416,9 +427,16 @@ details.tips li { margin-bottom: 4px; }
               })
               .catch(function (e) { setStart('Could not open the route. ' + e.message, true); });
           });
-          els.existingList.appendChild(b);
+          var row = document.createElement('div'); row.className = 'routerow';
+          var del = document.createElement('button');
+          del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Delete';
+          del.setAttribute('aria-label', 'Delete route ' + (t.navn || t.fil));
+          del.addEventListener('click', function () { deleteRoute(t, row, false); });
+          row.appendChild(b); row.appendChild(del);
+          els.existingList.appendChild(row);
         });
         if (existing.length) els.existingBox.classList.remove('hidden');
+        updateDeleteBox();
       })
       .catch(function () {});
   }
@@ -654,7 +672,7 @@ details.tips li { margin-bottom: 4px; }
   function syncRadius() { els.radiusVal.textContent = els.radius.value + ' m'; }
   els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); });
   ['title', 'desc'].forEach(function (k) { els[k].addEventListener('input', saveDraft); });
-  els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); });
+  els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); updateDeleteBox(); });
   ['adaptive', 'osrm', 'snap', 'keepOrder'].forEach(function (k) {
     els[k].addEventListener('change', function () {
       if (k === 'keepOrder') { sortStops(); renderAll(false); schedulePreview(); }
@@ -873,6 +891,77 @@ details.tips li { margin-bottom: 4px; }
       .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
       .then(function () { els.publishBtn.disabled = false; });
   });
+  /* ---------- delete a route (one commit: route file, audio, and the list entry) ---------- */
+  function ghJson(path) { return ghFetch(path).then(function (r) { if (!r.ok) return ghError(r); return r.json(); }); }
+  function ghSend(method, path, body) {
+    return ghFetch(path, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { if (!r.ok) return ghError(r); return r.json(); });
+  }
+  function doDelete(base, fil) {
+    var R = '/repos/' + gh.repo, branch, headSha, treeSha;
+    return ghJson(R)
+      .then(function (repo) { branch = repo.default_branch; return ghJson(R + '/git/ref/heads/' + encodeURIComponent(branch)); })
+      .then(function (ref) { headSha = ref.object.sha; return ghJson(R + '/git/commits/' + headSha); })
+      .then(function (commit) { treeSha = commit.tree.sha; return Promise.all([ghGetFile('ture/ture.json'), ghJson(R + '/contents/ture')]); })
+      .then(function (res) {
+        var listFile = res[0], dir = res[1], tree = [], removed = [];
+        var pat = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d+\\.mp3$');
+        if (listFile) {
+          var list;
+          try { list = JSON.parse(fromB64(listFile.content)); } catch (e) { throw new Error('The route list could not be read, so nothing was deleted.'); }
+          if (!Array.isArray(list)) list = [];
+          list = list.filter(function (x) { return !(x && x.fil === fil); });
+          tree.push({ path: 'ture/ture.json', mode: '100644', type: 'blob', content: JSON.stringify(list, null, 2) });
+        }
+        dir.forEach(function (f) {
+          if (f.type === 'file' && (f.name === fil || f.name === base + '.audio.json' || pat.test(f.name))) {
+            removed.push(f.name);
+            tree.push({ path: 'ture/' + f.name, mode: '100644', type: 'blob', sha: null });
+          }
+        });
+        if (!tree.length) throw new Error('Nothing to delete was found in the repository.');
+        return ghSend('POST', R + '/git/trees', { base_tree: treeSha, tree: tree })
+          .then(function (t) { return ghSend('POST', R + '/git/commits', { message: 'Studio: delete route ' + fil, tree: t.sha, parents: [headSha] }); })
+          .then(function (c) { return ghSend('PATCH', R + '/git/refs/heads/' + encodeURIComponent(branch), { sha: c.sha }); })
+          .then(function () { return removed; });
+      });
+  }
+  function updateDeleteBox() {
+    var f = currentBase() + '.gpx';
+    var known = existing.some(function (x) { return x.fil === f; });
+    els.deleteBox.classList.toggle('hidden', !known);
+  }
+  function deleteRoute(t, rowEl, fromEditor) {
+    var fil = String(t.fil), base = fil.replace(/\.[^.]+$/, '');
+    var say = function (msg, bad) {
+      var el = fromEditor ? els.dlStatus : els.startStatus;
+      el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || '';
+    };
+    if (!gh.token || !gh.repo) {
+      say('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true);
+      return;
+    }
+    if (!window.confirm('Delete the route "' + (t.navn || fil) + '" from Wayside?\n\nThis removes ' + fil + ', its audio files and its entry in the route list. You can restore it later from the history on GitHub.')) return;
+    say('Deleting…');
+    withRetry(function () { return doDelete(base, fil); })
+      .then(function (removed) {
+        existing = existing.filter(function (x) { return x.fil !== fil; });
+        if (rowEl && rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
+        if (!existing.length) els.existingBox.classList.add('hidden');
+        updateDeleteBox();
+        var msg = 'Deleted "' + (t.navn || fil) + '" (' + removed.length + ' files). Wayside is updated in about 3 to 6 minutes.';
+        if (fromEditor) { els.backBtn.click(); }
+        setStart(msg);
+        if (fromEditor) say('');
+      })
+      .catch(function (e) { say('Not deleted. ' + e.message, true); });
+  }
+  els.deleteBtn.addEventListener('click', function () {
+    var f = currentBase() + '.gpx';
+    var t = existing.filter(function (x) { return x.fil === f; })[0];
+    if (t) deleteRoute(t, null, true);
+  });
+
   loadGh();
 
   loadExisting();

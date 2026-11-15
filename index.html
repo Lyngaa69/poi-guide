@@ -137,7 +137,7 @@ main {
   padding: 22px 16px;
 }
 .dropzone:hover, .dropzone.over { border-color: var(--sign); }
-.dropzone input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
 .dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
@@ -257,8 +257,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Ready-made routes</span><span class="t-desc" id="routeCount"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-    <label class="dropzone" id="dropzone">
-      <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*">
+    <label class="dropzone hidden" id="dropzone" for="file">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <strong>Upload a GPX file</strong>
       <span>Waypoints become stops. A track or route is drawn on the map.</span>
@@ -310,6 +309,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </section>
   </section>
 </main>
+
+<input type="file" id="file" class="vh" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*" tabindex="-1" aria-hidden="true">
 
 <div id="scrim"></div>
 
@@ -615,7 +616,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function loadRoute(parsed, label, opts) {
     opts = opts || {};
     if (!parsed.pois.length) {
-      notify('This file has no waypoints (<wpt>), so there are no stops to read out. Tracks and routes alone are not used as stops.');
+      notify(parsed.track.length ?
+        'This file has a route but no stops, so there is nothing to read out. Stops (waypoints) must be added to the file first.' :
+        'This file has no stops (waypoints), so there is nothing to read out.');
       return;
     }
     stopGuide();
@@ -743,21 +746,22 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     });
     els.noRoutes.classList.toggle('hidden', shown > 0);
   }
+  function showUploadFallback() { els.dropzone.classList.remove('hidden'); }
   function loadTours() {
-    if (!window.fetch) return;
+    if (!window.fetch) { showUploadFallback(); return; }
     fetch('ture/ture.json', { cache: 'no-cache' })
       .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
       .then(function (list) {
-        if (!Array.isArray(list)) return;
+        if (!Array.isArray(list)) { showUploadFallback(); return; }
         tours = list.filter(function (t) {
           return t && t.fil && t.navn && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
         });
-        if (!tours.length) return;
+        if (!tours.length) { showUploadFallback(); return; }
         els.openRoutes.classList.remove('hidden');
         els.menuRoutes.classList.remove('hidden');
         els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
       })
-      .catch(function () { /* no list: only upload is available */ });
+      .catch(function () { showUploadFallback(); });
   }
   els.openRoutes.addEventListener('click', openRoutes);
   els.menuRoutes.addEventListener('click', openRoutes);
