@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5a3a26">
+<title>Wayside Studio – add stops to a route</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+:root {
+  --bg: #f3f0eb; --surface: #ffffff; --line: #d9d2c8; --text: #241b15; --muted: #6c5f54;
+  --sign: #5a3a26; --sign-text: #fbf6ee; --ok: #2f7d4f; --warn: #a4501b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a130f; --surface: #271c16; --line: #43332a; --text: #f4ece2; --muted: #b3a393;
+    --ok: #6fcf97; --warn: #f2a46a; color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px; line-height: 1.45;
+}
+h1 { font-size: 1.6rem; margin: 6px 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 0 0 10px; }
+p { margin: 0 0 10px; }
+.hidden { display: none !important; }
+.lede { color: var(--muted); margin-bottom: 18px; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+.status { color: var(--muted); font-size: 0.95rem; margin: 10px 0 0; min-height: 1.4em; }
+.status.bad { color: var(--warn); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; }
+.logo { width: 32px; height: 32px; border-radius: 9px; background: var(--sign); display: grid; place-items: center; }
+.logo svg { width: 20px; height: 20px; fill: var(--sign-text); }
+main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe-area-inset-bottom, 0px)); }
+
+.btn {
+  font: inherit; font-weight: 600; min-height: 48px; padding: 10px 16px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  cursor: pointer; touch-action: manipulation; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.sign { background: var(--sign); color: var(--sign-text); border: 3px solid var(--sign-text); box-shadow: 0 0 0 2px var(--sign); }
+.btn.small { min-height: 40px; padding: 4px 12px; font-size: 0.92rem; }
+.btn.danger { color: var(--warn); }
+.linkbtn { font: inherit; font-weight: 600; color: var(--text); background: none; border: 0; padding: 8px 0; min-height: 40px; cursor: pointer; text-decoration: underline; }
+:is(.btn, .linkbtn, .tour, input, select, textarea, summary):focus-visible, .dropzone:focus-within { outline: 3px solid var(--warn); outline-offset: 2px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row > .grow { flex: 1 1 200px; }
+
+.tours { display: grid; gap: 10px; margin-bottom: 14px; }
+.tour {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left;
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--sign);
+  border-radius: 14px; padding: 14px 14px 14px 16px; cursor: pointer;
+}
+.tour .t-title { display: block; font-weight: 700; line-height: 1.25; }
+.tour .t-desc { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 3px; }
+.dropzone { display: block; text-align: center; cursor: pointer; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); padding: 22px 16px; }
+.dropzone:hover, .dropzone.over { border-color: var(--sign); }
+.dropzone input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
+.dropzone strong { display: block; font-size: 1.05rem; }
+.dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+.sectionlabel { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
+input[type=text], input[type=search], textarea, select {
+  width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); min-height: 46px;
+}
+textarea { min-height: 96px; resize: vertical; }
+label.field { display: block; margin-top: 12px; }
+label.field > span { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+input[type=range] { width: 100%; height: 36px; accent-color: var(--sign); }
+.check { display: flex; gap: 10px; align-items: center; min-height: 36px; margin-top: 8px; }
+.check input { width: 22px; height: 22px; accent-color: var(--sign); flex: none; }
+
+#map { width: 100%; height: 420px; border-radius: 12px; border: 1px solid var(--line); position: relative; isolation: isolate; background: var(--bg); margin-top: 10px; }
+.pin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; color: #fff; background: #5a3a26; font: 700 13px/24px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.pin.sel { background: #c4621f; transform: scale(1.2); }
+.results { display: grid; gap: 6px; margin-top: 8px; }
+.results button { text-align: left; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+
+.stop { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 12px; background: var(--bg); }
+.stop.sel { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn); }
+.stop .head { display: flex; align-items: center; gap: 10px; }
+.stop .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--sign); color: var(--sign-text); display: grid; place-items: center; font-weight: 700; font-size: 0.9rem; }
+.stop .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.banner { border: 1px solid var(--warn); border-radius: 10px; padding: 10px 12px; margin-top: 12px; color: var(--text); background: var(--surface); }
+details.tips { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+details.tips summary { cursor: pointer; font-weight: 600; min-height: 28px; }
+details.tips ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 0.95rem; }
+details.tips li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
+    <span>Wayside Studio</span>
+  </div>
+  <a class="btn small" href="index.html">Open Wayside</a>
+</header>
+
+<main>
+  <!-- Start -->
+  <section id="start">
+    <h1>Add stops to a route</h1>
+    <p class="lede">Open a route, tap the map where a stop should be, write the text, and download the result. Plan the route itself in Kurviger or any other planner and export it as GPX.</p>
+
+    <div id="existingBox" class="hidden">
+      <p class="sectionlabel" style="margin-top:0;">Edit one of your routes</p>
+      <div id="existingList" class="tours"></div>
+    </div>
+
+    <p class="sectionlabel" style="margin-top:0;">Start from a GPX file</p>
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <strong>Open a GPX file</strong>
+      <span>For example the route you exported from Kurviger.</span>
+    </label>
+    <button class="btn hidden" id="resumeBtn" type="button" style="margin-top:12px; width:100%;">Continue last draft</button>
+    <p class="status" id="startStatus" role="status"></p>
+  </section>
+
+  <!-- Editor -->
+  <section id="editor" class="hidden">
+    <div class="row" style="justify-content:space-between;">
+      <button class="linkbtn" id="backBtn" type="button">&larr; Open another route</button>
+      <span class="hint" id="sourceName" style="margin:0;"></span>
+    </div>
+
+    <div class="card" style="margin-top:6px;">
+      <h2>1. Place the stops</h2>
+      <div class="row">
+        <input type="search" id="searchBox" class="grow" placeholder="Search for a place on the map" aria-label="Search for a place" autocomplete="off">
+        <button class="btn" id="searchBtn" type="button">Search</button>
+      </div>
+      <div class="results" id="results"></div>
+      <div id="map" role="region" aria-label="Map of the route"></div>
+      <label class="check"><input type="checkbox" id="tapAdd" checked><span>Tap on the map to add a stop</span></label>
+      <label class="check"><input type="checkbox" id="snap" checked><span>Snap stops onto the route line</span></label>
+      <label class="check"><input type="checkbox" id="keepOrder" checked><span>Keep stops in route order</span></label>
+      <p class="hint">A stop is read out when you drive within the trigger radius of it. Snapping puts the stop on the road so it is always triggered. For a place away from the road, snap a stop onto the nearest point of the route and say in the text where the place is.</p>
+      <p class="status" id="mapStatus" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>2. Write the texts</h2>
+      <p class="hint" style="margin-top:0;">Leave a text empty if you want Claude to write it later. Wayside then only reads out the name.</p>
+      <div id="stopList"></div>
+      <p class="status" id="summary"></p>
+    </div>
+
+    <div class="card">
+      <h2>3. Publish to Wayside</h2>
+      <label class="field"><span>File name (no spaces)</span><input type="text" id="fileName" autocomplete="off" autocapitalize="none"></label>
+      <label class="field"><span>Route title shown in Wayside</span><input type="text" id="title" autocomplete="off"></label>
+      <label class="field"><span>Short description</span><input type="text" id="desc" autocomplete="off"></label>
+      <label class="field"><span>Trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
+      <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed</span></label>
+      <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads (use this if the file has no track)</span></label>
+      <div id="audioWarn" class="banner hidden">This route has recorded audio. If you add, remove or reorder stops, the old audio files no longer match. Send the downloaded GPX to Claude to make new audio files.</div>
+      <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
+      <p class="status" id="dlStatus" role="status"></p>
+
+      <details class="tips" id="ghBox">
+        <summary>GitHub connection: <span id="ghState">not set up</span></summary>
+        <p class="hint" style="margin-top:10px;">Studio saves the route straight into your repository, so you do not have to upload files by hand. This needs a token. It is stored only in this browser and is never sent anywhere except to GitHub.</p>
+        <label class="field"><span>Repository (owner/name)</span><input type="text" id="ghRepo" autocomplete="off" autocapitalize="none" placeholder="owner/repository"></label>
+        <label class="field"><span>Token</span><input type="password" id="ghToken" autocomplete="off" autocapitalize="none" placeholder="github_pat_…"></label>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn small" id="ghSave" type="button">Save and test</button>
+          <button class="btn small danger" id="ghForget" type="button">Forget token</button>
+        </div>
+        <p class="hint" id="ghMsg" role="status"></p>
+        <p class="hint" style="margin-top:12px;"><b>How to create the token (once)</b></p>
+        <ol>
+          <li>On github.com, click your profile picture, then <b>Settings</b>, then <b>Developer settings</b> at the bottom of the menu.</li>
+          <li>Choose <b>Personal access tokens</b> &gt; <b>Fine-grained tokens</b> &gt; <b>Generate new token</b>.</li>
+          <li>Name it <b>Wayside Studio</b> and pick an expiry date, for example 90 days.</li>
+          <li>Under <b>Repository access</b> choose <b>Only select repositories</b> and pick your Wayside repository.</li>
+          <li>Under <b>Permissions</b> open <b>Repository permissions</b> and set <b>Contents</b> to <b>Read and write</b>.</li>
+          <li>Click <b>Generate token</b>, copy it, and paste it above. Do not share it with anyone, not even in a chat.</li>
+        </ol>
+        <p class="hint">Menu names on GitHub may differ a little. If your phone is lost, delete the token under the same settings.</p>
+      </details>
+
+      <details class="tips">
+        <summary>Or download the files instead</summary>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn small grow" id="dlGpx" type="button">Download GPX</button>
+          <button class="btn small grow" id="dlJson" type="button">Download ture.json</button>
+        </div>
+        <p class="hint">Then upload both to the <b>ture</b> folder in GitHub (Add file &gt; Upload files).</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    start: $('start'), editor: $('editor'), file: $('file'), dropzone: $('dropzone'), startStatus: $('startStatus'),
+    existingBox: $('existingBox'), existingList: $('existingList'), resumeBtn: $('resumeBtn'),
+    backBtn: $('backBtn'), sourceName: $('sourceName'),
+    searchBox: $('searchBox'), searchBtn: $('searchBtn'), results: $('results'),
+    tapAdd: $('tapAdd'), snap: $('snap'), keepOrder: $('keepOrder'), mapStatus: $('mapStatus'),
+    stopList: $('stopList'), summary: $('summary'),
+    fileName: $('fileName'), title: $('title'), desc: $('desc'), radius: $('radius'), radiusVal: $('radiusVal'),
+    adaptive: $('adaptive'), osrm: $('osrm'), audioWarn: $('audioWarn'),
+    dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
+    publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
+    ghToken: $('ghToken'), ghSave: $('ghSave'), ghForget: $('ghForget'), ghMsg: $('ghMsg')
+  };
+
+  var rawXml = '';
+  var track = [];            // [[lat, lon], ...]
+  var stops = [];            // {name, text, lat, lon, pos}
+  var selected = -1;
+  var hasAudio = false;
+  var initialSig = '';
+  var lmap = null, layer = null, searchMarker = null;
+
+  /* ---------- helpers ---------- */
+  function setStart(msg, bad) { els.startStatus.className = 'status' + (bad ? ' bad' : ''); els.startStatus.textContent = msg || ''; }
+  function slug(s) {
+    return String(s || '').toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  function cleanText(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+  function childText(node, names) {
+    for (var n = 0; n < names.length; n++) {
+      for (var i = 0; i < node.children.length; i++) {
+        var c = node.children[i];
+        if ((c.localName || c.nodeName).toLowerCase() === names[n]) {
+          var t = (c.textContent || '').trim();
+          if (t) return t;
+        }
+      }
+    }
+    return '';
+  }
+  function save(key, val) { try { localStorage.setItem('studio:' + key, val); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem('studio:' + key); } catch (e) { return null; } }
+
+  /* ---------- GPX in ---------- */
+  function parseGpx(text) {
+    var doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length || !doc.documentElement || (doc.documentElement.localName || '').toLowerCase() !== 'gpx') {
+      throw new Error('This file could not be read as GPX.');
+    }
+    return doc;
+  }
+  function readTrack(doc) {
+    var tags = ['trkpt', 'rtept'];
+    for (var t = 0; t < tags.length; t++) {
+      var nodes = doc.getElementsByTagName(tags[t]);
+      if (nodes.length > 1) {
+        var step = Math.max(1, Math.ceil(nodes.length / 4000));
+        var pts = [];
+        for (var i = 0; i < nodes.length; i += step) {
+          var la = parseFloat(nodes[i].getAttribute('lat')), lo = parseFloat(nodes[i].getAttribute('lon'));
+          if (!isNaN(la) && !isNaN(lo)) pts.push([la, lo]);
+        }
+        var ln = nodes[nodes.length - 1];
+        var ll = parseFloat(ln.getAttribute('lat')), lg = parseFloat(ln.getAttribute('lon'));
+        if (!isNaN(ll) && !isNaN(lg)) pts.push([ll, lg]);
+        return pts;
+      }
+    }
+    return [];
+  }
+  function readStops(doc) {
+    var out = [];
+    var w = doc.getElementsByTagName('wpt');
+    for (var i = 0; i < w.length; i++) {
+      var lat = parseFloat(w[i].getAttribute('lat')), lon = parseFloat(w[i].getAttribute('lon'));
+      if (isNaN(lat) || isNaN(lon)) continue;
+      out.push({
+        name: cleanText(childText(w[i], ['name'])) || ('Stop ' + (out.length + 1)),
+        text: cleanText(childText(w[i], ['desc', 'cmt'])),
+        lat: lat, lon: lon, pos: 0
+      });
+    }
+    return out;
+  }
+
+  /* ---------- snapping ---------- */
+  function snapInfo(lat, lon) {
+    if (track.length < 2) return null;
+    var kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540;
+    var best = { d: Infinity };
+    for (var i = 0; i < track.length - 1; i++) {
+      var ax = (track[i][1] - lon) * kx, ay = (track[i][0] - lat) * ky;
+      var bx = (track[i + 1][1] - lon) * kx, by = (track[i + 1][0] - lat) * ky;
+      var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+      var u = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+      var px = ax + u * dx, py = ay + u * dy, d = Math.sqrt(px * px + py * py);
+      if (d < best.d) best = { d: d, lat: lat + py / ky, lon: lon + px / kx, pos: i + u };
+    }
+    return best;
+  }
+  function placeStop(s, lat, lon) {
+    var info = snapInfo(lat, lon);
+    if (info && els.snap.checked) { s.lat = info.lat; s.lon = info.lon; }
+    else { s.lat = lat; s.lon = lon; }
+    s.pos = info ? info.pos : 0;
+  }
+  function sortStops() {
+    if (!els.keepOrder.checked || track.length < 2) return;
+    var sel = selected >= 0 ? stops[selected] : null;
+    stops.sort(function (a, b) { return a.pos - b.pos; });
+    selected = sel ? stops.indexOf(sel) : -1;
+  }
+
+  /* ---------- open a route ---------- */
+  function openGpx(text, opts) {
+    var doc = parseGpx(text);
+    rawXml = text;
+    track = readTrack(doc);
+    stops = readStops(doc);
+    stops.forEach(function (s) { var i = snapInfo(s.lat, s.lon); s.pos = i ? i.pos : 0; });
+    selected = -1;
+    opts = opts || {};
+    els.fileName.value = slug(opts.base || 'my-route') || 'my-route';
+    els.title.value = opts.title || (opts.base || '').replace(/[-_]+/g, ' ');
+    els.desc.value = opts.desc || '';
+    els.radius.value = opts.radius || 300;
+    els.adaptive.checked = opts.adaptive !== false;
+    els.osrm.checked = opts.osrm != null ? !!opts.osrm : track.length < 2;
+    els.snap.checked = track.length >= 2;
+    els.keepOrder.checked = track.length >= 2;
+    els.sourceName.textContent = opts.label || '';
+    sortStops();
+    initialSig = signature();
+    els.start.classList.add('hidden');
+    els.editor.classList.remove('hidden');
+    window.scrollTo(0, 0);
+    syncRadius();
+    renderAll(true);
+    checkAudio();
+    saveDraft();
+    els.mapStatus.textContent = track.length < 2 ?
+      'This file has no track or route line. You can still add stops anywhere; snapping is off.' : '';
+  }
+  function signature() {
+    return JSON.stringify(stops.map(function (s) { return [s.name, s.text, Math.round(s.lat * 1e5), Math.round(s.lon * 1e5)]; }));
+  }
+
+  els.file.addEventListener('change', function () { readFile(els.file.files && els.file.files[0]); els.file.value = ''; });
+  function readFile(f) {
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try { openGpx(String(r.result), { base: f.name.replace(/\.gpx$/i, ''), label: f.name }); }
+      catch (e) { setStart(e.message, true); }
+    };
+    r.onerror = function () { setStart('The file could not be opened.', true); };
+    r.readAsText(f);
+  }
+  ['dragenter', 'dragover'].forEach(function (ev) { els.dropzone.addEventListener(ev, function (e) { e.preventDefault(); els.dropzone.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { els.dropzone.addEventListener(ev, function (e) { e.preventDefault(); els.dropzone.classList.remove('over'); }); });
+  els.dropzone.addEventListener('drop', function (e) { readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); });
+
+  // routes already published in Wayside
+  var existing = [];
+  var listLoaded = false;
+  function loadExisting() {
+    if (!window.fetch) return;
+    fetch('ture/ture.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
+      .then(function (list) {
+        if (!Array.isArray(list)) return;
+        listLoaded = true;
+        existing = list.filter(function (t) { return t && t.fil && String(t.fil).indexOf('/') === -1 && String(t.fil).indexOf('..') === -1; });
+        existing.forEach(function (t) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'tour';
+          var left = document.createElement('span');
+          var a = document.createElement('span'); a.className = 't-title'; a.textContent = t.navn || t.fil;
+          left.appendChild(a);
+          if (t.beskrivelse) { var d = document.createElement('span'); d.className = 't-desc'; d.textContent = t.beskrivelse; left.appendChild(d); }
+          b.appendChild(left);
+          b.addEventListener('click', function () {
+            setStart('Loading…');
+            fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-store' })
+              .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
+              .then(function (txt) {
+                openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', label: t.fil });
+                setStart('');
+              })
+              .catch(function (e) { setStart('Could not open the route. ' + e.message, true); });
+          });
+          els.existingList.appendChild(b);
+        });
+        if (existing.length) els.existingBox.classList.remove('hidden');
+      })
+      .catch(function () {});
+  }
+
+  /* ---------- draft ---------- */
+  function saveDraft() {
+    if (!rawXml) return;
+    save('draft', JSON.stringify({
+      rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
+      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked,
+      snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig
+    }));
+  }
+  function resumeDraft() {
+    var raw = load('draft');
+    if (!raw) return;
+    try {
+      var d = JSON.parse(raw);
+      var doc = parseGpx(d.rawXml);
+      rawXml = d.rawXml; track = readTrack(doc); stops = d.stops || []; selected = -1;
+      els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || '';
+      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm;
+      els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
+      initialSig = d.initialSig || signature();
+      els.start.classList.add('hidden'); els.editor.classList.remove('hidden');
+      syncRadius(); renderAll(true); checkAudio();
+    } catch (e) { setStart('The draft could not be restored.', true); }
+  }
+  els.resumeBtn.addEventListener('click', resumeDraft);
+  if (load('draft')) els.resumeBtn.classList.remove('hidden');
+
+  els.backBtn.addEventListener('click', function () {
+    els.editor.classList.add('hidden'); els.start.classList.remove('hidden');
+    if (load('draft')) els.resumeBtn.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  });
+
+  /* ---------- map ---------- */
+  function ensureMap() {
+    if (lmap) return true;
+    if (!window.L) return false;
+    lmap = L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(lmap);
+    layer = L.layerGroup().addTo(lmap);
+    lmap.setView([56, 10], 7);
+    lmap.on('click', function (e) { if (els.tapAdd.checked) addStopAt(e.latlng.lat, e.latlng.lng); });
+    return true;
+  }
+  function drawMap(fit) {
+    if (!ensureMap()) { els.mapStatus.textContent = 'The map could not be loaded. Check your internet connection.'; return; }
+    layer.clearLayers();
+    if (track.length > 1) L.polyline(track, { color: '#1b6fe0', weight: 4, opacity: 0.75 }).addTo(layer);
+    stops.forEach(function (s, i) {
+      var m = L.marker([s.lat, s.lon], {
+        draggable: true, title: s.name,
+        icon: L.divIcon({ className: '', html: '<div class="pin' + (i === selected ? ' sel' : '') + '">' + (i + 1) + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+      }).addTo(layer);
+      m.on('click', function () { select(i, true); });
+      m.on('dragend', function () {
+        var p = m.getLatLng();
+        placeStop(s, p.lat, p.lng);
+        sortStops(); renderAll(false); saveDraft();
+      });
+    });
+    lmap.invalidateSize();
+    if (fit) {
+      var pts = track.length > 1 ? track.slice() : [];
+      stops.forEach(function (s) { pts.push([s.lat, s.lon]); });
+      if (pts.length) lmap.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
+    }
+  }
+
+  els.searchBtn.addEventListener('click', search);
+  els.searchBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+  function search() {
+    var q = els.searchBox.value.trim();
+    if (!q || !window.fetch) return;
+    els.results.innerHTML = '';
+    els.mapStatus.textContent = 'Searching…';
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { if (!r.ok) throw new Error('status ' + r.status); return r.json(); })
+      .then(function (list) {
+        els.mapStatus.textContent = list.length ? '' : 'No places found.';
+        list.forEach(function (p) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = p.display_name;
+          b.addEventListener('click', function () {
+            if (!ensureMap()) return;
+            var lat = parseFloat(p.lat), lon = parseFloat(p.lon);
+            lmap.setView([lat, lon], 16);
+            if (searchMarker) layer.removeLayer(searchMarker);
+            searchMarker = L.circleMarker([lat, lon], { radius: 9, color: '#c4621f', weight: 3, fillOpacity: 0.3 }).addTo(layer);
+            els.mapStatus.textContent = 'Tap the map at the route near this place to add a stop.';
+            els.searchBox.value = String(p.display_name).split(',')[0];
+          });
+          els.results.appendChild(b);
+        });
+      })
+      .catch(function (e) { els.mapStatus.textContent = 'Search failed (' + e.message + ').'; });
+  }
+
+  /* ---------- stops ---------- */
+  function addStopAt(lat, lon) {
+    var s = { name: 'New stop', text: '', lat: lat, lon: lon, pos: 0 };
+    placeStop(s, lat, lon);
+    stops.push(s);
+    selected = stops.length - 1;
+    var ref = s;
+    sortStops();
+    selected = stops.indexOf(ref);
+    renderAll(false);
+    saveDraft();
+    var card = els.stopList.children[selected];
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var inp = card.querySelector('input'); if (inp) { inp.focus(); inp.select(); }
+    }
+  }
+  function select(i, scroll) {
+    selected = i;
+    renderCards(); drawMap(false);
+    if (scroll && els.stopList.children[i]) els.stopList.children[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function renderAll(fit) { renderCards(); drawMap(!!fit); updateSummary(); updateWarn(); }
+  function renderCards() {
+    els.stopList.innerHTML = '';
+    stops.forEach(function (s, i) {
+      var c = document.createElement('div');
+      c.className = 'stop' + (i === selected ? ' sel' : '');
+      var head = document.createElement('div'); head.className = 'head';
+      var num = document.createElement('span'); num.className = 'num'; num.textContent = i + 1;
+      var name = document.createElement('input'); name.type = 'text'; name.value = s.name; name.setAttribute('aria-label', 'Name of stop ' + (i + 1));
+      name.addEventListener('input', function () { s.name = name.value; saveDraft(); updateSummary(); updateWarn(); });
+      name.addEventListener('focus', function () { if (selected !== i) { selected = i; document.querySelectorAll('.stop').forEach(function (el, k) { el.classList.toggle('sel', k === i); }); drawMap(false); } });
+      head.appendChild(num); head.appendChild(name);
+      var ta = document.createElement('textarea'); ta.value = s.text; ta.placeholder = 'Text to read out (leave empty to let Claude write it)';
+      ta.setAttribute('aria-label', 'Text of stop ' + (i + 1)); ta.style.marginTop = '10px';
+      ta.addEventListener('input', function () { s.text = ta.value; saveDraft(); updateSummary(); updateWarn(); });
+      var act = document.createElement('div'); act.className = 'actions';
+      function btn(label, fn, cls) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small' + (cls ? ' ' + cls : ''); b.textContent = label; b.addEventListener('click', fn); act.appendChild(b); return b; }
+      btn('Listen', function () { speakStop(s); });
+      btn('Show on map', function () { if (lmap) { lmap.setView([s.lat, s.lon], Math.max(lmap.getZoom ? lmap.getZoom() : 14, 15)); } select(i, false); });
+      if (!els.keepOrder.checked) {
+        if (i > 0) btn('Move up', function () { move(i, -1); });
+        if (i < stops.length - 1) btn('Move down', function () { move(i, 1); });
+      }
+      btn('Delete', function () {
+        stops.splice(i, 1); if (selected === i) selected = -1; else if (selected > i) selected--;
+        renderAll(false); saveDraft();
+      }, 'danger');
+      c.appendChild(head); c.appendChild(ta); c.appendChild(act);
+      els.stopList.appendChild(c);
+    });
+    if (!stops.length) {
+      var p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No stops yet. Tap the map to add the first one.';
+      els.stopList.appendChild(p);
+    }
+  }
+  function move(i, d) {
+    var j = i + d; if (j < 0 || j >= stops.length) return;
+    var t = stops[i]; stops[i] = stops[j]; stops[j] = t;
+    selected = j; renderAll(false); saveDraft();
+  }
+  function updateSummary() {
+    var empty = stops.filter(function (s) { return !s.text.trim(); }).length;
+    els.summary.textContent = stops.length + (stops.length === 1 ? ' stop' : ' stops') +
+      (empty ? ', ' + empty + ' without text (only the name will be read out).' : ', all with text.');
+  }
+  function speakStop(s) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(s.text ? s.name + '. ' + s.text : s.name);
+    var v = (window.speechSynthesis.getVoices() || []).filter(function (x) { return /^da/i.test(x.lang); })[0];
+    u.lang = v ? v.lang : 'da-DK'; if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }
+
+  /* ---------- audio warning ---------- */
+  var audioTimer = null;
+  function checkAudio() {
+    clearTimeout(audioTimer);
+    audioTimer = setTimeout(function () {
+      var base = slug(els.fileName.value);
+      if (!base || !window.fetch) { hasAudio = false; updateWarn(); return; }
+      fetch('ture/' + encodeURIComponent(base) + '-01.mp3', { method: 'HEAD' })
+        .then(function (r) { hasAudio = r.ok; updateWarn(); })
+        .catch(function () { hasAudio = false; updateWarn(); });
+    }, 300);
+  }
+  function updateWarn() { els.audioWarn.classList.toggle('hidden', !(hasAudio && signature() !== initialSig)); }
+
+  /* ---------- publish ---------- */
+  function syncRadius() { els.radiusVal.textContent = els.radius.value + ' m'; }
+  els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); });
+  ['title', 'desc'].forEach(function (k) { els[k].addEventListener('input', saveDraft); });
+  els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); });
+  ['adaptive', 'osrm', 'snap', 'keepOrder'].forEach(function (k) {
+    els[k].addEventListener('change', function () { if (k === 'keepOrder') { sortStops(); renderAll(false); } saveDraft(); });
+  });
+
+  function download(name, text, type) {
+    var blob = new Blob([text], { type: type });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }
+  function currentBase() { return slug(els.fileName.value) || 'my-route'; }
+
+  function buildGpx() {
+    var doc = parseGpx(rawXml);
+    var root = doc.documentElement;
+    var ns = root.namespaceURI;
+    Array.prototype.slice.call(root.children).forEach(function (c) {
+      if ((c.localName || c.nodeName).toLowerCase() === 'wpt') root.removeChild(c);
+    });
+    var anchor = null;
+    for (var i = 0; i < root.children.length; i++) {
+      var ln = (root.children[i].localName || root.children[i].nodeName).toLowerCase();
+      if (ln === 'rte' || ln === 'trk') { anchor = root.children[i]; break; }
+    }
+    function el(name, text) { var e = ns ? doc.createElementNS(ns, name) : doc.createElement(name); if (text != null) e.textContent = text; return e; }
+    stops.forEach(function (s) {
+      var w = el('wpt');
+      w.setAttribute('lat', s.lat.toFixed(6)); w.setAttribute('lon', s.lon.toFixed(6));
+      w.appendChild(el('name', s.name || 'Stop'));
+      if (s.text && s.text.trim()) w.appendChild(el('desc', s.text.trim()));
+      if (anchor) { root.insertBefore(w, anchor); root.insertBefore(doc.createTextNode('\n'), anchor); }
+      else { root.appendChild(w); root.appendChild(doc.createTextNode('\n')); }
+    });
+    var xml = new XMLSerializer().serializeToString(doc);
+    if (!/^<\?xml/.test(xml)) xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+    return xml;
+  }
+  els.dlGpx.addEventListener('click', function () {
+    if (!stops.length) { els.dlStatus.className = 'status bad'; els.dlStatus.textContent = 'Add at least one stop first.'; return; }
+    try {
+      download(currentBase() + '.gpx', buildGpx(), 'application/gpx+xml');
+      els.dlStatus.className = 'status';
+      els.dlStatus.textContent = 'Downloaded ' + currentBase() + '.gpx. Now download the route list too, then upload both to the ture folder.';
+    } catch (e) { els.dlStatus.className = 'status bad'; els.dlStatus.textContent = e.message; }
+  });
+  function buildEntry() {
+    var entry = {
+      navn: els.title.value.trim() || currentBase(),
+      fil: currentBase() + '.gpx',
+      beskrivelse: els.desc.value.trim(),
+      radius: Number(els.radius.value) || 300,
+      adaptiv: els.adaptive.checked
+    };
+    if (els.osrm.checked) entry.rute = 'osrm';
+    return entry;
+  }
+  function mergeEntry(list, entry) {
+    var idx = -1;
+    list.forEach(function (x, k) { if (x && x.fil === entry.fil) idx = k; });
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+    return list;
+  }
+  els.dlJson.addEventListener('click', function () {
+    var entry = buildEntry();
+    var go = function (list, ok) {
+      mergeEntry(list, entry);
+      download('ture.json', JSON.stringify(list, null, 2), 'application/json');
+      els.dlStatus.className = ok ? 'status' : 'status bad';
+      els.dlStatus.textContent = ok ?
+        'Downloaded ture.json with your route added to the existing list.' :
+        'Downloaded ture.json, but the current route list could not be fetched, so it only contains this route. Do not upload it over your existing list; ask Claude to merge it.';
+    };
+    if (!window.fetch) { go([], false); return; }
+    fetch('ture/ture.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
+      .then(function (list) { go(Array.isArray(list) ? list : [], true); })
+      .catch(function () { go([], false); });
+  });
+
+  /* ---------- GitHub: publish straight into the repository ---------- */
+  var gh = { repo: '', token: '' };
+  function detectRepo() {
+    var h = location.hostname, p = location.pathname.split('/').filter(Boolean);
+    if (/\.github\.io$/i.test(h) && p.length && !/\.html?$/i.test(p[0])) return h.split('.')[0] + '/' + p[0];
+    return '';
+  }
+  function loadGh() {
+    gh.repo = load('ghRepo') || detectRepo();
+    gh.token = load('ghToken') || '';
+    els.ghRepo.value = gh.repo;
+    updateGhState();
+  }
+  function updateGhState() {
+    els.ghState.textContent = (gh.token && gh.repo) ? 'saved for ' + gh.repo : 'not set up';
+  }
+  function toB64(text) {
+    var bytes = new TextEncoder().encode(text), bin = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function fromB64(b64) {
+    var bin = atob(String(b64).replace(/\s/g, '')), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function ghFetch(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + gh.token }, opts.headers || {});
+    return fetch('https://api.github.com' + path, opts);
+  }
+  function ghError(r) {
+    return r.json().catch(function () { return {}; }).then(function (j) {
+      var m = (j && j.message) || '', msg;
+      if (r.status === 401) msg = 'GitHub rejected the token. It may be wrong or expired. Create a new one.';
+      else if (r.status === 403) msg = 'The token is not allowed to do this. It needs Contents: Read and write on this repository. ' + m;
+      else if (r.status === 404) msg = 'The repository was not found. Check the name and that the token has access to it.';
+      else msg = 'GitHub error ' + r.status + (m ? ': ' + m : '');
+      var e = new Error(msg); e.status = r.status; throw e;
+    });
+  }
+  function ghGetFile(path) {
+    return ghFetch('/repos/' + gh.repo + '/contents/' + path).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) return ghError(r);
+      return r.json();
+    });
+  }
+  function ghPut(path, text, message, sha) {
+    var body = { message: message, content: toB64(text) };
+    if (sha) body.sha = sha;
+    return ghFetch('/repos/' + gh.repo + '/contents/' + path, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function (r) { if (!r.ok) return ghError(r); return r.json(); });
+  }
+  function withRetry(fn) {            // one retry if the file changed while we were working
+    return fn().catch(function (e) { if (e.status === 409 || e.status === 422) return fn(); throw e; });
+  }
+  function putFile(path, text, message) {
+    return withRetry(function () {
+      return ghGetFile(path).then(function (f) { return ghPut(path, text, message, f && f.sha); });
+    });
+  }
+  function updateList(entry) {
+    return withRetry(function () {
+      return ghGetFile('ture/ture.json').then(function (f) {
+        var list = [], sha = null;
+        if (f) {
+          sha = f.sha;
+          try { list = JSON.parse(fromB64(f.content)); } catch (e) { throw new Error('The existing ture.json could not be read, so the route list was not changed.'); }
+          if (!Array.isArray(list)) list = [];
+        }
+        mergeEntry(list, entry);
+        return ghPut('ture/ture.json', JSON.stringify(list, null, 2), 'Studio: update route list', sha);
+      });
+    });
+  }
+  function ghMsg(msg, bad) { els.ghMsg.style.color = bad ? 'var(--warn)' : ''; els.ghMsg.textContent = msg || ''; }
+
+  els.ghSave.addEventListener('click', function () {
+    var repo = els.ghRepo.value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+    var token = els.ghToken.value.trim() || gh.token;
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { ghMsg('Write the repository as owner/name, for example myname/poi-guide.', true); return; }
+    if (!token) { ghMsg('Paste the token first.', true); return; }
+    gh.repo = repo; gh.token = token;
+    ghMsg('Testing…');
+    ghFetch('/repos/' + gh.repo)
+      .then(function (r) { if (!r.ok) return ghError(r); return r.json(); })
+      .then(function (j) {
+        if (j.permissions && !j.permissions.push) {
+          ghMsg('The token can read the repository but not write to it. Set Contents to Read and write.', true);
+          return;
+        }
+        save('ghRepo', gh.repo); save('ghToken', gh.token);
+        els.ghToken.value = '';
+        updateGhState();
+        ghMsg('Connected. Studio can now publish to ' + gh.repo + '.');
+      })
+      .catch(function (e) { gh.token = load('ghToken') || ''; ghMsg(e.message, true); });
+  });
+  els.ghForget.addEventListener('click', function () {
+    try { localStorage.removeItem('studio:ghToken'); } catch (e) {}
+    gh.token = ''; els.ghToken.value = ''; updateGhState(); ghMsg('The token has been removed from this browser.');
+  });
+
+  function dlMsg(msg, bad) { els.dlStatus.className = 'status' + (bad ? ' bad' : ''); els.dlStatus.textContent = msg || ''; }
+  els.publishBtn.addEventListener('click', function () {
+    if (!stops.length) { dlMsg('Add at least one stop first.', true); return; }
+    if (!gh.token || !gh.repo) {
+      els.ghBox.open = true;
+      dlMsg('Set up the GitHub connection first (just below). You only need to do it once.', true);
+      els.ghBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    var gpxText;
+    try { gpxText = buildGpx(); } catch (e) { dlMsg(e.message, true); return; }
+    var entry = buildEntry();
+    els.publishBtn.disabled = true;
+    dlMsg('Publishing…');
+    putFile('ture/' + entry.fil, gpxText, 'Studio: ' + entry.fil)
+      .then(function () { dlMsg('Route file saved. Updating the route list…'); return updateList(entry); })
+      .then(function () {
+        saveDraft(); updateWarn();
+        dlMsg('Published to ' + gh.repo + '. Wayside shows the change in 1 to 3 minutes; close and reopen it to see it.');
+      })
+      .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
+      .then(function () { els.publishBtn.disabled = false; });
+  });
+  loadGh();
+
+  loadExisting();
+})();
+</script>
+</body>
+</html>

@@ -128,6 +128,7 @@ main {
 .tour .t-desc { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 3px; }
 .tour svg { width: 22px; height: 22px; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .tour:disabled { opacity: 0.6; }
+a.tour { text-decoration: none; }
 .dropzone {
   display: block; text-align: center; cursor: pointer;
   border: 2px dashed var(--line); border-radius: 14px; background: var(--surface);
@@ -376,6 +377,12 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <button class="btn small" id="resetBtn" type="button" disabled>Reset visited stops</button>
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
+
+    <h3>Create routes</h3>
+    <a class="tour" href="editor.html">
+      <span><span class="t-title">Wayside Studio</span><span class="t-desc">Add stops and texts to a route</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
   </div>
 </aside>
 
