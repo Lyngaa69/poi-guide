@@ -302,6 +302,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 
     <section class="card">
       <h2>Stops</h2>
+      <p class="hint" id="audioInfo" style="margin:-4px 0 8px;"></p>
       <ul class="pois" id="poiList"></ul>
     </section>
   </section>
@@ -353,6 +354,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span class="top"><span>Speech speed</span><span class="val" id="rateVal"></span></span>
       <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="1">
     </label>
+    <p class="hint">Speech speed only applies to the built-in voice, not to audio files.</p>
     <div class="row" style="margin-top:14px;">
       <button class="btn small" id="testVoice" type="button">Test voice</button>
     </div>
@@ -395,7 +397,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     tourList: $('tourList'), file: $('file'), dropzone: $('dropzone'),
     openRoutes: $('openRoutes'), routeCount: $('routeCount'), routes: $('routes'), routesBack: $('routesBack'),
     routeSearch: $('routeSearch'), noRoutes: $('noRoutes'), routesStatus: $('routesStatus'),
-    menuRoutes: $('menuRoutes'), menuUpload: $('menuUpload'),
+    menuRoutes: $('menuRoutes'), menuUpload: $('menuUpload'), audioInfo: $('audioInfo'),
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
@@ -421,6 +423,81 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var voiceEntries = [];
   var simTimer = null;
   var lmap = null, layer = null, fitPending = false;
+
+  /* ---------- audio files (optional per stop) ---------- */
+  var SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+  var player = new Audio();
+  player.preload = 'auto';
+  var audioUrls = [];
+  var audioToken = 0;
+
+  function unlockAudio() {          // must run inside a tap, so iPhone allows later playback
+    try {
+      player.src = SILENT;
+      var pr = player.play();
+      if (pr && pr.catch) pr.catch(function () {});
+    } catch (e) {}
+  }
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    player.onended = null;
+    player.onerror = null;
+  }
+  function releaseAudio() {
+    audioToken++;
+    audioUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} });
+    audioUrls = [];
+    els.audioInfo.textContent = '';
+  }
+  function pad(n, w) { var s = String(n); while (s.length < w) s = '0' + s; return s; }
+  function prepareAudio(base) {
+    var token = audioToken;
+    if (!base || !window.fetch) return;
+    var w = Math.max(2, String(pois.length).length);
+    var jobs = pois.map(function (p, i) {
+      return { p: p, href: 'ture/' + encodeURIComponent(base) + '-' + pad(i + 1, w) + '.mp3' };
+    });
+    var found = 0, next = 0;
+    function one(job) {
+      return fetch(job.href)
+        .then(function (r) { if (!r.ok) throw new Error('missing'); return r.blob(); })
+        .then(function (blob) {
+          if (token !== audioToken) return;
+          if (blob.type && !/^audio\/|octet-stream/.test(blob.type)) throw new Error('not audio');
+          var b2 = /^audio\//.test(blob.type) ? blob : new Blob([blob], { type: 'audio/mpeg' });
+          var u = URL.createObjectURL(b2);
+          audioUrls.push(u);
+          job.p.audioBlob = u;
+          job.p.audioHref = job.href;
+          found++;
+        })
+        .catch(function () {});
+    }
+    function worker() {
+      if (next >= jobs.length || token !== audioToken) return Promise.resolve();
+      return one(jobs[next++]).then(worker);
+    }
+    Promise.all([worker(), worker(), worker()]).then(function () {
+      if (token !== audioToken) return;
+      els.audioInfo.textContent = found ? 'Recorded audio for ' + found + ' of ' + pois.length + ' stops.' : '';
+      renderList();
+    });
+  }
+  function playAudio(p, text, done) {
+    var urls = [p.audioBlob, p.audioHref].filter(Boolean);
+    var i = 0, finished = false;
+    function end(fn) { finished = true; player.onended = null; player.onerror = null; fn(); }
+    function tryNext() {
+      if (finished) return;
+      if (i >= urls.length) { end(function () { speak(text, done); }); return; }
+      player.onended = function () { end(done); };
+      player.onerror = tryNext;
+      player.src = urls[i++];
+      var pr = player.play();
+      if (pr && pr.catch) pr.catch(function (e) { if (!(e && e.name === 'AbortError')) tryNext(); });
+    }
+    tryNext();
+  }
 
   /* ---------- storage (convenience only) ---------- */
   function save(key, val) { try { localStorage.setItem('wayside:' + key, String(val)); } catch (e) {} }
@@ -519,6 +596,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       return;
     }
     stopGuide();
+    releaseAudio();
     pois = parsed.pois;
     track = parsed.track;
     trackSource = track.length ? 'file' : '';
@@ -536,6 +614,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.resetBtn.disabled = false;
     renderList();
     updateNext();
+    prepareAudio(opts.audioDir);
     var noDesc = pois.filter(function (p) { return !p.desc; }).length;
     setStatus(noDesc ? noDesc + ' stop(s) have no description, so only the name is read out.' : '');
     if (opts.osrm && !track.length) fetchRoute();
@@ -544,6 +623,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function showHome() {
     stopGuide();
     pois = []; track = []; trackSource = ''; lastPos = null;
+    releaseAudio();
     show('home');
     els.simBtn.disabled = true;
     els.resetBtn.disabled = true;
@@ -629,7 +709,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         fetch('ture/' + encodeURIComponent(t.fil))
           .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
           .then(function (txt) {
-            loadRoute(parseGpx(txt), t.navn, { radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm' });
+            loadRoute(parseGpx(txt), t.navn, {
+              radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm',
+              audioDir: String(t.fil).replace(/\.[^.]+$/, '')
+            });
           })
           .catch(function (e) { setLoadStatus('Could not load the route. ' + (e && e.message ? e.message : ''), true); });
       });
@@ -796,11 +879,14 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     renderList();
     updateNext();
     setStatus('Reading: ' + p.name);
-    speak(p.desc ? (p.name + '. ' + p.desc) : p.name, function () {
+    var text = p.desc ? (p.name + '. ' + p.desc) : p.name;
+    var after = function () {
       speaking = false;
       if (running) setStatus('Guide running. Waiting for the next stop.');
       pump();
-    });
+    };
+    if (p.audioBlob) playAudio(p, text, after);
+    else speak(text, after);
   }
 
   /* ---------- GPS ---------- */
@@ -853,6 +939,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     if (running || !pois.length) return;
     if (!('geolocation' in navigator)) { setStatus('This browser has no GPS access.', true); return; }
     running = true;
+    unlockAudio();
     els.startBtn.textContent = 'Stop guide';
     els.dimBtn.disabled = false;
     say('Guide started.', 'Guiden er startet.');   // also unlocks speech on iPhone
@@ -870,6 +957,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     queue = [];
     speaking = false;
+    stopAudio();
     running = false;
     els.startBtn.textContent = 'Start guide';
     els.dimBtn.disabled = true;
@@ -897,6 +985,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     queue = [];
     renderList();
     running = true;
+    unlockAudio();
     els.startBtn.textContent = 'Stop guide';
     els.dimBtn.disabled = false;
     els.simBtn.textContent = 'Stop simulation';
@@ -971,13 +1060,15 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       var mid = document.createElement('div');
       var nm = document.createElement('div'); nm.className = 'poi-name'; nm.textContent = (i + 1) + '. ' + p.name;
       var meta = document.createElement('div'); meta.className = 'poi-meta';
-      meta.textContent = (p.read ? 'Read out' : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '');
+      meta.textContent = (p.read ? 'Read out' : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '') + (p.audioBlob ? ' · audio file' : '');
       mid.appendChild(nm); mid.appendChild(meta);
       var b = document.createElement('button');
       b.className = 'btn small'; b.type = 'button'; b.textContent = 'Play';
       b.setAttribute('aria-label', 'Play ' + p.name);
       b.addEventListener('click', function () {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        stopAudio();
+        unlockAudio();
         queue = []; speaking = false;
         enqueue(i);
       });
