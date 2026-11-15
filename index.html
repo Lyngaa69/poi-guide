@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>POI-guide til køreturen</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+:root {
+  --bg: #f3f0eb;
+  --surface: #ffffff;
+  --line: #d9d2c8;
+  --text: #241b15;
+  --muted: #6c5f54;
+  --sign: #5a3a26;
+  --sign-text: #fbf6ee;
+  --ok: #2f7d4f;
+  --warn: #a4501b;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a130f;
+    --surface: #271c16;
+    --line: #43332a;
+    --text: #f4ece2;
+    --muted: #b3a393;
+    --sign: #5a3a26;
+    --sign-text: #fbf6ee;
+    --ok: #6fcf97;
+    --warn: #f2a46a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1a130f;
+  --surface: #271c16;
+  --line: #43332a;
+  --text: #f4ece2;
+  --muted: #b3a393;
+  --sign: #5a3a26;
+  --sign-text: #fbf6ee;
+  --ok: #6fcf97;
+  --warn: #f2a46a;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+h1 { font-size: 1.5rem; margin: 8px 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.05rem; margin: 0 0 10px; }
+p { margin: 0 0 10px; }
+.lede { color: var(--muted); margin-bottom: 18px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.btn {
+  font: inherit;
+  font-weight: 600;
+  min-height: 52px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
+}
+.btn.sign {
+  background: var(--sign);
+  color: var(--sign-text);
+  border: 3px solid var(--sign-text);
+  box-shadow: 0 0 0 2px var(--sign);
+  font-size: 1.1rem;
+}
+.btn.block { width: 100%; }
+.btn.small { min-height: 40px; padding: 6px 12px; font-size: 0.9rem; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1 1 140px; }
+.file-label { display: block; }
+.file-label input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.file-label:focus-within .btn { outline: 3px solid var(--warn); outline-offset: 2px; }
+
+.nextsign {
+  background: var(--sign);
+  color: var(--sign-text);
+  border: 4px solid var(--sign-text);
+  box-shadow: 0 0 0 3px var(--sign);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 4px 3px 16px;
+}
+.nextsign .lbl { font-size: 0.9rem; opacity: 0.85; }
+.nextsign .name { font-size: 1.5rem; font-weight: 700; line-height: 1.2; margin: 2px 0 6px; overflow-wrap: anywhere; }
+.nextsign .dist { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.nextsign .sub { font-size: 0.9rem; opacity: 0.85; }
+
+.status { color: var(--muted); font-size: 0.95rem; margin: 10px 0 0; min-height: 1.4em; }
+.status.bad { color: var(--warn); }
+
+label.field { display: block; margin: 14px 0 0; }
+label.field .top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+label.field .val { font-variant-numeric: tabular-nums; color: var(--muted); }
+input[type=range] { width: 100%; height: 36px; accent-color: var(--sign); }
+select {
+  width: 100%; font: inherit; min-height: 46px; padding: 8px 10px;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text);
+}
+.check { display: flex; gap: 10px; align-items: center; margin-top: 14px; min-height: 36px; }
+.check input { width: 22px; height: 22px; accent-color: var(--sign); }
+.hint { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+details.card summary { cursor: pointer; font-weight: 600; min-height: 32px; }
+details.card[open] summary { margin-bottom: 8px; }
+
+ul.pois { list-style: none; margin: 0; padding: 0; }
+ul.pois li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+ul.pois li:first-child { border-top: 0; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted); justify-self: center; }
+li.done .dot { background: var(--ok); border-color: var(--ok); }
+li.next .dot { border-color: var(--warn); background: var(--warn); }
+.poi-name { font-weight: 600; overflow-wrap: anywhere; }
+.poi-meta { color: var(--muted); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+
+#map { width: 100%; height: 360px; border-radius: 10px; border: 1px solid var(--line); position: relative; isolation: isolate; background: var(--bg); }
+.tour { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
+.tour small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.pin { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; color: #fff; font: 700 12px/22px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.pin.m-poi { background: #5a3a26; }
+.pin.m-done { background: #2f7d4f; }
+.pin.m-next { background: #c4621f; }
+.m-line { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.m-line.dashed { stroke-dasharray: 6 6; }
+.m-radius { fill: none; stroke: #c4621f; stroke-width: 1.5; stroke-dasharray: 4 4; }
+.m-poi { fill: var(--sign); stroke: var(--sign-text); stroke-width: 2; }
+.m-done { fill: #2f7d4f; stroke: var(--sign-text); stroke-width: 2; }
+.m-next { fill: #c4621f; stroke: var(--sign-text); stroke-width: 2; }
+.m-num { fill: #fff; font-size: 12px; font-weight: 700; font-family: inherit; }
+.m-me { fill: #1b6fe0; stroke: #fff; stroke-width: 3; }
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+#dim {
+  position: fixed; inset: 0; z-index: 100;
+  background: #000; color: #4a4a4a;
+  display: none; align-items: center; justify-content: center;
+  text-align: center; padding: 24px;
+  cursor: pointer;
+}
+#dim.on { display: flex; }
+#dim .big { font-size: 1.3rem; margin-bottom: 8px; }
+#dim .small { font-size: 0.95rem; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>POI-guide til køreturen</h1>
+  <p class="lede">Indlæs en GPX-fil med waypoints. Når du kommer tæt på et punkt, læser telefonen beskrivelsen op.</p>
+
+  <section class="card" id="loadCard">
+    <div id="tourBox" class="hidden">
+      <h2>Vælg en tur</h2>
+      <div id="tourList"></div>
+      <p class="hint" style="margin:14px 0 8px;">Eller brug din egen GPX-fil:</p>
+    </div>
+    <label class="file-label">
+      <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*">
+      <span class="btn sign block" style="display:block;text-align:center;line-height:26px;">Vælg GPX-fil</span>
+    </label>
+    <p class="hint" style="margin-top:10px;">Navn og tekst hentes fra &lt;name&gt; og &lt;desc&gt; (eller &lt;cmt&gt;) på hvert waypoint.</p>
+    <button class="btn block" id="sample2Btn" style="margin-top:8px;">Eksempel: Ladelundsvej til Padborgvej, Silkeborg</button>
+    <button class="btn block" id="sampleBtn" style="margin-top:8px;">Eksempel: Kronborg til Rungstedlund</button>
+    <p class="status" id="loadStatus" role="status"></p>
+  </section>
+
+  <section id="guide" class="hidden">
+    <div class="nextsign" aria-live="polite">
+      <div class="lbl" id="nextLbl">Næste punkt</div>
+      <div class="name" id="nextName">–</div>
+      <div class="dist" id="nextDist">–</div>
+      <div class="sub" id="nextSub">Tryk Start for at slå GPS til</div>
+    </div>
+
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn sign" id="startBtn">Start guide</button>
+      <button class="btn" id="dimBtn" disabled>Sort skærm</button>
+      <button class="btn" id="simBtn">Simulér kørsel</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+
+    <section class="card" id="mapCard" style="margin-top:14px;">
+      <h2>Kort over ruten</h2>
+      <div id="map" role="region" aria-label="Kort over ruten og punkterne"></div>
+      <label class="check"><input type="checkbox" id="follow" checked><span>Følg min position</span></label>
+      <button class="btn small hidden" id="routeBtn" type="button" style="margin-top:10px;">Tegn kørerute langs vejene</button>
+      <p class="hint" id="mapHint"></p>
+    </section>
+
+    <details class="card" open>
+      <summary>Indstillinger</summary>
+      <label class="field">
+        <span class="top"><span>Udløsningsradius</span><span class="val" id="radiusVal"></span></span>
+        <input type="range" id="radius" min="50" max="600" step="25" value="250">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="adaptive" checked>
+        <span>Større radius ved høj fart</span>
+      </label>
+      <p class="hint">Ved høj fart lægges radius til, så teksten når at blive læst. Beregnes som ca. 12 sekunders kørsel.</p>
+      <label class="field">
+        <span class="top"><span>Talehastighed</span><span class="val" id="rateVal"></span></span>
+        <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="1">
+      </label>
+      <label class="field">
+        <span class="top"><span>Stemme</span></span>
+        <select id="voice"></select>
+      </label>
+      <p class="hint" id="voiceHint"></p>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn small" id="testVoice">Test stemmen</button>
+        <button class="btn small" id="resetBtn">Nulstil læste punkter</button>
+      </div>
+    </details>
+
+    <section class="card">
+      <h2>Punkter på ruten</h2>
+      <ul class="pois" id="poiList"></ul>
+    </section>
+  </section>
+</main>
+
+<div id="dim" role="button" tabindex="0" aria-label="Tryk for at tænde skærmen">
+  <div>
+    <div class="big" id="dimName"></div>
+    <div class="small" id="dimDist"></div>
+    <div class="small" style="margin-top:18px;">Tryk et sted for at vække skærmen</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SAMPLE_GPX =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<gpx version="1.1" creator="eksempel" xmlns="http://www.topografix.com/GPX/1/1">' +
+    '<wpt lat="56.0390" lon="12.6212"><name>Kronborg Slot</name>' +
+    '<desc>Kronborg ved Helsingør er optaget på UNESCOs verdensarvsliste. Slottet kendes over hele verden som Elsinore fra Shakespeares Hamlet.</desc></wpt>' +
+    '<wpt lat="55.9701" lon="12.5420"><name>Louisiana</name>' +
+    '<desc>Louisiana i Humlebæk er et museum for moderne kunst, åbnet i 1958. Det er kendt for sin placering lige ned til Øresund.</desc></wpt>' +
+    '<wpt lat="55.8850" lon="12.5440"><name>Rungstedlund</name>' +
+    '<desc>Her boede forfatteren Karen Blixen. Gården er i dag museum, og haven og huset kan besøges.</desc></wpt>' +
+    '</gpx>';
+
+  var SAMPLE_GPX2 =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<gpx version="1.1" creator="eksempel" xmlns="http://www.topografix.com/GPX/1/1">' +
+    '<wpt lat="56.17785" lon="9.51315"><name>Start: Ladelundsvej 5</name><desc>Turen starter her på Ladelundsvej i Silkeborg. Du skal cirka halvandet kilometer mod vest til butikken på Padborgvej.</desc></wpt>' +
+    '<wpt lat="56.17569" lon="9.50704"><name>Vestsiden af Silkeborg</name><desc>Du er på vej ind i det vestligste Silkeborg, området omkring Hvinningdal. Her ligger både skole, sportshal og en helt ny kirke, og længere mod sydvest ligger vandværket.</desc></wpt>' +
+    '<wpt lat="56.17416" lon="9.50266"><name>Hvinningdal Vandværk</name><desc>Sydvest for ruten, i skoven ved Odinsvej, ligger Hvinningdal Vandværk fra 1974. Ifølge en redegørelse fra kommunen stod værket dengang for omkring 90 procent af Silkeborg Kommunale Vandforsynings indvinding. Meget af det vand, der kommer ud af hanerne i Silkeborg, kommer altså herfra.</desc></wpt>' +
+    '<wpt lat="56.17189" lon="9.49852"><name>Hvinningdalskolen</name><desc>Du passerer Hvinningdalskolen på Padborgvej 131. Lige i nærheden ligger også Hvinningdalhallen, som er områdets sportshal.</desc></wpt>' +
+    '<wpt lat="56.17350" lon="9.49630"><name>Hvinningdal Kirke</name><desc>Lidt mod nord ligger Hvinningdal Kirke, indviet i 2022. Den er den første kirke i Danmark bygget i 2020erne, tegnet af Friis og Moltke og kendt for sit mønstermurværk. Den gamle vandrekirke fra 1995 lå ikke langt herfra og er i dag kulturhus i Nye ved Aarhus.</desc></wpt>' +
+    '<wpt lat="56.17169" lon="9.49568"><name>Slut: 365discount, Padborgvej 298</name><desc>Du er fremme ved 365discount på Padborgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. Ifølge Google Maps har butikken åbent fra klokken 7 til 21 alle ugens dage.</desc></wpt>' +
+    '</gpx>';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    file: $('file'), sampleBtn: $('sampleBtn'), sample2Btn: $('sample2Btn'), simBtn: $('simBtn'), loadStatus: $('loadStatus'),
+    map: $('map'), mapHint: $('mapHint'),
+    loadCard: $('loadCard'), guide: $('guide'),
+    nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
+    startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
+    radius: $('radius'), radiusVal: $('radiusVal'), adaptive: $('adaptive'),
+    rate: $('rate'), rateVal: $('rateVal'), voice: $('voice'), voiceHint: $('voiceHint'),
+    testVoice: $('testVoice'), resetBtn: $('resetBtn'), poiList: $('poiList'),
+    dim: $('dim'), dimName: $('dimName'), dimDist: $('dimDist')
+  };
+
+  var pois = [];            // {name, desc, lat, lon, read, dist}
+  var running = false;
+  var watchId = null;
+  var wakeLock = null;
+  var lastPos = null;
+  var queue = [];
+  var speaking = false;
+  var voices = [];
+
+  /* ---------- lagring (kun bekvemmelighed) ---------- */
+  function save(key, val) { try { localStorage.setItem('poiguide:' + key, String(val)); } catch (e) {} }
+  function load(key, fallback) {
+    try { var v = localStorage.getItem('poiguide:' + key); return v === null ? fallback : v; }
+    catch (e) { return fallback; }
+  }
+
+  /* ---------- GPX ---------- */
+  function childText(node, names) {
+    for (var n = 0; n < names.length; n++) {
+      for (var i = 0; i < node.children.length; i++) {
+        var c = node.children[i];
+        if ((c.localName || c.nodeName).toLowerCase() === names[n]) {
+          var t = (c.textContent || '').trim();
+          if (t) return t;
+        }
+      }
+    }
+    return '';
+  }
+
+  function cleanText(s) {
+    if (!s) return '';
+    var tmp = document.createElement('div');
+    tmp.innerHTML = s.replace(/<br\s*\/?>/gi, '. ').replace(/<\/p>/gi, ' ');
+    return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function parseGpx(xmlText) {
+    var doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('Filen kunne ikke læses som GPX/XML.');
+    var wpts = doc.getElementsByTagName('wpt');
+    var out = [];
+    for (var i = 0; i < wpts.length; i++) {
+      var w = wpts[i];
+      var lat = parseFloat(w.getAttribute('lat'));
+      var lon = parseFloat(w.getAttribute('lon'));
+      if (isNaN(lat) || isNaN(lon)) continue;
+      var name = cleanText(childText(w, ['name'])) || ('Punkt ' + (out.length + 1));
+      var desc = cleanText(childText(w, ['desc', 'cmt']));
+      out.push({ name: name, desc: desc, lat: lat, lon: lon, read: false, dist: null });
+    }
+    lastTrack = extractTrack(doc);
+    return out;
+  }
+
+  var track = [], lastTrack = [];
+  var trackSource = '', routeNote = '';
+  function extractTrack(doc) {
+    var tags = ['trkpt', 'rtept'];
+    for (var t = 0; t < tags.length; t++) {
+      var nodes = doc.getElementsByTagName(tags[t]);
+      if (nodes.length > 1) {
+        var step = Math.max(1, Math.ceil(nodes.length / 1500));
+        var pts = [];
+        for (var i = 0; i < nodes.length; i += step) {
+          var la = parseFloat(nodes[i].getAttribute('lat')), lo = parseFloat(nodes[i].getAttribute('lon'));
+          if (!isNaN(la) && !isNaN(lo)) pts.push([la, lo]);
+        }
+        var ln = nodes[nodes.length - 1];
+        var ll = parseFloat(ln.getAttribute('lat')), lg = parseFloat(ln.getAttribute('lon'));
+        if (!isNaN(ll) && !isNaN(lg)) pts.push([ll, lg]);
+        return pts;
+      }
+    }
+    return [];
+  }
+
+  /* ---------- kort (Leaflet + OpenStreetMap) ---------- */
+  var lmap = null, layer = null, fitPending = false;
+  function ensureMap() {
+    if (lmap) return true;
+    if (!window.L) return false;
+    lmap = L.map('map', { zoomControl: true });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap-bidragsydere'
+    }).addTo(lmap);
+    layer = L.layerGroup().addTo(lmap);
+    lmap.setView([56, 10], 7);
+    return true;
+  }
+  function drawMap() {
+    if (!els.map) return;
+    if (!pois.length) return;
+    if (!ensureMap()) {
+      els.mapHint.textContent = 'Kortet kunne ikke indlæses. Tjek internetforbindelsen.';
+      return;
+    }
+    layer.clearLayers();
+    var base = track.length ? track : pois.map(function (p) { return [p.lat, p.lon]; });
+    L.polyline(base, { color: '#1b6fe0', weight: 4, opacity: 0.7, dashArray: track.length ? null : '8 8' }).addTo(layer);
+    var ni = nextIndex();
+    if (ni > -1) {
+      L.circle([pois[ni].lat, pois[ni].lon], {
+        radius: parseFloat(els.radius.value) || 250,
+        color: '#c4621f', weight: 2, dashArray: '4 4', fill: false
+      }).addTo(layer);
+    }
+    pois.forEach(function (p, i) {
+      var cls = p.read ? 'm-done' : (i === ni ? 'm-next' : 'm-poi');
+      L.marker([p.lat, p.lon], {
+        title: p.name,
+        icon: L.divIcon({ className: '', html: '<div class="pin ' + cls + '">' + (i + 1) + '</div>', iconSize: [26, 26], iconAnchor: [13, 13] })
+      }).addTo(layer);
+    });
+    if (lastPos) {
+      L.circleMarker([lastPos.latitude, lastPos.longitude], {
+        radius: 8, color: '#fff', weight: 3, fillColor: '#1b6fe0', fillOpacity: 1
+      }).addTo(layer);
+    }
+    lmap.invalidateSize();
+    if (fitPending) {
+      var pts = pois.map(function (p) { return [p.lat, p.lon]; }).concat(track);
+      lmap.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
+      fitPending = false;
+    } else if (lastPos && running && $('follow') && $('follow').checked) {
+      lmap.panTo([lastPos.latitude, lastPos.longitude], { animate: true });
+    }
+    var rb = $('routeBtn');
+    if (rb) rb.classList.toggle('hidden', trackSource === 'fil' || trackSource === 'osrm');
+    var lineTxt = trackSource === 'fil' ? 'Blå linje følger sporet i GPX-filen. ' :
+      trackSource === 'osrm' ? 'Blå linje er en beregnet kørerute mellem punkterne (OpenStreetMap-data via OSRM) og er ikke nødvendigvis den vej, du kører. ' :
+      'Stiplet blå linje er luftlinje mellem punkterne i filens rækkefølge, ikke selve vejen. ';
+    els.mapHint.textContent = lineTxt + routeNote +
+      ' Blå prik er din position, og den stiplede cirkel er udløsningsradius om næste punkt. Kort: OpenStreetMap.';
+  }
+
+  function loadPois(list, label) {
+    if (!list.length) {
+      els.loadStatus.className = 'status bad';
+      els.loadStatus.textContent = 'Der er ingen waypoints (<wpt>) i filen. Ruter og spor (<trk>, <rte>) bruges ikke som POI.';
+      return;
+    }
+    stopGuide();
+    pois = list;
+    track = lastTrack; lastTrack = [];
+    lastPos = null;
+    fitPending = true;
+    trackSource = track.length ? 'fil' : '';
+    routeNote = '';
+    queue = [];
+    els.loadStatus.className = 'status';
+    els.loadStatus.textContent = label + ': ' + pois.length + ' punkter indlæst.';
+    els.guide.classList.remove('hidden');
+    renderList();
+    updateNext();
+    var noDesc = pois.filter(function (p) { return !p.desc; }).length;
+    setStatus(noDesc ? noDesc + ' punkt(er) har ingen beskrivelse, så kun navnet læses op.' : '');
+  }
+
+  els.file.addEventListener('change', function () {
+    var f = els.file.files && els.file.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try { loadPois(parseGpx(String(reader.result)), f.name); }
+      catch (e) { els.loadStatus.className = 'status bad'; els.loadStatus.textContent = e.message; }
+    };
+    reader.onerror = function () {
+      els.loadStatus.className = 'status bad';
+      els.loadStatus.textContent = 'Filen kunne ikke åbnes.';
+    };
+    reader.readAsText(f);
+  });
+
+  els.sampleBtn.addEventListener('click', function () {
+    loadPois(parseGpx(SAMPLE_GPX), 'Eksempel (omtrentlige positioner ved Øresund)');
+  });
+
+  els.sample2Btn.addEventListener('click', function () {
+    // Kort tur med tætte punkter: mindre radius, ingen fartjustering
+    els.radius.value = 150;
+    els.adaptive.checked = false;
+    syncLabels();
+    loadPois(parseGpx(SAMPLE_GPX2), 'Eksempel Silkeborg');
+  });
+
+  /* ---------- simuleret kørsel (test uden at køre) ---------- */
+  var simTimer = null;
+  function stopSim() {
+    if (simTimer) { clearInterval(simTimer); simTimer = null; }
+    els.simBtn.textContent = 'Simulér kørsel';
+  }
+  function startSim() {
+    if (simTimer) { stopGuide(); setStatus('Simulering stoppet.'); updateNext(); return; }
+    if (!pois.length) return;
+    var path = track.length > 1 ? track.map(function (t) { return { lat: t[0], lon: t[1] }; }) : pois;
+    if (running) stopGuide();
+    pois.forEach(function (p) { p.read = false; p.dist = null; });
+    queue = [];
+    renderList();
+    running = true;
+    els.startBtn.textContent = 'Stop guide';
+    els.dimBtn.disabled = false;
+    els.simBtn.textContent = 'Stop simulering';
+    speak('Simulering startet.', null);
+    setStatus(stepM > speed ? 'Simulerer kørsel langs ruten (tidsforkortet, da turen er lang).' : 'Simulerer kørsel med 50 km/t langs ruten.');
+    var speed = 14; // m/s (vist fart)
+    var totalM = 0;
+    for (var k = 0; k < path.length - 1; k++) totalM += distance(path[k].lat, path[k].lon, path[k + 1].lat, path[k + 1].lon);
+    var stepM = Math.max(speed, totalM / 150); // lange ture spoles frem, så simuleringen højst tager ca. 2,5 minut
+    var seg = 0, frac = 0;
+    function pointAt() {
+      if (seg >= path.length - 1) return { lat: path[path.length - 1].lat, lon: path[path.length - 1].lon };
+      var a = path[seg], b = path[seg + 1];
+      return { lat: a.lat + (b.lat - a.lat) * frac, lon: a.lon + (b.lon - a.lon) * frac };
+    }
+    simTimer = setInterval(function () {
+      var remain = stepM;
+      while (remain > 0 && seg < path.length - 1) {
+        var a = path[seg], b = path[seg + 1];
+        var len = distance(a.lat, a.lon, b.lat, b.lon) || 1;
+        var left = len * (1 - frac);
+        if (remain >= left) { remain -= left; seg++; frac = 0; }
+        else { frac += remain / len; remain = 0; }
+      }
+      var cur = pointAt();
+      onPosition({ coords: { latitude: cur.lat, longitude: cur.lon, accuracy: 5, speed: speed } });
+      if (seg >= path.length - 1) {
+        clearInterval(simTimer); simTimer = null;
+        els.simBtn.textContent = 'Simulér kørsel';
+        setStatus('Simuleringen er slut. Tryk Stop guide for at afslutte.');
+      }
+    }, 1000);
+  }
+  els.simBtn.addEventListener('click', startSim);
+
+  /* ---------- afstand ---------- */
+  function distance(lat1, lon1, lat2, lon2) {
+    var R = 6371000, rad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+  function fmtDist(m) {
+    if (m == null) return '–';
+    if (m < 1000) return Math.round(m / 10) * 10 + ' m';
+    return (m / 1000).toFixed(m < 10000 ? 1 : 0).replace('.', ',') + ' km';
+  }
+
+  /* ---------- tale ---------- */
+  function refreshVoices() {
+    if (!('speechSynthesis' in window)) return;
+    voices = window.speechSynthesis.getVoices() || [];
+    var da = voices.filter(function (v) { return /^da/i.test(v.lang); });
+    var rest = voices.filter(function (v) { return !/^da/i.test(v.lang); });
+    var saved = load('voice', '');
+    els.voice.innerHTML = '';
+    var list = da.concat(rest);
+    list.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v.voiceURI;
+      o.textContent = v.name + ' (' + v.lang + ')';
+      els.voice.appendChild(o);
+    });
+    if (!list.length) {
+      var o = document.createElement('option');
+      o.textContent = 'Standardstemme';
+      els.voice.appendChild(o);
+    }
+    if (saved && list.some(function (v) { return v.voiceURI === saved; })) els.voice.value = saved;
+    else if (da.length) els.voice.value = da[0].voiceURI;
+    els.voiceHint.className = 'hint';
+    els.voiceHint.textContent = da.length ? '' :
+      'Ingen dansk stemme fundet. På iPhone: Indstillinger > Tilgængelighed > Oplæst indhold > Stemmer > Dansk.';
+  }
+  if ('speechSynthesis' in window) {
+    refreshVoices();
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+
+  function currentVoice() {
+    var id = els.voice.value;
+    for (var i = 0; i < voices.length; i++) if (voices[i].voiceURI === id) return voices[i];
+    return null;
+  }
+
+  function chunkText(text) {
+    var parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+    var out = [], cur = '';
+    parts.forEach(function (p) {
+      if ((cur + p).length > 180 && cur) { out.push(cur); cur = p; } else { cur += p; }
+    });
+    if (cur.trim()) out.push(cur);
+    return out;
+  }
+
+  function speak(text, done) {
+    if (!('speechSynthesis' in window)) { setStatus('Denne browser kan ikke læse op.', true); done && done(); return; }
+    var chunks = chunkText(text);
+    var v = currentVoice();
+    chunks.forEach(function (c, idx) {
+      var u = new SpeechSynthesisUtterance(c);
+      u.lang = (v && v.lang) || 'da-DK';
+      if (v) u.voice = v;
+      u.rate = parseFloat(els.rate.value) || 1;
+      if (idx === chunks.length - 1) {
+        u.onend = function () { done && done(); };
+        u.onerror = function () { done && done(); };
+      }
+      window.speechSynthesis.speak(u);
+    });
+  }
+
+  function enqueue(i) {
+    if (queue.indexOf(i) === -1) queue.push(i);
+    pump();
+  }
+  function pump() {
+    if (speaking || !queue.length) return;
+    var i = queue.shift();
+    var p = pois[i];
+    if (!p) return pump();
+    speaking = true;
+    p.read = true;
+    renderList();
+    updateNext();
+    var text = p.desc ? (p.name + '. ' + p.desc) : p.name;
+    setStatus('Læser op: ' + p.name);
+    speak(text, function () {
+      speaking = false;
+      if (running) setStatus('Guiden kører. Venter på næste punkt.');
+      pump();
+    });
+  }
+
+  /* ---------- GPS ---------- */
+  function effectiveRadius(speed) {
+    var base = parseFloat(els.radius.value) || 250;
+    if (els.adaptive.checked && speed && speed > 0) {
+      return Math.min(900, Math.max(base, speed * 12));
+    }
+    return base;
+  }
+
+  function onPosition(pos) {
+    var c = pos.coords;
+    lastPos = c;
+    var speedKmh = c.speed != null && c.speed >= 0 ? Math.round(c.speed * 3.6) : null;
+    pois.forEach(function (p) { p.dist = distance(c.latitude, c.longitude, p.lat, p.lon); });
+    var r = effectiveRadius(c.speed);
+    var good = c.accuracy == null || c.accuracy <= 150;
+    if (good) {
+      pois.forEach(function (p, i) {
+        if (!p.read && p.dist <= r) enqueue(i);
+      });
+    }
+    updateNext();
+    renderList();
+    var parts = ['GPS ±' + Math.round(c.accuracy || 0) + ' m', 'radius ' + Math.round(r) + ' m'];
+    if (speedKmh != null) parts.splice(1, 0, speedKmh + ' km/t');
+    els.nextSub.textContent = parts.join(', ') + (good ? '' : ' (for upræcis, venter)');
+    if (els.dim.classList.contains('on')) updateDim();
+  }
+
+  function onGpsError(err) {
+    var msg = 'GPS-fejl.';
+    if (err.code === 1) msg = 'Adgang til placering er afvist. Tillad placering for denne side i telefonens indstillinger.';
+    else if (err.code === 2) msg = 'Positionen er ikke tilgængelig lige nu.';
+    else if (err.code === 3) msg = 'GPS svarer ikke. Prøver igen.';
+    setStatus(msg, err.code === 1);
+    if (err.code === 1) stopGuide();
+  }
+
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function () { wakeLock = null; });
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (running && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
+  });
+
+  async function startGuide() {
+    if (running) return;
+    if (!pois.length) return;
+    if (!('geolocation' in navigator)) { setStatus('Denne browser har ikke GPS-adgang.', true); return; }
+    running = true;
+    els.startBtn.textContent = 'Stop guide';
+    els.dimBtn.disabled = false;
+    // Lås tale op med en brugerhandling (kræves på iPhone)
+    speak('Guiden er startet.', null);
+    var wl = await requestWakeLock();
+    setStatus(wl ? 'Guiden kører. Skærmen holdes tændt.' :
+      'Guiden kører, men skærmen kan ikke holdes tændt automatisk. Slå automatisk låsning fra i telefonens indstillinger.');
+    els.nextSub.textContent = 'Venter på GPS-signal ...';
+    watchId = navigator.geolocation.watchPosition(onPosition, onGpsError, {
+      enableHighAccuracy: true, maximumAge: 1000, timeout: 20000
+    });
+  }
+
+  function stopGuide() {
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    queue = [];
+    speaking = false;
+    running = false;
+    els.startBtn.textContent = 'Start guide';
+    els.dimBtn.disabled = true;
+    stopSim();
+    hideDim();
+    lastPos = null;
+    drawMap();
+  }
+
+  els.startBtn.addEventListener('click', function () {
+    if (running) { stopGuide(); setStatus('Guiden er stoppet.'); updateNext(); }
+    else startGuide();
+  });
+
+  /* ---------- visning ---------- */
+  function setStatus(msg, bad) {
+    els.status.className = 'status' + (bad ? ' bad' : '');
+    els.status.textContent = msg || '';
+  }
+
+  function nextIndex() {
+    var best = -1;
+    pois.forEach(function (p, i) {
+      if (p.read) return;
+      if (best === -1) { best = i; return; }
+      if (p.dist != null && (pois[best].dist == null || p.dist < pois[best].dist)) best = i;
+    });
+    return best;
+  }
+
+  function updateNext() {
+    var i = nextIndex();
+    if (i === -1) {
+      els.nextLbl.textContent = 'Færdig';
+      els.nextName.textContent = pois.length ? 'Alle punkter er læst op' : '–';
+      els.nextDist.textContent = '';
+      var ml0 = $('mapLink'); if (ml0) ml0.classList.add('hidden');
+      return;
+    }
+    var p = pois[i];
+    var ml = $('mapLink');
+    if (ml) {
+      ml.href = 'https://maps.apple.com/?ll=' + p.lat + ',' + p.lon + '&q=' + encodeURIComponent(p.name);
+      ml.classList.remove('hidden');
+    }
+    els.nextLbl.textContent = running && p.dist != null ? 'Nærmeste punkt' : 'Første punkt';
+    els.nextName.textContent = p.name;
+    els.nextDist.textContent = fmtDist(p.dist);
+  }
+
+  function renderList() {
+    var ni = nextIndex();
+    els.poiList.innerHTML = '';
+    pois.forEach(function (p, i) {
+      var li = document.createElement('li');
+      if (p.read) li.className = 'done'; else if (i === ni) li.className = 'next';
+      var dot = document.createElement('span'); dot.className = 'dot';
+      dot.setAttribute('aria-hidden', 'true');
+      var mid = document.createElement('div');
+      var nm = document.createElement('div'); nm.className = 'poi-name'; nm.textContent = (i + 1) + '. ' + p.name;
+      var meta = document.createElement('div'); meta.className = 'poi-meta';
+      meta.textContent = (p.read ? 'Læst op' : 'Ikke læst') + (p.dist != null ? ', ' + fmtDist(p.dist) : '');
+      mid.appendChild(nm); mid.appendChild(meta);
+      var b = document.createElement('button');
+      b.className = 'btn small'; b.type = 'button'; b.textContent = 'Afspil';
+      b.setAttribute('aria-label', 'Afspil ' + p.name);
+      b.addEventListener('click', function () {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        queue = []; speaking = false;
+        enqueue(i);
+      });
+      li.appendChild(dot); li.appendChild(mid); li.appendChild(b);
+      els.poiList.appendChild(li);
+    });
+    drawMap();
+  }
+
+  /* ---------- sort skærm ---------- */
+  function updateDim() {
+    var i = nextIndex();
+    els.dimName.textContent = i === -1 ? 'Alle punkter er læst op' : pois[i].name;
+    els.dimDist.textContent = i === -1 ? '' : fmtDist(pois[i].dist);
+  }
+  function showDim() { updateDim(); els.dim.classList.add('on'); }
+  function hideDim() { els.dim.classList.remove('on'); }
+  els.dimBtn.addEventListener('click', showDim);
+  els.dim.addEventListener('click', hideDim);
+  els.dim.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hideDim(); });
+
+  /* ---------- kørerute langs vejene (OSRM) ---------- */
+  function fetchRoute() {
+    var btn = $('routeBtn');
+    if (pois.length < 2) return;
+    if (pois.length > 100) { routeNote = 'For mange punkter (over 100) til at beregne en kørerute.'; drawMap(); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Henter kørerute ...'; }
+    var coords = pois.map(function (p) { return p.lon.toFixed(5) + ',' + p.lat.toFixed(5); }).join(';');
+    fetch('https://router.project-osrm.org/route/v1/driving/' + coords + '?overview=full&geometries=geojson')
+      .then(function (r) { if (!r.ok) throw new Error('svar ' + r.status); return r.json(); })
+      .then(function (j) {
+        if (!j.routes || !j.routes.length) throw new Error('ingen rute fundet');
+        var g = j.routes[0].geometry.coordinates;
+        var step = Math.max(1, Math.ceil(g.length / 3000));
+        var pts = [];
+        for (var i = 0; i < g.length; i += step) pts.push([g[i][1], g[i][0]]);
+        var last = g[g.length - 1];
+        pts.push([last[1], last[0]]);
+        track = pts;
+        trackSource = 'osrm';
+        routeNote = '';
+        fitPending = true;
+        if (btn) { btn.disabled = false; btn.textContent = 'Tegn kørerute langs vejene'; }
+        drawMap();
+      })
+      .catch(function (e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Tegn kørerute langs vejene'; }
+        routeNote = 'Kørerute kunne ikke hentes (' + (e && e.message ? e.message : 'ukendt fejl') + '). Prøv igen senere.';
+        drawMap();
+      });
+  }
+  if ($('routeBtn')) $('routeBtn').addEventListener('click', fetchRoute);
+
+  /* ---------- fælles turliste (ture/ture.json) ---------- */
+  function loadTours() {
+    if (!window.fetch) return;
+    fetch('ture/ture.json', { cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error('ingen liste'); return r.json(); })
+      .then(function (list) {
+        if (!Array.isArray(list) || !list.length) return;
+        var box = $('tourList');
+        list.forEach(function (t) {
+          if (!t || !t.fil || !t.navn || String(t.fil).indexOf('..') !== -1 || String(t.fil).indexOf('/') !== -1) return;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn tour';
+          var n = document.createElement('span');
+          n.textContent = t.navn;
+          b.appendChild(n);
+          if (t.beskrivelse) {
+            var d = document.createElement('small');
+            d.textContent = t.beskrivelse;
+            b.appendChild(d);
+          }
+          b.addEventListener('click', function () {
+            els.loadStatus.className = 'status';
+            els.loadStatus.textContent = 'Henter turen ...';
+            fetch('ture/' + encodeURIComponent(t.fil))
+              .then(function (r) { if (!r.ok) throw new Error('Filen blev ikke fundet.'); return r.text(); })
+              .then(function (txt) {
+                if (t.radius) { els.radius.value = t.radius; }
+                if (t.adaptiv === false) { els.adaptive.checked = false; }
+                syncLabels();
+                loadPois(parseGpx(txt), t.navn);
+                if (t.rute === 'osrm' && !track.length) fetchRoute();
+              })
+              .catch(function (e) {
+                els.loadStatus.className = 'status bad';
+                els.loadStatus.textContent = 'Turen kunne ikke hentes. ' + (e && e.message ? e.message : '');
+              });
+          });
+          box.appendChild(b);
+        });
+        if (box.children.length) $('tourBox').classList.remove('hidden');
+      })
+      .catch(function () { /* ingen turliste: kun fil-vælgeren vises */ });
+  }
+  loadTours();
+
+  /* ---------- indstillinger ---------- */
+  function syncLabels() {
+    els.radiusVal.textContent = els.radius.value + ' m';
+    els.rateVal.textContent = parseFloat(els.rate.value).toFixed(2).replace('.', ',') + 'x';
+  }
+  els.radius.value = load('radius', '250');
+  els.rate.value = load('rate', '1');
+  els.adaptive.checked = load('adaptive', 'true') === 'true';
+  syncLabels();
+  els.radius.addEventListener('input', function () { syncLabels(); save('radius', els.radius.value); drawMap(); });
+  els.rate.addEventListener('input', function () { syncLabels(); save('rate', els.rate.value); });
+  els.adaptive.addEventListener('change', function () { save('adaptive', els.adaptive.checked); });
+  els.voice.addEventListener('change', function () { save('voice', els.voice.value); });
+
+  els.testVoice.addEventListener('click', function () {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    speak('Dette er en test af stemmen. Kronborg ved Helsingør er et godt eksempel på et punkt langs ruten.', null);
+  });
+  els.resetBtn.addEventListener('click', function () {
+    pois.forEach(function (p) { p.read = false; });
+    queue = [];
+    renderList(); updateNext();
+    setStatus('Alle punkter er nulstillet.');
+  });
+})();
+</script>
+</body>
+</html>

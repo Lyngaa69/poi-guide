@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="POI-guide eksempel" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Silkeborg til Ry via Himmelbjerget</name>
+    <desc>Eksempeltur på cirka 20 km gennem Søhøjlandet. Alle punkter er rigtige steder, men filen indeholder kun waypoints og ikke selve vejen. Margueritruten mellem Silkeborg og Ry går i samme område, men punkterne er ikke afstemt med den afmærkede rute.</desc>
+  </metadata>
+
+  <wpt lat="56.16936" lon="9.54893">
+    <name>Start: Torvet i Silkeborg</name>
+    <desc>Du starter på Torvet i Silkeborg ved statuen af Michael Drewsen. Han grundlagde Silkeborg Papirfabrik og regnes for grundlæggeren af det moderne Silkeborg. Turen går mod øst til Ry, cirka tyve kilometer.</desc>
+  </wpt>
+
+  <wpt lat="56.16905" lon="9.55311">
+    <name>Museum Silkeborg og Tollundmanden</name>
+    <desc>På Museum Silkeborg ligger Tollundmanden, et moselig fra omkring 400 år før Kristus, som blev fundet i 1950.</desc>
+  </wpt>
+
+  <wpt lat="56.16974" lon="9.55587">
+    <name>Hjejlen</name>
+    <desc>Her ved havnen ligger Hjejle-selskabet. Damperen Hjejlen blev i 1861 sat i drift som turistbåd af Michael Drewsen og sejler om sommeren til Himmelbjerget. Den kaldes verdens ældste sejlende hjuldamper.</desc>
+  </wpt>
+
+  <wpt lat="56.14522" lon="9.58785">
+    <name>De Små Fisk</name>
+    <desc>Ved Sejsvej ligger De Små Fisk, et populært badested ved søen med skov rundt om og plads til telte.</desc>
+  </wpt>
+
+  <wpt lat="56.12250" lon="9.62000">
+    <name>Slåensø</name>
+    <desc>Slåensø er en klar sø omgivet af skov, tæt på Himmelbjerget. I området mellem Silkeborg og Ry går Margueritruten, som blev indviet i 1991 som en hyldest til Dronning Margrethe. Den er markeret med skilte med en margueritblomst.</desc>
+  </wpt>
+
+  <wpt lat="56.10530" lon="9.68486">
+    <name>Himmelbjerget</name>
+    <desc>Himmelbjerget er cirka 147 meter højt og blev indtil 1847 regnet for Danmarks højeste punkt. Michael Drewsen tog i 1854 initiativ til det første grundlovsmøde her. Fra Himmelbjergtårnet er der udsigt over søerne.</desc>
+  </wpt>
+
+  <wpt lat="56.09302" lon="9.75329">
+    <name>Slut: Ry Havn</name>
+    <desc>Du er fremme ved Ry Havn, som er et centrum for områdets turisme. Her ligger kanoudlejning og turbåde, og Hjejlen sejler om sommeren mellem Ry, Himmelbjerget og Silkeborg.</desc>
+  </wpt>
+</gpx>

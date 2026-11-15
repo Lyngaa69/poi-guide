@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="POI-guide eksempel" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Ladelundsvej 5 til Padborgvej 298, Silkeborg</name>
+    <desc>Eksempel med waypoints. Start og slut samt skolen er rigtige adresser. Punkterne "Vestsiden af Silkeborg", "Hvinningdal Vandværk" og "Hvinningdal Kirke" er udløserpunkter placeret langs ruten, mens selve stedet ligger lidt væk.</desc>
+  </metadata>
+
+  <wpt lat="56.17785" lon="9.51315">
+    <name>Start: Ladelundsvej 5</name>
+    <desc>Turen starter her på Ladelundsvej i Silkeborg. Du skal cirka halvandet kilometer mod vest til butikken på Padborgvej.</desc>
+  </wpt>
+
+  <wpt lat="56.17569" lon="9.50704">
+    <name>Vestsiden af Silkeborg</name>
+    <desc>Du er på vej ind i det vestligste Silkeborg, området omkring Hvinningdal. Her ligger både skole, sportshal og en helt ny kirke, og længere mod sydvest ligger vandværket.</desc>
+  </wpt>
+
+  <wpt lat="56.17416" lon="9.50266">
+    <name>Hvinningdal Vandværk</name>
+    <desc>Sydvest for ruten, i skoven ved Odinsvej, ligger Hvinningdal Vandværk fra 1974. Ifølge en redegørelse fra kommunen stod værket dengang for omkring 90 procent af Silkeborg Kommunale Vandforsynings indvinding. Meget af det vand, der kommer ud af hanerne i Silkeborg, kommer altså herfra.</desc>
+  </wpt>
+
+  <wpt lat="56.17189" lon="9.49852">
+    <name>Hvinningdalskolen</name>
+    <desc>Du passerer Hvinningdalskolen på Padborgvej 131. Lige i nærheden ligger også Hvinningdalhallen, som er områdets sportshal.</desc>
+  </wpt>
+
+  <wpt lat="56.17350" lon="9.49630">
+    <name>Hvinningdal Kirke</name>
+    <desc>Lidt mod nord ligger Hvinningdal Kirke, indviet i 2022. Den er den første kirke i Danmark bygget i 2020'erne, tegnet af Friis og Moltke og kendt for sit mønstermurværk. Den gamle vandrekirke fra 1995 lå ikke langt herfra og er i dag kulturhus i Nye ved Aarhus.</desc>
+  </wpt>
+
+  <wpt lat="56.17169" lon="9.49568">
+    <name>Slut: 365discount, Padborgvej 298</name>
+    <desc>Du er fremme ved 365discount på Padborgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. Ifølge Google Maps har butikken åbent fra klokken 7 til 21 alle ugens dage.</desc>
+  </wpt>
+</gpx>
