@@ -301,7 +301,7 @@
    "word": "Eidervej",
    "key": "eidervej",
    "count": 1,
-   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
+   "context": "Nyt lyskryds. Nyt lyskryds mellem Eidervej og Kjærsgårdsvej",
    "how": "",
    "variants": [
     {
@@ -967,7 +967,7 @@
    "word": "Kjærsgårdsvej",
    "key": "kjærsgårdsvej",
    "count": 1,
-   "context": "…lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
+   "context": "…lyskryds. Nyt lyskryds mellem Eidervej og Kjærsgårdsvej",
    "how": "",
    "variants": [
     {
@@ -1287,8 +1287,8 @@
   {
    "word": "lyskryds",
    "key": "lyskryds",
-   "count": 1,
-   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgår…",
+   "count": 2,
+   "context": "Nyt lyskryds. Nyt lyskryds mellem Eidervej og Kjærsgår…",
    "how": "compound lys+kryds",
    "variants": [
     {
@@ -1566,27 +1566,6 @@
      "label": "As now (Piper)",
      "value": "",
      "file": "ture/udtale/moenstermurvaerk-A.mp3"
-    }
-   ]
-  },
-  {
-   "word": "nyskryds",
-   "key": "nyskryds",
-   "count": 1,
-   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
-   "how": "compound nys+kryds",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/nyskryds-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/nˈysɡʁˌys/",
-     "file": "ture/udtale/nyskryds-B.mp3"
     }
    ]
   },
