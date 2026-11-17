@@ -1,26 +1,14 @@
 {
   "voice": "piper-da_DK-talesyntese-medium-v1",
   "stops": [
-    "efd1c2b0",
-    "93c38573",
-    "615e213d",
-    "4c3d5666",
-    "9063ad9f",
-    "9c1c44eb",
-    "5bf17740",
-    "a30b95fc",
-    "2b5ecb89"
+    "d0a8f557",
+    "b02c565b",
+    "44a46c16"
   ],
   "spoken": [
-    "7b29059f",
-    "93c38573",
-    "615e213d",
-    "a2594ef5",
-    "9063ad9f",
-    "9c1c44eb",
-    "5bf17740",
-    "a30b95fc",
-    "2b5ecb89"
+    "4393bca0",
+    "b02c565b",
+    "44a46c16"
   ],
   "failed": []
 }
