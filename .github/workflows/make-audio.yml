@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   audio:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -39,24 +40,32 @@ jobs:
       - name: Get the voice and tools
         if: steps.plan.outputs.needed == 'true'
         run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bzip2 ffmpeg
           if [ ! -f .voice/da_DK-talesyntese-medium.onnx ]; then
             mkdir -p .voice
-            curl -sL -o voice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-da_DK-talesyntese-medium.tar.bz2
+            curl -fsSL --retry 3 -o voice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-da_DK-talesyntese-medium.tar.bz2
             tar xjf voice.tar.bz2 -C .voice --strip-components=1 \
               vits-piper-da_DK-talesyntese-medium/da_DK-talesyntese-medium.onnx \
               vits-piper-da_DK-talesyntese-medium/da_DK-talesyntese-medium.onnx.json
             rm voice.tar.bz2
           fi
-          pip install --quiet piper-tts
-          which ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          python --version
+          python -m pip install --quiet piper-tts
+          python -c "import piper; print('piper ok')"
+          ffmpeg -version | head -1
 
       - name: Make the audio
         if: steps.plan.outputs.needed == 'true'
-        run: VOICE_DIR=.voice python3 tools/make_audio.py
+        run: |
+          set -euxo pipefail
+          VOICE_DIR=.voice python tools/make_audio.py
 
       - name: Save the new audio in the repository
         if: steps.plan.outputs.needed == 'true'
         run: |
+          set -eux
           git config user.name "wayside-bot"
           git config user.email "wayside-bot@users.noreply.github.com"
           git add ture
@@ -75,7 +84,7 @@ jobs:
   build:
     needs: audio
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,7 +96,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
