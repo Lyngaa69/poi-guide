@@ -1,0 +1,49 @@
+# Udtaleliste til Wayside
+# Hver linje:  ord = hvordan det skal lyde
+#   ord = /lydskrift/     mellem skråstreger: præcise lyde (IPA, som Piper kender dem)
+#   ord = stavemåde       ellers: en stavemåde, stemmen læser rigtigt
+#   ~bogstaver = andre    starter med ~: erstatter bogstaver inde i alle ord
+# Linjer der starter med # springes over. Ord matcher hele ord, med store og små bogstaver ens.
+# Valgene herunder er dem, du har lyttet dig frem til i runde 2, 3 og 4.
+
+# Alle "aa" udtales som å (Aalborg, Moesgaard osv.)
+~aa = å
+
+# Stednavne og navne
+aarhus = /ˈɒːhˌuːs/
+thorsø = /tˈoɐ̯ʔsˌœʔ/
+torvet = /tˈɒwʔəð/
+silkeborg = /sˈelkəbˌɒwʔ/
+eshøj = /ˈεshˌʌj/
+moesgaard = /mˈoːsɡˌɒː/
+bjerringbro = /bjεɐ̯eŋbʁˈoː/
+borum = /bˈoɐ̯ɔm/
+padborgvej = /pˈaðbˌɒːʋˌɑj/
+friis = /fʁˈiːs/
+tangeværket = /tˈɑŋəʋˌεɐ̯kəð/
+
+# Almindelige ord
+start = /sdˈɑːt/
+skov = /sɡˈʌw/
+skoven = /sɡˈɒwən/
+skabte = /skˈɑbtə/
+lagt = /lˈɑɡt/
+kilometer = /kilomˈeːtʌ/
+årene = /ˈɒːːʌnə/
+ældre = /ˈεldʁʌ/
+ældste = /ˈεlstə/
+velbevarede = /ʋˈεlbeʋˌɑːʔʌðə/
+egekister = /ˈeːəkˌiːstʌ/
+margueritblomst = /mɑkəʁˈitblˌʌmst/
+dage = /dˈaːə/
+telte = /tˈεltə/
+havnen = /hˈɑwnən/
+dronning = /dʁˈʌneŋ/
+markeret = /mɑkˈeːɐð/
+første = /fˈœɐ̯stə/
+udsigt = /ˈuðsˌekt/
+
+# Tal (kun de to, der skulle have stød i slutningen)
+tre = /tʁˈeːʔ/
+ti = /tˈiːʔ/
+tyve = /tˈyːʋə/

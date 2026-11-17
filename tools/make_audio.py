@@ -9,6 +9,12 @@ Files per route <name>.gpx:
   ture/<name>.audio.json            a fingerprint of the text behind each file
 Wayside only plays a file when its fingerprint matches the current text of the stop,
 so an edited stop never plays old audio.
+
+Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it should sound
+  torvet = /tˈɒɐ̯ʋəð/      (between slashes: exact sounds, IPA)
+  drewsen = drusen          (otherwise: a respelling that the voice reads correctly)
+  ~aa = å                   (starts with ~: replaces these letters inside every word)
+Lines starting with # are ignored. Words match whole words, in any capitalisation.
 """
 import json, os, re, subprocess, sys, wave
 import xml.etree.ElementTree as ET
@@ -65,6 +71,61 @@ def normalize(t):
     t = re.sub(r'\b\d+\b', lambda m: num(int(m.group(0))), t)
     return t
 
+# ---------- pronunciation fixes ----------
+def load_dictionary():
+    entries, rules = [], []
+    path = ROOT / 'tools' / 'udtale.txt'
+    if not path.exists():
+        return entries, rules
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        word, value = [x.strip() for x in line.split('=', 1)]
+        if not word or not value:
+            continue
+        if len(value) > 2 and value.startswith('/') and value.endswith('/'):
+            value = '[[' + value[1:-1].replace('g', '\u0261') + ']]'   # exact sounds (the voice needs the IPA g)
+        if word.startswith('~'):
+            rules.append((word[1:], value))
+        else:
+            entries.append((word, value))
+    entries.sort(key=lambda e: -len(e[0]))              # longest words first
+    return entries, rules
+
+DICTIONARY, RULES = load_dictionary()
+
+def _keep_case(match, value):
+    s = match.group(0)
+    if len(s) > 1 and s.isupper(): return value.upper()
+    if s[0].isupper(): return value[:1].upper() + value[1:]
+    return value
+
+def apply_dictionary(text):
+    parts = re.split(r'(\[\[.*?\]\])', text)                # never touch exact sounds that are already in the text
+    for word, value in DICTIONARY:
+        pat = re.compile(r'(?<![\wæøåÆØÅ])' + re.escape(word) + r'(?![\wæøåÆØÅ])', re.IGNORECASE)
+        for i in range(0, len(parts), 2):
+            parts[i] = pat.sub(lambda m: '\x00' + value + '\x00', parts[i])   # \x00 marks inserted sounds, so later entries skip them
+        # re-split so that inserted sounds are protected from the next entries
+        joined = ''.join(parts)
+        parts = re.split(r'(\x00.*?\x00)', joined)
+    out = []
+    for i, p in enumerate(parts):
+        if i % 2 == 1:                                          # an inserted sound
+            out.append(p.strip('\x00'))
+        else:
+            seg = re.split(r'(\[\[.*?\]\])', p)
+            for j in range(0, len(seg), 2):
+                for src_letters, value in RULES:
+                    seg[j] = re.sub(re.escape(src_letters), lambda m, v=value: _keep_case(m, v), seg[j], flags=re.IGNORECASE)
+            out.append(''.join(seg))
+    return ''.join(out)
+
+def spoken(text):
+    """What is actually sent to the voice: numbers as words, then the pronunciation fixes."""
+    return apply_dictionary(normalize(text))
+
 # ---------- reading the stops (same rules as Wayside) ----------
 def clean(s):
     return re.sub(r'\s+', ' ', s or '').strip()
@@ -103,6 +164,7 @@ def plan_route(gpx):
     base = gpx.stem
     stops = read_stops(gpx)
     hashes = [fnv1a(s) for s in stops]
+    spoken_hashes = [fnv1a(spoken(s)) for s in stops]
     width = max(2, len(str(len(stops))))
     man_path = TURE / (base + '.audio.json')
     try:
@@ -112,16 +174,22 @@ def plan_route(gpx):
     same_voice = man.get('voice') == VOICE_ID
     old = man.get('stops', []) if same_voice else []
     failed = set(man.get('failed', [])) if same_voice else set()
+    old_spoken = man.get('spoken') if same_voice else None
     todo = []
     for i, h in enumerate(hashes, 1):
         mp3 = TURE / ('%s-%0*d.mp3' % (base, width, i))
         unchanged = i <= len(old) and old[i - 1] == h
+        if unchanged:
+            if old_spoken is not None:
+                unchanged = i <= len(old_spoken) and old_spoken[i - 1] == spoken_hashes[i - 1]
+            else:                                  # old manifest: only stops touched by the dictionary need new audio
+                unchanged = spoken(stops[i - 1]) == normalize(stops[i - 1])
         if not (unchanged and (mp3.exists() or i in failed)):
             todo.append(i)
     pat = re.compile('^' + re.escape(base) + r'-(\d+)\.mp3$')
     orphans = [p for p in TURE.iterdir() if (m := pat.match(p.name)) and int(m.group(1)) > len(stops)]
-    manifest_ok = same_voice and man.get('stops') == hashes
-    return dict(base=base, stops=stops, hashes=hashes, width=width, todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed)
+    manifest_ok = same_voice and man.get('stops') == hashes and man.get('spoken') == spoken_hashes
+    return dict(base=base, stops=stops, hashes=hashes, spoken_hashes=spoken_hashes, width=width, todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed)
 
 def all_plans():
     return [plan_route(g) for g in sorted(TURE.glob('*.gpx')) if read_stops(g)]
@@ -139,7 +207,7 @@ def load_voice():
 def make_mp3(voice, text, out_mp3):
     wav_path = str(out_mp3) + '.wav'
     with wave.open(wav_path, 'wb') as w:
-        voice.synthesize_wav(normalize(text), w)
+        voice.synthesize_wav(spoken(text), w)
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav_path,
                     '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
                     '-ac', '1', '-ar', '22050', '-b:a', '64k', str(out_mp3)], check=True)
@@ -175,7 +243,7 @@ def main():
                 if out.exists(): out.unlink()
                 print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, e))
         (TURE / (p['base'] + '.audio.json')).write_text(
-            json.dumps({'voice': VOICE_ID, 'stops': p['hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
+            json.dumps({'voice': VOICE_ID, 'stops': p['hashes'], 'spoken': p['spoken_hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     main()
