@@ -77,6 +77,17 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe
 .dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+a.tour { text-decoration: none; }
+.loading { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); font-weight: 600; }
+.spinner { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--sign); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+.routecard { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
+.routecard .tour { border: 0; border-radius: 0; margin: 0; border-left: 6px solid var(--sign); background: transparent; }
+.routetools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 4px 12px 8px 16px; }
+.routetools .check { margin: 0; min-height: 40px; flex: 1 1 auto; }
+.badge { font-size: 0.8rem; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.off { color: var(--warn); border-color: var(--warn); }
 .routerow { display: flex; gap: 8px; align-items: stretch; }
 .routerow .tour { flex: 1; }
 .routerow > .btn { flex: none; }
@@ -133,6 +144,11 @@ details.tips li { margin-bottom: 4px; }
       <div id="existingList" class="tours"></div>
     </div>
 
+    <a class="tour" href="udtale.html" id="udtaleCard" style="margin-bottom:14px;">
+      <span><span class="t-title">Pronunciation</span><span class="t-desc" id="udtaleDesc">Listen to the versions of each word and choose the best</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+
     <p class="sectionlabel" style="margin-top:0;">Start from a GPX file</p>
     <label class="dropzone" id="dropzone">
       <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*">
@@ -141,6 +157,7 @@ details.tips li { margin-bottom: 4px; }
       <span>For example the route you exported from Kurviger.</span>
     </label>
     <button class="btn hidden" id="resumeBtn" type="button" style="margin-top:12px; width:100%;">Continue last draft</button>
+    <div id="loadingBox" class="loading hidden" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="loadingText">Loading…</span></div>
     <p class="status" id="startStatus" role="status"></p>
   </section>
 
@@ -181,6 +198,8 @@ details.tips li { margin-bottom: 4px; }
       <label class="field"><span>Trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed</span></label>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads, here and in Wayside (for files without a track)</span></label>
+      <label class="check"><input type="checkbox" id="visible" checked><span>Show this route in Wayside</span></label>
+      <p class="hint" style="margin-top:2px;">Untick to keep the route hidden until you are ready to release it. You can change it later from the route list.</p>
       <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
@@ -237,7 +256,7 @@ details.tips li { margin-bottom: 4px; }
     tapAdd: $('tapAdd'), snap: $('snap'), keepOrder: $('keepOrder'), mapStatus: $('mapStatus'),
     stopList: $('stopList'), summary: $('summary'),
     fileName: $('fileName'), title: $('title'), desc: $('desc'), radius: $('radius'), radiusVal: $('radiusVal'),
-    adaptive: $('adaptive'), osrm: $('osrm'), audioWarn: $('audioWarn'),
+    adaptive: $('adaptive'), osrm: $('osrm'), visible: $('visible'), audioWarn: $('audioWarn'),
     dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
     deleteBox: $('deleteBox'), deleteBtn: $('deleteBtn'),
     publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
@@ -362,6 +381,7 @@ details.tips li { margin-bottom: 4px; }
     els.radius.value = opts.radius || 300;
     els.adaptive.checked = opts.adaptive !== false;
     els.osrm.checked = opts.osrm != null ? !!opts.osrm : track.length < 2;
+    els.visible.checked = opts.vis !== false;
     els.snap.checked = track.length >= 2;
     els.keepOrder.checked = track.length >= 2;
     els.sourceName.textContent = opts.label || '';
@@ -384,14 +404,29 @@ details.tips li { margin-bottom: 4px; }
   }
 
   els.file.addEventListener('change', function () { readFile(els.file.files && els.file.files[0]); els.file.value = ''; });
+  function busy(msg) {
+    $('loadingText').textContent = msg;
+    $('loadingBox').classList.remove('hidden');
+    els.dropzone.setAttribute('aria-busy', 'true');
+    setStart('');
+  }
+  function idle() {
+    $('loadingBox').classList.add('hidden');
+    els.dropzone.removeAttribute('aria-busy');
+  }
   function readFile(f) {
     if (!f) return;
+    busy('Reading ' + f.name + '…');
     var r = new FileReader();
     r.onload = function () {
-      try { openGpx(String(r.result), { base: f.name.replace(/\.gpx$/i, ''), label: f.name }); }
-      catch (e) { setStart(e.message, true); }
+      busy('Preparing the route on the map…');
+      setTimeout(function () {                       // let the browser show the message before the heavy part starts
+        try { openGpx(String(r.result), { base: f.name.replace(/\.gpx$/i, ''), label: f.name }); }
+        catch (e) { setStart(e.message, true); }
+        idle();
+      }, 60);
     };
-    r.onerror = function () { setStart('The file could not be opened.', true); };
+    r.onerror = function () { idle(); setStart('The file could not be opened.', true); };
     r.readAsText(f);
   }
   ['dragenter', 'dragover'].forEach(function (ev) { els.dropzone.addEventListener(ev, function (e) { e.preventDefault(); els.dropzone.classList.add('over'); }); });
@@ -418,21 +453,35 @@ details.tips li { margin-bottom: 4px; }
           if (t.beskrivelse) { var d = document.createElement('span'); d.className = 't-desc'; d.textContent = t.beskrivelse; left.appendChild(d); }
           b.appendChild(left);
           b.addEventListener('click', function () {
-            setStart('Loading…');
+            busy('Opening ' + (t.navn || t.fil) + '…');
             fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-store' })
               .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
               .then(function (txt) {
-                openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', label: t.fil });
-                setStart('');
+                busy('Preparing the route on the map…');
+                return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
+                  openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', vis: t.vis, label: t.fil });
+                  setStart('');
+                  idle();
+                });
               })
-              .catch(function (e) { setStart('Could not open the route. ' + e.message, true); });
+              .catch(function (e) { idle(); setStart('Could not open the route. ' + e.message, true); });
           });
-          var row = document.createElement('div'); row.className = 'routerow';
+          var row = document.createElement('div'); row.className = 'routecard';
+          row.appendChild(b);
+          var tools = document.createElement('div'); tools.className = 'routetools';
+          var lab = document.createElement('label'); lab.className = 'check';
+          var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = t.vis !== false;
+          cb.setAttribute('aria-label', 'Show ' + (t.navn || t.fil) + ' in Wayside');
+          var sp = document.createElement('span'); sp.textContent = 'Show in Wayside';
+          lab.appendChild(cb); lab.appendChild(sp);
+          var badge = document.createElement('span'); badge.className = 'badge' + (cb.checked ? '' : ' off'); badge.textContent = cb.checked ? 'Visible' : 'Hidden';
+          cb.addEventListener('change', function () { setVisible(t, cb, badge); });
           var del = document.createElement('button');
           del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Delete';
           del.setAttribute('aria-label', 'Delete route ' + (t.navn || t.fil));
           del.addEventListener('click', function () { deleteRoute(t, row, false); });
-          row.appendChild(b); row.appendChild(del);
+          tools.appendChild(lab); tools.appendChild(badge); tools.appendChild(del);
+          row.appendChild(tools);
           els.existingList.appendChild(row);
         });
         if (existing.length) els.existingBox.classList.remove('hidden');
@@ -446,7 +495,7 @@ details.tips li { margin-bottom: 4px; }
     if (!rawXml) return;
     save('draft', JSON.stringify({
       rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
-      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked,
+      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, visible: els.visible.checked,
       snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig
     }));
   }
@@ -458,7 +507,7 @@ details.tips li { margin-bottom: 4px; }
       var doc = parseGpx(d.rawXml);
       rawXml = d.rawXml; track = readTrack(doc); trackSource = track.length > 1 ? 'file' : ''; stops = d.stops || []; selected = -1;
       els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || '';
-      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm;
+      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; els.visible.checked = d.visible !== false;
       els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
       initialSig = d.initialSig || signature();
       els.start.classList.add('hidden'); els.editor.classList.remove('hidden');
@@ -673,7 +722,7 @@ details.tips li { margin-bottom: 4px; }
   els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); });
   ['title', 'desc'].forEach(function (k) { els[k].addEventListener('input', saveDraft); });
   els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); updateDeleteBox(); });
-  ['adaptive', 'osrm', 'snap', 'keepOrder'].forEach(function (k) {
+  ['adaptive', 'osrm', 'visible', 'snap', 'keepOrder'].forEach(function (k) {
     els[k].addEventListener('change', function () {
       if (k === 'keepOrder') { sortStops(); renderAll(false); schedulePreview(); }
       if (k === 'osrm') schedulePreview(50);
@@ -733,6 +782,7 @@ details.tips li { margin-bottom: 4px; }
       adaptiv: els.adaptive.checked
     };
     if (els.osrm.checked) entry.rute = 'osrm';
+    if (!els.visible.checked) entry.vis = false;
     return entry;
   }
   function mergeEntry(list, entry) {
@@ -962,9 +1012,50 @@ details.tips li { margin-bottom: 4px; }
     if (t) deleteRoute(t, null, true);
   });
 
+  /* ---------- show or hide a route in Wayside ---------- */
+  function setVisible(t, cb, badge) {
+    var want = cb.checked;
+    var revert = function () { cb.checked = !want; };
+    if (!gh.token || !gh.repo) {
+      revert();
+      setStart('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true);
+      return;
+    }
+    cb.disabled = true;
+    setStart('Saving…');
+    withRetry(function () {
+      return ghGetFile('ture/ture.json').then(function (f) {
+        if (!f) throw new Error('The route list was not found.');
+        var list = JSON.parse(fromB64(f.content));
+        var e = list.filter(function (x) { return x && x.fil === t.fil; })[0];
+        if (!e) throw new Error('The route is not in the list.');
+        if (want) delete e.vis; else e.vis = false;
+        return ghPut('ture/ture.json', JSON.stringify(list, null, 2), 'Studio: ' + (want ? 'show ' : 'hide ') + t.fil + ' in Wayside', f.sha);
+      });
+    }).then(function () {
+      if (want) delete t.vis; else t.vis = false;
+      badge.textContent = want ? 'Visible' : 'Hidden';
+      badge.className = 'badge' + (want ? '' : ' off');
+      setStart('"' + (t.navn || t.fil) + '" is now ' + (want ? 'visible' : 'hidden') + ' in Wayside. The change shows up after about 3 minutes.');
+    }).catch(function (e) { revert(); setStart('Not saved. ' + e.message, true); })
+      .then(function () { cb.disabled = false; });
+  }
+
+  function loadUdtaleCount() {
+    if (!window.fetch) return;
+    fetch('ture/udtale/ord.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('none'); return r.json(); })
+      .then(function (d) {
+        var n = (d.words || []).filter(function (w) { return w.variants && w.variants.length > 1; }).length;
+        $('udtaleDesc').textContent = n ? n + (n === 1 ? ' word to review' : ' words to review') + ': listen and choose the best version' : 'No words to review right now';
+      })
+      .catch(function () {});
+  }
+
   loadGh();
 
   loadExisting();
+  loadUdtaleCount();
 })();
 </script>
 </body>

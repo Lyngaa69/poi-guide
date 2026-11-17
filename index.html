@@ -159,6 +159,16 @@ main {
 .nextsign .name { font-size: 1.5rem; font-weight: 700; line-height: 1.2; margin: 2px 0 6px; overflow-wrap: anywhere; }
 .nextsign .dist { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .nextsign .sub { font-size: 0.9rem; opacity: 0.85; }
+.simbanner {
+  display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; padding: 10px 12px;
+  background: #d9480f; color: #fff; border-radius: 12px; font-weight: 600;
+}
+.simbanner span.txt { flex: 1; }
+.simdot { width: 12px; height: 12px; border-radius: 50%; background: #fff; flex: none; animation: simpulse 1.2s ease-in-out infinite; }
+@keyframes simpulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+.simbanner .btn { background: rgba(255,255,255,.18); color: #fff; border-color: rgba(255,255,255,.7); min-height: 38px; }
+.btn.active { background: var(--sign-grad); color: #fff; border-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .simdot { animation: none; } }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
 #map {
@@ -280,6 +290,12 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     <div class="routebar">
       <button class="linkbtn" id="backBtn" type="button">&larr; All routes</button>
       <span class="routename" id="routeName"></span>
+    </div>
+
+    <div id="simBanner" class="simbanner hidden" role="status" aria-live="polite">
+      <span class="simdot" aria-hidden="true"></span>
+      <span class="txt" id="simText">Simulation running</span>
+      <button class="btn small" id="simStop" type="button">Stop</button>
     </div>
 
     <div class="nextsign" aria-live="polite">
@@ -412,6 +428,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     voice: $('voice'), allLangs: $('allLangs'), voiceInfo: $('voiceInfo'), voiceHint: $('voiceHint'),
     rate: $('rate'), rateVal: $('rateVal'), testVoice: $('testVoice'),
     follow: $('follow'), simBtn: $('simBtn'), resetBtn: $('resetBtn'),
+    simBanner: $('simBanner'), simText: $('simText'), simStop: $('simStop'),
     dim: $('dim'), dimName: $('dimName'), dimDist: $('dimDist')
   };
 
@@ -754,7 +771,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       .then(function (list) {
         if (!Array.isArray(list)) { showUploadFallback(); return; }
         tours = list.filter(function (t) {
-          return t && t.fil && t.navn && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
+          return t && t.fil && t.navn && t.vis !== false && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
         });
         if (!tours.length) { showUploadFallback(); return; }
         els.openRoutes.classList.remove('hidden');
@@ -1002,6 +1019,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function stopSim() {
     if (simTimer) { clearInterval(simTimer); simTimer = null; }
     els.simBtn.textContent = 'Simulate drive';
+    els.simBtn.classList.remove('active');
+    els.simBtn.setAttribute('aria-pressed', 'false');
+    els.simBanner.classList.add('hidden');
   }
   function startSim() {
     if (simTimer) { stopGuide(); setStatus('Simulation stopped.'); return; }
@@ -1016,7 +1036,13 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.startBtn.textContent = 'Stop guide';
     els.dimBtn.disabled = false;
     els.simBtn.textContent = 'Stop simulation';
+    els.simBtn.classList.add('active');
+    els.simBtn.setAttribute('aria-pressed', 'true');
     closeMenu();
+    els.simText.textContent = 'Simulation running';
+    els.simStop.textContent = 'Stop';
+    els.simBanner.classList.remove('hidden');
+    window.scrollTo(0, 0);
     say('Simulation started.', 'Simulering startet.');
     var speed = 14; // m/s shown as speed
     var totalM = 0;
@@ -1043,11 +1069,16 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       if (seg >= path.length - 1) {
         clearInterval(simTimer); simTimer = null;
         els.simBtn.textContent = 'Simulate drive';
+        els.simBtn.classList.remove('active');
+        els.simBtn.setAttribute('aria-pressed', 'false');
+        els.simText.textContent = 'Simulation finished';
+        els.simStop.textContent = 'Close';
         setStatus('Simulation finished. Tap Stop guide to end.');
       }
     }, 1000);
   }
   els.simBtn.addEventListener('click', startSim);
+  els.simStop.addEventListener('click', function () { stopGuide(); setStatus('Simulation stopped.'); });
 
   /* ---------- display ---------- */
   function setStatus(msg, bad) {
