@@ -1,0 +1,2809 @@
+{
+ "words": [
+  {
+   "word": "arbejde",
+   "key": "arbejde",
+   "count": 1,
+   "context": "Start. Så er vi igang. God tur til arbejde",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/arbejde-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈɑːbˌɑjdə/",
+     "file": "ture/udtale/arbejde-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ˈɑːbˌɑjʔdə/",
+     "file": "ture/udtale/arbejde-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "badested",
+   "key": "badested",
+   "count": 1,
+   "context": "…d Sejsvej ligger De Små Fisk, et populært badested ved søen med skov rundt om og plads til t…",
+   "how": "compound bade+sted",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/badested-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/bˈaːðəstˌεð/",
+     "file": "ture/udtale/badested-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/bˈaːðəsdˌεð/",
+     "file": "ture/udtale/badested-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "butikken",
+   "key": "butikken",
+   "count": 2,
+   "context": "…al cirka halvandet kilometer mod vest til butikken på Padborgvej.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/butikken-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/butˈikən/",
+     "file": "ture/udtale/butikken-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "centrum",
+   "key": "centrum",
+   "count": 1,
+   "context": "…Havn. Du er fremme ved Ry Havn, som er et centrum for områdets turisme. Her ligger kanoudle…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/centrum-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈεntʁɒm/",
+     "file": "ture/udtale/centrum-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Coops",
+   "key": "coops",
+   "count": 1,
+   "context": "…ved 365discount på Padborgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. If…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/coops-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Damperen",
+   "key": "damperen",
+   "count": 1,
+   "context": "…. Her ved havnen ligger Hjejle-selskabet. Damperen Hjejlen blev i 1861 sat i drift som turis…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/damperen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dˈɑmpʌʌn/",
+     "file": "ture/udtale/damperen-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Danmark",
+   "key": "danmark",
+   "count": 1,
+   "context": "…indviet i 2022. Den er den første kirke i Danmark bygget i 2020'erne, tegnet af Friis og Mo…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/danmark-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dˈanmɑk/",
+     "file": "ture/udtale/danmark-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "dengang",
+   "key": "dengang",
+   "count": 1,
+   "context": "…e en redegørelse fra kommunen stod værket dengang for omkring 90 procent af Silkeborg Kommu…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/dengang-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dˈεnɡˌɑŋ/",
+     "file": "ture/udtale/dengang-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/dˈεnʔɡˌɑŋʔ/",
+     "file": "ture/udtale/dengang-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "discount",
+   "key": "discount",
+   "count": 2,
+   "context": "Slut: 365discount, Padborgvej 298. Du er fremme ved 365disc…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/discount-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/diskˈɑwnt/",
+     "file": "ture/udtale/discount-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "discountkæde",
+   "key": "discountkæde",
+   "count": 1,
+   "context": "…5discount på Padborgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. Ifølge Google M…",
+   "how": "compound discount+kæde",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/discountkaede-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/diskˈɑwntkˌɛːðə/",
+     "file": "ture/udtale/discountkaede-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Drewsen",
+   "key": "drewsen",
+   "count": 3,
+   "context": "…Torvet i Silkeborg ved statuen af Michael Drewsen. Han grundlagde Silkeborg Papirfabrik og…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/drewsen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dʁˈεwsən/",
+     "file": "ture/udtale/drewsen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/dʁˈεwʔsən/",
+     "file": "ture/udtale/drewsen-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "drift",
+   "key": "drift",
+   "count": 1,
+   "context": "…kabet. Damperen Hjejlen blev i 1861 sat i drift som turistbåd af Michael Drewsen og sejle…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/drift-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dʁˈeft/",
+     "file": "ture/udtale/drift-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Dæmningen",
+   "key": "dæmningen",
+   "count": 1,
+   "context": "…dkraftværk, bygget i årene 1918 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange S…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/daemningen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/dˈεmnˌeŋən/",
+     "file": "ture/udtale/daemningen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/dˈεmnˌeŋʔən/",
+     "file": "ture/udtale/daemningen-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Eidervej",
+   "key": "eidervej",
+   "count": 1,
+   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/eidervej-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Elmuseum",
+   "key": "elmuseum",
+   "count": 1,
+   "context": "…stige sø. Ved værket ligger også Danmarks Elmuseum.",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/elmuseum-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "erne",
+   "key": "erne",
+   "count": 1,
+   "context": "…den første kirke i Danmark bygget i 2020'erne, tegnet af Friis og Moltke og kendt for s…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/erne-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Fakta",
+   "key": "fakta",
+   "count": 1,
+   "context": "…er Coops discountkæde, som tidligere hed Fakta. Ifølge Google Maps har butikken åbent fr…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/fakta-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/fˈɑkta/",
+     "file": "ture/udtale/fakta-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Fisk",
+   "key": "fisk",
+   "count": 2,
+   "context": "De Små Fisk. Ved Sejsvej ligger De Små Fisk, et popul…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/fisk-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/fˈesk/",
+     "file": "ture/udtale/fisk-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Google",
+   "key": "google",
+   "count": 1,
+   "context": "…ountkæde, som tidligere hed Fakta. Ifølge Google Maps har butikken åbent fra klokken 7 til…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/google-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Grundfos",
+   "key": "grundfos",
+   "count": 1,
+   "context": "…r kendt som hjemsted for pumpeproducenten Grundfos.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/grundfos-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ɡʁˈɒnfʌs/",
+     "file": "ture/udtale/grundfos-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "grundlagde",
+   "key": "grundlagde",
+   "count": 1,
+   "context": "…eborg ved statuen af Michael Drewsen. Han grundlagde Silkeborg Papirfabrik og regnes for grund…",
+   "how": "compound grund+lagde",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/grundlagde-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ɡʁˈɒnlˌaːə/",
+     "file": "ture/udtale/grundlagde-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "grundlovsmøde",
+   "key": "grundlovsmøde",
+   "count": 1,
+   "context": "…ewsen tog i 1854 initiativ til det første grundlovsmøde her. Fra Himmelbjergtårnet er der udsigt…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/grundlovsmoede-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "grundlæggeren",
+   "key": "grundlæggeren",
+   "count": 1,
+   "context": "…lagde Silkeborg Papirfabrik og regnes for grundlæggeren af det moderne Silkeborg. Turen går mod ø…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/grundlaeggeren-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "halvandet",
+   "key": "halvandet",
+   "count": 1,
+   "context": "…å Ladelundsvej i Silkeborg. Du skal cirka halvandet kilometer mod vest til butikken på Padbor…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/halvandet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/halˈanəð/",
+     "file": "ture/udtale/halvandet-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "hanerne",
+   "key": "hanerne",
+   "count": 1,
+   "context": "…ding. Meget af det vand, der kommer ud af hanerne i Silkeborg, kommer altså herfra.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hanerne-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/hˈaːnʌnə/",
+     "file": "ture/udtale/hanerne-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "helt",
+   "key": "helt",
+   "count": 1,
+   "context": "…l. Her ligger både skole, sportshal og en helt ny kirke, og længere mod sydvest ligger v…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/helt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/hˈeːlt/",
+     "file": "ture/udtale/helt-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/hˈeːʔlt/",
+     "file": "ture/udtale/helt-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "herfra",
+   "key": "herfra",
+   "count": 2,
+   "context": "…r ud af hanerne i Silkeborg, kommer altså herfra.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/herfra-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/hˈeɐ̯fʁˌɑ/",
+     "file": "ture/udtale/herfra-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/hˈeɐ̯ʔfʁˌɑ/",
+     "file": "ture/udtale/herfra-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Himmelbjergtårnet",
+   "key": "himmelbjergtårnet",
+   "count": 1,
+   "context": "…tiv til det første grundlovsmøde her. Fra Himmelbjergtårnet er der udsigt over søerne.",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/himmelbjergtaarnet-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Hjejle",
+   "key": "hjejle",
+   "count": 1,
+   "context": "Hjejlen. Her ved havnen ligger Hjejle-selskabet. Damperen Hjejlen blev i 1861 s…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hjejle-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/jˈɑjlə/",
+     "file": "ture/udtale/hjejle-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Hjejlen",
+   "key": "hjejlen",
+   "count": 3,
+   "context": "Hjejlen. Her ved havnen ligger Hjejle-selskabet.…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hjejlen-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "hjuldamper",
+   "key": "hjuldamper",
+   "count": 1,
+   "context": "…erget. Den kaldes verdens ældste sejlende hjuldamper.",
+   "how": "compound hjul+damper",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hjuldamper-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/jˈuːldˌɑmpʌ/",
+     "file": "ture/udtale/hjuldamper-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Hvinningdal",
+   "key": "hvinningdal",
+   "count": 5,
+   "context": "…det vestligste Silkeborg, området omkring Hvinningdal. Her ligger både skole, sportshal og en h…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hvinningdal-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈeneŋdˌaːl/",
+     "file": "ture/udtale/hvinningdal-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʋˈeneŋdˌaːʔl/",
+     "file": "ture/udtale/hvinningdal-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Hvinningdalhallen",
+   "key": "hvinningdalhallen",
+   "count": 1,
+   "context": "…dborgvej 131. Lige i nærheden ligger også Hvinningdalhallen, som er områdets sportshal.",
+   "how": "compound hvinningdal+hallen",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hvinningdalhallen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈeneŋdˌaːlhˌalən/",
+     "file": "ture/udtale/hvinningdalhallen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʋˈeneŋdˌaːlhˌalʔən/",
+     "file": "ture/udtale/hvinningdalhallen-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Hvinningdalskolen",
+   "key": "hvinningdalskolen",
+   "count": 2,
+   "context": "Hvinningdalskolen. Du passerer Hvinningdalskolen på Padborg…",
+   "how": "compound hvinningdal+skolen",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hvinningdalskolen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈeneŋdˌaːlskˌoːlən/",
+     "file": "ture/udtale/hvinningdalskolen-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/ʋˈeneŋdˌaːlsɡˌoːlən/",
+     "file": "ture/udtale/hvinningdalskolen-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "højeste",
+   "key": "højeste",
+   "count": 1,
+   "context": "…t og blev indtil 1847 regnet for Danmarks højeste punkt. Michael Drewsen tog i 1854 initiat…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hoejeste-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/hˈʌjəstə/",
+     "file": "ture/udtale/hoejeste-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/hˈʌjʔəstə/",
+     "file": "ture/udtale/hoejeste-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/hˈʌjəsdə/",
+     "file": "ture/udtale/hoejeste-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/hˈʌjʔəsdə/",
+     "file": "ture/udtale/hoejeste-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "højt",
+   "key": "højt",
+   "count": 1,
+   "context": "…bjerget. Himmelbjerget er cirka 147 meter højt og blev indtil 1847 regnet for Danmarks h…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/hoejt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/hˈʌjt/",
+     "file": "ture/udtale/hoejt-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/hˈʌjʔt/",
+     "file": "ture/udtale/hoejt-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Ifølge",
+   "key": "ifølge",
+   "count": 2,
+   "context": "…ej, ligger Hvinningdal Vandværk fra 1974. Ifølge en redegørelse fra kommunen stod værket d…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/ifoelge-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ifˈœljə/",
+     "file": "ture/udtale/ifoelge-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "igang",
+   "key": "igang",
+   "count": 1,
+   "context": "Start. Så er vi igang. God tur til arbejde",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/igang-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/iɡˈɑŋ/",
+     "file": "ture/udtale/igang-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/iɡˈɑŋʔ/",
+     "file": "ture/udtale/igang-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "indviet",
+   "key": "indviet",
+   "count": 2,
+   "context": "…keborg og Ry går Margueritruten, som blev indviet i 1991 som en hyldest til Dronning Margre…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/indviet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈenʋˌiːəð/",
+     "file": "ture/udtale/indviet-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ˈenʋˌiːʔəð/",
+     "file": "ture/udtale/indviet-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "indvinding",
+   "key": "indvinding",
+   "count": 1,
+   "context": "…ent af Silkeborg Kommunale Vandforsynings indvinding. Meget af det vand, der kommer ud af hane…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/indvinding-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈenʋˌeneŋ/",
+     "file": "ture/udtale/indvinding-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ˈenʋˌenʔeŋ/",
+     "file": "ture/udtale/indvinding-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "initiativ",
+   "key": "initiativ",
+   "count": 1,
+   "context": "…højeste punkt. Michael Drewsen tog i 1854 initiativ til det første grundlovsmøde her. Fra Him…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/initiativ-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/initiatˈiw/",
+     "file": "ture/udtale/initiativ-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/initiatˈiwʔ/",
+     "file": "ture/udtale/initiativ-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "kanoudlejning",
+   "key": "kanoudlejning",
+   "count": 1,
+   "context": "…centrum for områdets turisme. Her ligger kanoudlejning og turbåde, og Hjejlen sejler om sommeren…",
+   "how": "compound kano+udlejning",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kanoudlejning-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kˈaːnoˌuðlˌɑjneŋ/",
+     "file": "ture/udtale/kanoudlejning-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/kˈaːnoˌuðlˌɑjʔneŋ/",
+     "file": "ture/udtale/kanoudlejning-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Kirke",
+   "key": "kirke",
+   "count": 5,
+   "context": "…d Thorsø efter cirka 82 kilometer. Thorsø Kirke ligger cirka 500 meter mod nordøst.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kirke-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kˈiɐ̯kə/",
+     "file": "ture/udtale/kirke-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Kjærsgårdsvej",
+   "key": "kjærsgårdsvej",
+   "count": 1,
+   "context": "…lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kjaersgaardsvej-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "klar",
+   "key": "klar",
+   "count": 1,
+   "context": "Slåensø. Slåensø er en klar sø omgivet af skov, tæt på Himmelbjerget.…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/klar-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/klˈɑː/",
+     "file": "ture/udtale/klar-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/klˈɑːʔ/",
+     "file": "ture/udtale/klar-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "klokken",
+   "key": "klokken",
+   "count": 1,
+   "context": "…Ifølge Google Maps har butikken åbent fra klokken 7 til 21 alle ugens dage.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/klokken-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/klˈʌkən/",
+     "file": "ture/udtale/klokken-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Kommunale",
+   "key": "kommunale",
+   "count": 1,
+   "context": "…ngang for omkring 90 procent af Silkeborg Kommunale Vandforsynings indvinding. Meget af det v…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kommunale-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/komunˈaːlə/",
+     "file": "ture/udtale/kommunale-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/komunˈaːʔlə/",
+     "file": "ture/udtale/kommunale-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "kommunen",
+   "key": "kommunen",
+   "count": 1,
+   "context": "…dværk fra 1974. Ifølge en redegørelse fra kommunen stod værket dengang for omkring 90 procen…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kommunen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/komˈuːnən/",
+     "file": "ture/udtale/kommunen-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Kristus",
+   "key": "kristus",
+   "count": 1,
+   "context": "…manden, et moselig fra omkring 400 år før Kristus, som blev fundet i 1950.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kristus-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kʁˈestus/",
+     "file": "ture/udtale/kristus-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/kʁˈesdus/",
+     "file": "ture/udtale/kristus-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "kulturhus",
+   "key": "kulturhus",
+   "count": 1,
+   "context": "…fra 1995 lå ikke langt herfra og er i dag kulturhus i Nye ved Aarhus.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kulturhus-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kultˈuɐ̯hˌuːs/",
+     "file": "ture/udtale/kulturhus-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/kultˈuɐ̯ʔhˌuːʔs/",
+     "file": "ture/udtale/kulturhus-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "kunstige",
+   "key": "kunstige",
+   "count": 1,
+   "context": "…lang og skabte Tange Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmus…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kunstige-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kˈɒnstˌiːə/",
+     "file": "ture/udtale/kunstige-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/kˈɒnstˌiːʔə/",
+     "file": "ture/udtale/kunstige-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/kˈɒnsdˌiːə/",
+     "file": "ture/udtale/kunstige-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/kˈɒnsdˌiːʔə/",
+     "file": "ture/udtale/kunstige-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Kurviger",
+   "key": "kurviger",
+   "count": 1,
+   "context": "…Nord mod vest til Thorsø. Ruten er lagt i Kurviger til motorcykel.",
+   "how": "compound kur+viger",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/kurviger-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/kˈuɐ̯ʋˌiːʌ/",
+     "file": "ture/udtale/kurviger-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/kˈuɐ̯ʋˌiːʔʌ/",
+     "file": "ture/udtale/kurviger-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Ladelundsvej",
+   "key": "ladelundsvej",
+   "count": 2,
+   "context": "Start: Ladelundsvej 5. Turen starter her på Ladelundsvej i Si…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/ladelundsvej-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "lang",
+   "key": "lang",
+   "count": 1,
+   "context": "…18 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange Sø, Danmarks største kuns…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/lang-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/lˈɑŋ/",
+     "file": "ture/udtale/lang-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/lˈɑŋʔ/",
+     "file": "ture/udtale/lang-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "langt",
+   "key": "langt",
+   "count": 1,
+   "context": "…k. Den gamle vandrekirke fra 1995 lå ikke langt herfra og er i dag kulturhus i Nye ved Aa…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/langt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/lˈɑŋt/",
+     "file": "ture/udtale/langt-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/lˈɑŋʔt/",
+     "file": "ture/udtale/langt-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Lige",
+   "key": "lige",
+   "count": 1,
+   "context": "…erer Hvinningdalskolen på Padborgvej 131. Lige i nærheden ligger også Hvinningdalhallen,…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/lige-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/lˈiːə/",
+     "file": "ture/udtale/lige-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "lyskryds",
+   "key": "lyskryds",
+   "count": 1,
+   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgår…",
+   "how": "compound lys+kryds",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/lyskryds-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/lˈyːsɡʁˌys/",
+     "file": "ture/udtale/lyskryds-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "længere",
+   "key": "længere",
+   "count": 1,
+   "context": "…skole, sportshal og en helt ny kirke, og længere mod sydvest ligger vandværket.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/laengere-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/lˈεŋʌʌ/",
+     "file": "ture/udtale/laengere-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Maps",
+   "key": "maps",
+   "count": 1,
+   "context": "…e, som tidligere hed Fakta. Ifølge Google Maps har butikken åbent fra klokken 7 til 21 a…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/maps-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Margrethe",
+   "key": "margrethe",
+   "count": 1,
+   "context": "…ndviet i 1991 som en hyldest til Dronning Margrethe. Den er markeret med skilte med en margue…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/margrethe-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mɑɡʁˈeːtə/",
+     "file": "ture/udtale/margrethe-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/mɑɡʁˈeːʔtə/",
+     "file": "ture/udtale/margrethe-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Margueritruten",
+   "key": "margueritruten",
+   "count": 1,
+   "context": "…get. I området mellem Silkeborg og Ry går Margueritruten, som blev indviet i 1991 som en hyldest t…",
+   "how": "compound marguerit+ruten",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/margueritruten-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mɑɡəʁˈitʁˌuːtən/",
+     "file": "ture/udtale/margueritruten-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "meter",
+   "key": "meter",
+   "count": 4,
+   "context": "Tangeværket og Tange Sø. Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks s…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/meter-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mˈeːtʌ/",
+     "file": "ture/udtale/meter-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/mˈeːʔtʌ/",
+     "file": "ture/udtale/meter-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Michael",
+   "key": "michael",
+   "count": 3,
+   "context": "…rter på Torvet i Silkeborg ved statuen af Michael Drewsen. Han grundlagde Silkeborg Papirfa…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/michael-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mˈikˌaːl/",
+     "file": "ture/udtale/michael-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/mˈikˌaːʔl/",
+     "file": "ture/udtale/michael-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "moderne",
+   "key": "moderne",
+   "count": 1,
+   "context": "…fabrik og regnes for grundlæggeren af det moderne Silkeborg. Turen går mod øst til Ry, cirk…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/moderne-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/modˈεɐ̯nə/",
+     "file": "ture/udtale/moderne-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Moltke",
+   "key": "moltke",
+   "count": 1,
+   "context": "…rk bygget i 2020'erne, tegnet af Friis og Moltke og kendt for sit mønstermurværk. Den gaml…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/moltke-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mˈʌltkə/",
+     "file": "ture/udtale/moltke-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Mortorvej",
+   "key": "mortorvej",
+   "count": 1,
+   "context": "Mortorvej. Så er vi på motorvejen, nu skal det gå s…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/mortorvej-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "moselig",
+   "key": "moselig",
+   "count": 1,
+   "context": "…Museum Silkeborg ligger Tollundmanden, et moselig fra omkring 400 år før Kristus, som blev…",
+   "how": "compound mose+lig",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/moselig-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mˈoːsəlˌiː/",
+     "file": "ture/udtale/moselig-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/mˈoːsəlˌiːʔ/",
+     "file": "ture/udtale/moselig-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "motorvejen",
+   "key": "motorvejen",
+   "count": 1,
+   "context": "Mortorvej. Så er vi på motorvejen, nu skal det gå stærkt",
+   "how": "compound motor+vejen",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/motorvejen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/mˈoːtɒʋˌɑjən/",
+     "file": "ture/udtale/motorvejen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/mˈoːtɒʋˌɑjʔən/",
+     "file": "ture/udtale/motorvejen-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "mønstermurværk",
+   "key": "mønstermurværk",
+   "count": 1,
+   "context": "…egnet af Friis og Moltke og kendt for sit mønstermurværk. Den gamle vandrekirke fra 1995 lå ikke l…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/moenstermurvaerk-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "nyskryds",
+   "key": "nyskryds",
+   "count": 1,
+   "context": "Nyt lyskryds. Nyt nyskryds mellem Eidervej og Kjærsgårdsvej",
+   "how": "compound nys+kryds",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/nyskryds-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/nˈysɡʁˌys/",
+     "file": "ture/udtale/nyskryds-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "nærheden",
+   "key": "nærheden",
+   "count": 1,
+   "context": "…inningdalskolen på Padborgvej 131. Lige i nærheden ligger også Hvinningdalhallen, som er omr…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/naerheden-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/nˈεɐ̯hˌeðən/",
+     "file": "ture/udtale/naerheden-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/nˈεɐ̯hˌeðʔən/",
+     "file": "ture/udtale/naerheden-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Odinsvej",
+   "key": "odinsvej",
+   "count": 1,
+   "context": "…Vandværk. Sydvest for ruten, i skoven ved Odinsvej, ligger Hvinningdal Vandværk fra 1974. If…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/odinsvej-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "omgivet",
+   "key": "omgivet",
+   "count": 1,
+   "context": "Slåensø. Slåensø er en klar sø omgivet af skov, tæt på Himmelbjerget. I området…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/omgivet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈʌmɡˌiːəð/",
+     "file": "ture/udtale/omgivet-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ˈʌmɡˌiːʔəð/",
+     "file": "ture/udtale/omgivet-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "området",
+   "key": "området",
+   "count": 2,
+   "context": "…omgivet af skov, tæt på Himmelbjerget. I området mellem Silkeborg og Ry går Margueritruten…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/omraadet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈʌmʁˌɒːðəð/",
+     "file": "ture/udtale/omraadet-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "områdets",
+   "key": "områdets",
+   "count": 2,
+   "context": "…fremme ved Ry Havn, som er et centrum for områdets turisme. Her ligger kanoudlejning og turb…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/omraadets-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈʌmʁˌɒːðəðs/",
+     "file": "ture/udtale/omraadets-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Papirfabrik",
+   "key": "papirfabrik",
+   "count": 1,
+   "context": "…Michael Drewsen. Han grundlagde Silkeborg Papirfabrik og regnes for grundlæggeren af det modern…",
+   "how": "compound papir+fabrik",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/papirfabrik-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/papˈiɐ̯fabʁˌek/",
+     "file": "ture/udtale/papirfabrik-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "passerer",
+   "key": "passerer",
+   "count": 1,
+   "context": "Hvinningdalskolen. Du passerer Hvinningdalskolen på Padborgvej 131. Lige…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/passerer-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/pasˈeːʌ/",
+     "file": "ture/udtale/passerer-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/pasˈeːʔʌ/",
+     "file": "ture/udtale/passerer-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "plads",
+   "key": "plads",
+   "count": 1,
+   "context": "…rt badested ved søen med skov rundt om og plads til telte.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/plads-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/plˈas/",
+     "file": "ture/udtale/plads-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "populært",
+   "key": "populært",
+   "count": 1,
+   "context": "…Fisk. Ved Sejsvej ligger De Små Fisk, et populært badested ved søen med skov rundt om og pl…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/populaert-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/populˈεɐ̯t/",
+     "file": "ture/udtale/populaert-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/populˈεɐ̯ʔt/",
+     "file": "ture/udtale/populaert-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "procent",
+   "key": "procent",
+   "count": 1,
+   "context": "…mmunen stod værket dengang for omkring 90 procent af Silkeborg Kommunale Vandforsynings ind…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/procent-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/pʁosˈεnt/",
+     "file": "ture/udtale/procent-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/pʁosˈεnʔt/",
+     "file": "ture/udtale/procent-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "punkt",
+   "key": "punkt",
+   "count": 1,
+   "context": "…v indtil 1847 regnet for Danmarks højeste punkt. Michael Drewsen tog i 1854 initiativ til…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/punkt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/pˈɒŋt/",
+     "file": "ture/udtale/punkt-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/pˈɒŋʔt/",
+     "file": "ture/udtale/punkt-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "redegørelse",
+   "key": "redegørelse",
+   "count": 1,
+   "context": "…Hvinningdal Vandværk fra 1974. Ifølge en redegørelse fra kommunen stod værket dengang for omkr…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/redegoerelse-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʁˈeːðəɡˌœʌlsə/",
+     "file": "ture/udtale/redegoerelse-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʁˈeːðəɡˌœʔʌlsə/",
+     "file": "ture/udtale/redegoerelse-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "regnet",
+   "key": "regnet",
+   "count": 1,
+   "context": "…cirka 147 meter højt og blev indtil 1847 regnet for Danmarks højeste punkt. Michael Drews…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/regnet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʁˈɑjnəð/",
+     "file": "ture/udtale/regnet-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "rundt",
+   "key": "rundt",
+   "count": 1,
+   "context": "…k, et populært badested ved søen med skov rundt om og plads til telte.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/rundt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʁˈɒnt/",
+     "file": "ture/udtale/rundt-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʁˈɒnʔt/",
+     "file": "ture/udtale/rundt-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Ry",
+   "key": "ry",
+   "count": 5,
+   "context": "…moderne Silkeborg. Turen går mod øst til Ry, cirka tyve kilometer.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/ry-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʁˈyː/",
+     "file": "ture/udtale/ry-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʁˈyːʔ/",
+     "file": "ture/udtale/ry-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "sejlende",
+   "key": "sejlende",
+   "count": 1,
+   "context": "…Himmelbjerget. Den kaldes verdens ældste sejlende hjuldamper.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sejlende-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈɑjlənə/",
+     "file": "ture/udtale/sejlende-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "sejler",
+   "key": "sejler",
+   "count": 2,
+   "context": "…drift som turistbåd af Michael Drewsen og sejler om sommeren til Himmelbjerget. Den kaldes…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sejler-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈɑjlʌ/",
+     "file": "ture/udtale/sejler-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Sejsvej",
+   "key": "sejsvej",
+   "count": 1,
+   "context": "De Små Fisk. Ved Sejsvej ligger De Små Fisk, et populært badested…",
+   "how": "compound sejs+vej",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sejsvej-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈɑjsʋˌɑj/",
+     "file": "ture/udtale/sejsvej-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/sˈɑjsʋˌɑjʔ/",
+     "file": "ture/udtale/sejsvej-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "selskabet",
+   "key": "selskabet",
+   "count": 1,
+   "context": "Hjejlen. Her ved havnen ligger Hjejle-selskabet. Damperen Hjejlen blev i 1861 sat i drift…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/selskabet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈεlskˌaːbəð/",
+     "file": "ture/udtale/selskabet-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/sˈεlskˌaːʔbəð/",
+     "file": "ture/udtale/selskabet-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sˈεlsɡˌaːbəð/",
+     "file": "ture/udtale/selskabet-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/sˈεlsɡˌaːʔbəð/",
+     "file": "ture/udtale/selskabet-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "skole",
+   "key": "skole",
+   "count": 1,
+   "context": "…ådet omkring Hvinningdal. Her ligger både skole, sportshal og en helt ny kirke, og længer…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/skole-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/skˈoːlə/",
+     "file": "ture/udtale/skole-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sɡˈoːlə/",
+     "file": "ture/udtale/skole-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Slut",
+   "key": "slut",
+   "count": 3,
+   "context": "Slut: Thorsø. Du er fremme ved Thorsø efter ci…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/slut-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/slˈut/",
+     "file": "ture/udtale/slut-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Slåensø",
+   "key": "slåensø",
+   "count": 2,
+   "context": "Slåensø. Slåensø er en klar sø omgivet af skov, t…",
+   "how": "compound slå+ensø",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/slaaensoe-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/slˈɒːˌεnsˌœ/",
+     "file": "ture/udtale/slaaensoe-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/slˈɒːˌεnsˌœʔ/",
+     "file": "ture/udtale/slaaensoe-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "sommeren",
+   "key": "sommeren",
+   "count": 2,
+   "context": "…turistbåd af Michael Drewsen og sejler om sommeren til Himmelbjerget. Den kaldes verdens æld…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sommeren-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈʌmʌʌn/",
+     "file": "ture/udtale/sommeren-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "sportshal",
+   "key": "sportshal",
+   "count": 2,
+   "context": "…kring Hvinningdal. Her ligger både skole, sportshal og en helt ny kirke, og længere mod sydve…",
+   "how": "compound sports+hal",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sportshal-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/spˈɒːtshˌal/",
+     "file": "ture/udtale/sportshal-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/spˈɒːtshˌalʔ/",
+     "file": "ture/udtale/sportshal-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sbˈɒːtshˌal/",
+     "file": "ture/udtale/sportshal-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/sbˈɒːtshˌalʔ/",
+     "file": "ture/udtale/sportshal-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "statuen",
+   "key": "statuen",
+   "count": 1,
+   "context": "…org. Du starter på Torvet i Silkeborg ved statuen af Michael Drewsen. Han grundlagde Silkeb…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/statuen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/stˈaːtˌuːən/",
+     "file": "ture/udtale/statuen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/stˈaːʔtˌuːən/",
+     "file": "ture/udtale/statuen-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sdˈaːtˌuːən/",
+     "file": "ture/udtale/statuen-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/sdˈaːʔtˌuːən/",
+     "file": "ture/udtale/statuen-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "stod",
+   "key": "stod",
+   "count": 1,
+   "context": "…1974. Ifølge en redegørelse fra kommunen stod værket dengang for omkring 90 procent af…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/stod-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/stˈoð/",
+     "file": "ture/udtale/stod-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/stˈoðʔ/",
+     "file": "ture/udtale/stod-C.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sdˈoð/",
+     "file": "ture/udtale/stod-D.mp3"
+    },
+    {
+     "id": "E",
+     "label": "NST with stød, sd/sg/sb after s",
+     "value": "/sdˈoðʔ/",
+     "file": "ture/udtale/stod-E.mp3"
+    }
+   ]
+  },
+  {
+   "word": "stærkt",
+   "key": "stærkt",
+   "count": 1,
+   "context": "…j. Så er vi på motorvejen, nu skal det gå stærkt",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/staerkt-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/stˈεɐ̯kt/",
+     "file": "ture/udtale/staerkt-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sdˈεɐ̯kt/",
+     "file": "ture/udtale/staerkt-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "største",
+   "key": "største",
+   "count": 2,
+   "context": "…r mod sydøst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 19…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/stoerste-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/stˈœɐ̯stə/",
+     "file": "ture/udtale/stoerste-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/sdˈœɐ̯sdə/",
+     "file": "ture/udtale/stoerste-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "sydøst",
+   "key": "sydøst",
+   "count": 1,
+   "context": "…geværket og Tange Sø. Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks største vand…",
+   "how": "compound syd+øst",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/sydoest-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈyðˌœst/",
+     "file": "ture/udtale/sydoest-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Sø",
+   "key": "sø",
+   "count": 2,
+   "context": "Tangeværket og Tange Sø. Cirka 550 meter mod sydøst ligger Tangev…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/soe-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈœ/",
+     "file": "ture/udtale/soe-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/sˈœʔ/",
+     "file": "ture/udtale/soe-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "søen",
+   "key": "søen",
+   "count": 1,
+   "context": "…ger De Små Fisk, et populært badested ved søen med skov rundt om og plads til telte.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/soeen-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈœən/",
+     "file": "ture/udtale/soeen-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/sˈœʔən/",
+     "file": "ture/udtale/soeen-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "søerne",
+   "key": "søerne",
+   "count": 1,
+   "context": "…Fra Himmelbjergtårnet er der udsigt over søerne.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/soeerne-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/sˈœʌnə/",
+     "file": "ture/udtale/soeerne-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/sˈœʔʌnə/",
+     "file": "ture/udtale/soeerne-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Tange",
+   "key": "tange",
+   "count": 2,
+   "context": "Tangeværket og Tange Sø. Cirka 550 meter mod sydøst ligger Tan…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/tange-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tˈɑŋə/",
+     "file": "ture/udtale/tange-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "tegnet",
+   "key": "tegnet",
+   "count": 1,
+   "context": "…ørste kirke i Danmark bygget i 2020'erne, tegnet af Friis og Moltke og kendt for sit mønst…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/tegnet-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tˈɑjnəð/",
+     "file": "ture/udtale/tegnet-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "tidligere",
+   "key": "tidligere",
+   "count": 1,
+   "context": "…rgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. Ifølge Google Maps har butikke…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/tidligere-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tˈiðlˌiːʌʌ/",
+     "file": "ture/udtale/tidligere-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/tˈiðlˌiːʔʌʌ/",
+     "file": "ture/udtale/tidligere-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Tollundmanden",
+   "key": "tollundmanden",
+   "count": 2,
+   "context": "Museum Silkeborg og Tollundmanden. På Museum Silkeborg ligger Tollundmanden…",
+   "how": "compound tollund+manden",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/tollundmanden-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tˈʌlˌɒnmˌanən/",
+     "file": "ture/udtale/tollundmanden-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/tˈʌlˌɒnmˌanʔən/",
+     "file": "ture/udtale/tollundmanden-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "turbåde",
+   "key": "turbåde",
+   "count": 1,
+   "context": "…dets turisme. Her ligger kanoudlejning og turbåde, og Hjejlen sejler om sommeren mellem Ry,…",
+   "how": "compound tur+både",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/turbaade-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tˈuɐ̯bˌɒːðə/",
+     "file": "ture/udtale/turbaade-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "turisme",
+   "key": "turisme",
+   "count": 1,
+   "context": "…d Ry Havn, som er et centrum for områdets turisme. Her ligger kanoudlejning og turbåde, og…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/turisme-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tuʁˈismə/",
+     "file": "ture/udtale/turisme-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "turistbåd",
+   "key": "turistbåd",
+   "count": 1,
+   "context": "…peren Hjejlen blev i 1861 sat i drift som turistbåd af Michael Drewsen og sejler om sommeren…",
+   "how": "compound turist+båd",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/turistbaad-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/tuʁˈistbˌɒːð/",
+     "file": "ture/udtale/turistbaad-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/tuʁˈistbˌɒːʔð/",
+     "file": "ture/udtale/turistbaad-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "ugens",
+   "key": "ugens",
+   "count": 1,
+   "context": "…butikken åbent fra klokken 7 til 21 alle ugens dage.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/ugens-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ˈuːəns/",
+     "file": "ture/udtale/ugens-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "vand",
+   "key": "vand",
+   "count": 1,
+   "context": "…e Vandforsynings indvinding. Meget af det vand, der kommer ud af hanerne i Silkeborg, ko…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vand-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈan/",
+     "file": "ture/udtale/vand-B.mp3"
+    },
+    {
+     "id": "C",
+     "label": "NST with stød",
+     "value": "/ʋˈanʔ/",
+     "file": "ture/udtale/vand-C.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Vandforsynings",
+   "key": "vandforsynings",
+   "count": 1,
+   "context": "…omkring 90 procent af Silkeborg Kommunale Vandforsynings indvinding. Meget af det vand, der kommer…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vandforsynings-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "vandkraftværk",
+   "key": "vandkraftværk",
+   "count": 1,
+   "context": "…døst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 1921. Dæmningen…",
+   "how": "",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vandkraftvaerk-A.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Vandværk",
+   "key": "vandværk",
+   "count": 2,
+   "context": "Hvinningdal Vandværk. Sydvest for ruten, i skoven ved Odinsvej…",
+   "how": "compound vand+værk",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vandvaerk-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈanʋˌεɐ̯k/",
+     "file": "ture/udtale/vandvaerk-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "vandværket",
+   "key": "vandværket",
+   "count": 1,
+   "context": "…t ny kirke, og længere mod sydvest ligger vandværket.",
+   "how": "compound vand+værket",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vandvaerket-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈanʋˌεɐ̯kəð/",
+     "file": "ture/udtale/vandvaerket-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "verdens",
+   "key": "verdens",
+   "count": 1,
+   "context": "…om sommeren til Himmelbjerget. Den kaldes verdens ældste sejlende hjuldamper.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/verdens-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈεɐ̯dəns/",
+     "file": "ture/udtale/verdens-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "vestligste",
+   "key": "vestligste",
+   "count": 1,
+   "context": "…iden af Silkeborg. Du er på vej ind i det vestligste Silkeborg, området omkring Hvinningdal. H…",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vestligste-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈεstlistə/",
+     "file": "ture/udtale/vestligste-B.mp3"
+    },
+    {
+     "id": "D",
+     "label": "NST, sd/sg/sb after s",
+     "value": "/ʋˈεstlisdə/",
+     "file": "ture/udtale/vestligste-D.mp3"
+    }
+   ]
+  },
+  {
+   "word": "Vestsiden",
+   "key": "vestsiden",
+   "count": 1,
+   "context": "Vestsiden af Silkeborg. Du er på vej ind i det vest…",
+   "how": "compound vest+siden",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vestsiden-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈεstsˌiːðən/",
+     "file": "ture/udtale/vestsiden-B.mp3"
+    }
+   ]
+  },
+  {
+   "word": "værket",
+   "key": "værket",
+   "count": 2,
+   "context": "…nge Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmuseum.",
+   "how": "direct",
+   "variants": [
+    {
+     "id": "A",
+     "label": "As now (Piper)",
+     "value": "",
+     "file": "ture/udtale/vaerket-A.mp3"
+    },
+    {
+     "id": "B",
+     "label": "NST",
+     "value": "/ʋˈεɐ̯kəð/",
+     "file": "ture/udtale/vaerket-B.mp3"
+    }
+   ]
+  }
+ ]
+}
