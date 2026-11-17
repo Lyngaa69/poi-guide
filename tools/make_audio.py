@@ -10,6 +10,9 @@ Files per route <name>.gpx:
 Wayside only plays a file when its fingerprint matches the current text of the stop,
 so an edited stop never plays old audio.
 
+Word previews for the pronunciation page in Studio are made in ture/udtale/ (ord.json plus one mp3 per variant).
+Words you have decided on are listed in tools/udtale.txt (own pronunciation) or tools/udtale-ok.txt (fine as it is).
+
 Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it should sound
   torvet = /tˈɒɐ̯ʋəð/      (between slashes: exact sounds, IPA)
   drewsen = drusen          (otherwise: a respelling that the voice reads correctly)
@@ -204,14 +207,106 @@ def load_voice():
     onnx = next(vdir.glob('*.onnx'))
     return PiperVoice.load(str(onnx), config_path=str(onnx) + '.json')
 
-def make_mp3(voice, text, out_mp3):
+def make_mp3(voice, text, out_mp3, raw=False):
     wav_path = str(out_mp3) + '.wav'
     with wave.open(wav_path, 'wb') as w:
-        voice.synthesize_wav(spoken(text), w)
+        voice.synthesize_wav(text if raw else spoken(text), w)
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav_path,
                     '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
                     '-ac', '1', '-ar', '22050', '-b:a', '64k', str(out_mp3)], check=True)
     os.remove(wav_path)
+
+# ---------- word previews (the pronunciation page in Studio) ----------
+UD_DIR = TURE / 'udtale'          # inside ture/, so the existing commit step saves it
+STOP_WORDS = set("""og i på af at en et er den det til med som for der de du jeg han hun vi man ikke kan skal vil har have hvor fra ved om var blev bliver kom kommer går ligger lidt mod over under ind ud op ned her dér da så men eller også både hele hvert denne dette disse sig sin sit deres din dit dig mig nu hvis når dem ham hende os jer sådan sådanne anden andre andet først sidst alle alt noget nogle ingen mere mest meget mange få flere fleste cirka omkring efter før mellem siden indtil igen stadig altså kun bare blot dog jo nok måske ville kunne skulle måtte blive været haft fået givet sat lavet ligget stået gjort sagt set taget kaldt kaldes regnes fundet bygget åbnet holdt kører køre fremme starter turen ruten stoppet stop hvad hvem hvordan hvorfor hvilken hvilke altid aldrig ofte nogen ny nye nyt gamle gammel stor store stort lille små god gode godt dag år tid sted vej side del nord syd øst vest""".split())
+
+def decided_words():
+    keys = {w.lower() for w, _ in DICTIONARY}
+    ok = ROOT / 'tools' / 'udtale-ok.txt'
+    if ok.exists():
+        for line in ok.read_text(encoding='utf-8').splitlines():
+            line = line.strip()
+            if line and not line.startswith('#'):
+                keys.add(line.lower())
+    return keys
+
+def slug(word):
+    s = word.lower().replace('æ', 'ae').replace('ø', 'oe').replace('å', 'aa')
+    return re.sub(r'[^a-z0-9]+', '-', s).strip('-') or 'ord'
+
+def collect_words():
+    info = {}
+    for g in sorted(TURE.glob('*.gpx')):
+        for s in read_stops(g):
+            for mo in re.finditer(r"[A-Za-zÆØÅæøå]+", s):
+                w = mo.group(0); k = w.lower()
+                if k in STOP_WORDS or (len(k) < 4 and not w[0].isupper()):
+                    continue
+                e = info.setdefault(k, {'forms': {}, 'count': 0, 'context': ''})
+                e['count'] += 1
+                e['forms'][w] = e['forms'].get(w, 0) + 1
+                if not e['context']:
+                    a, b = max(0, mo.start() - 42), min(len(s), mo.end() + 42)
+                    e['context'] = ('…' if a else '') + s[a:b].strip() + ('…' if b < len(s) else '')
+    return info
+
+def preview_plan():
+    """what the pronunciation page should show, and whether the preview files are up to date"""
+    try:
+        import nst_convert
+    except Exception:
+        nst_convert = None
+    done = decided_words()
+    words = []
+    for k, e in sorted(collect_words().items()):
+        if k in done:
+            continue
+        shown = max(e['forms'], key=lambda f: e['forms'][f])
+        variants = [{'id': 'A', 'label': 'As now (Piper)', 'value': ''}]
+        how = None
+        if nst_convert:
+            cands, how = nst_convert.candidates(k)
+            variants += [{'id': i, 'label': l, 'value': v} for i, v, l in cands]
+        for v in variants:
+            v['file'] = 'ture/udtale/%s-%s.mp3' % (slug(k), v['id'])
+        words.append({'word': shown, 'key': k, 'count': e['count'], 'context': e['context'], 'how': how or '', 'variants': variants})
+    return {'words': words}
+
+def previews_needed(plan):
+    path = UD_DIR / 'ord.json'
+    try:
+        old = json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        old = None
+    if old != plan:
+        return True
+    return any(not (ROOT / v['file']).exists() for w in plan['words'] for v in w['variants'])
+
+def make_previews(plan, voice_loader):
+    UD_DIR.mkdir(exist_ok=True)
+    path = UD_DIR / 'ord.json'
+    try:
+        old = json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        old = {'words': []}
+    old_val = {(w['key'], v['id']): v['value'] for w in old['words'] for v in w['variants']}
+    wanted = set(); voice = None
+    for w in plan['words']:
+        for v in w['variants']:
+            out = ROOT / v['file']; wanted.add(out.name)
+            if out.exists() and old_val.get((w['key'], v['id'])) == v['value']:
+                continue
+            try:
+                if voice is None: voice = voice_loader()
+                text = w['key'] if v['id'] == 'A' else '[[' + v['value'].strip('/') + ']]'
+                make_mp3(voice, text, out, raw=True)
+            except Exception as e:
+                print('::warning::No preview for %s %s: %s: %s' % (w['key'], v['id'], type(e).__name__, e))
+    for f in UD_DIR.glob('*.mp3'):
+        if f.name not in wanted:
+            f.unlink()
+    path.write_text(json.dumps(plan, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    print('previews: %d words listed' % len(plan['words']))
 
 def main():
     plans = all_plans()
@@ -220,7 +315,10 @@ def main():
             print('%s: %d stops, %d need audio, %d old files to remove%s' % (
                 p['base'], len(p['stops']), len(p['todo']), len(p['orphans']),
                 '' if p['manifest_ok'] else ', fingerprint file to update'))
-        flag = 'true' if needed(plans) else 'false'
+        pplan = preview_plan()
+        pneeded = previews_needed(pplan)
+        print('word previews: %d words to review%s' % (len(pplan['words']), ', needs updating' if pneeded else ', up to date'))
+        flag = 'true' if (needed(plans) or pneeded) else 'false'
         print('needed=' + flag)
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -244,6 +342,9 @@ def main():
                 print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, e))
         (TURE / (p['base'] + '.audio.json')).write_text(
             json.dumps({'voice': VOICE_ID, 'stops': p['hashes'], 'spoken': p['spoken_hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
+    pplan = preview_plan()
+    if previews_needed(pplan):
+        make_previews(pplan, load_voice)
 
 if __name__ == '__main__':
     main()
