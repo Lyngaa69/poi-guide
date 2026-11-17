@@ -27,6 +27,7 @@
     "beskrivelse": "Short test trip with 6 stops",
     "radius": 150,
     "adaptiv": false,
-    "rute": "osrm"
+    "rute": "osrm",
+    "vis": false
   }
 ]
