@@ -47,3 +47,6 @@ udsigt = /ˈuðsˌekt/
 tre = /tʁˈeːʔ/
 ti = /tˈiːʔ/
 tyve = /tˈyːʋə/
+
+# Added in Studio
+badested = /bˈaːðəstˌεð/
