@@ -1,102 +1,6 @@
 {
  "words": [
   {
-   "word": "arbejde",
-   "key": "arbejde",
-   "count": 1,
-   "context": "Start. Så er vi igang. God tur til arbejde",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/arbejde-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/ˈɑːbˌɑjdə/",
-     "file": "ture/udtale/arbejde-B.mp3"
-    },
-    {
-     "id": "C",
-     "label": "NST with stød",
-     "value": "/ˈɑːbˌɑjʔdə/",
-     "file": "ture/udtale/arbejde-C.mp3"
-    }
-   ]
-  },
-  {
-   "word": "badested",
-   "key": "badested",
-   "count": 1,
-   "context": "…d Sejsvej ligger De Små Fisk, et populært badested ved søen med skov rundt om og plads til t…",
-   "how": "compound bade+sted",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/badested-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/bˈaːðəstˌεð/",
-     "file": "ture/udtale/badested-B.mp3"
-    },
-    {
-     "id": "D",
-     "label": "NST, sd/sg/sb after s",
-     "value": "/bˈaːðəsdˌεð/",
-     "file": "ture/udtale/badested-D.mp3"
-    }
-   ]
-  },
-  {
-   "word": "butikken",
-   "key": "butikken",
-   "count": 2,
-   "context": "…al cirka halvandet kilometer mod vest til butikken på Padborgvej.",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/butikken-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/butˈikən/",
-     "file": "ture/udtale/butikken-B.mp3"
-    }
-   ]
-  },
-  {
-   "word": "centrum",
-   "key": "centrum",
-   "count": 1,
-   "context": "…Havn. Du er fremme ved Ry Havn, som er et centrum for områdets turisme. Her ligger kanoudle…",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/centrum-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/sˈεntʁɒm/",
-     "file": "ture/udtale/centrum-B.mp3"
-    }
-   ]
-  },
-  {
    "word": "Coops",
    "key": "coops",
    "count": 1,
@@ -108,27 +12,6 @@
      "label": "As now (Piper)",
      "value": "",
      "file": "ture/udtale/coops-A.mp3"
-    }
-   ]
-  },
-  {
-   "word": "Damperen",
-   "key": "damperen",
-   "count": 1,
-   "context": "…. Her ved havnen ligger Hjejle-selskabet. Damperen Hjejlen blev i 1861 sat i drift som turis…",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/damperen-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/dˈɑmpʌʌn/",
-     "file": "ture/udtale/damperen-B.mp3"
     }
    ]
   },
@@ -150,75 +33,6 @@
      "label": "NST",
      "value": "/dˈanmɑk/",
      "file": "ture/udtale/danmark-B.mp3"
-    }
-   ]
-  },
-  {
-   "word": "dengang",
-   "key": "dengang",
-   "count": 1,
-   "context": "…e en redegørelse fra kommunen stod værket dengang for omkring 90 procent af Silkeborg Kommu…",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/dengang-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/dˈεnɡˌɑŋ/",
-     "file": "ture/udtale/dengang-B.mp3"
-    },
-    {
-     "id": "C",
-     "label": "NST with stød",
-     "value": "/dˈεnʔɡˌɑŋʔ/",
-     "file": "ture/udtale/dengang-C.mp3"
-    }
-   ]
-  },
-  {
-   "word": "discount",
-   "key": "discount",
-   "count": 2,
-   "context": "Slut: 365discount, Padborgvej 298. Du er fremme ved 365disc…",
-   "how": "direct",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/discount-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/diskˈɑwnt/",
-     "file": "ture/udtale/discount-B.mp3"
-    }
-   ]
-  },
-  {
-   "word": "discountkæde",
-   "key": "discountkæde",
-   "count": 1,
-   "context": "…5discount på Padborgvej 298. Det er Coops discountkæde, som tidligere hed Fakta. Ifølge Google M…",
-   "how": "compound discount+kæde",
-   "variants": [
-    {
-     "id": "A",
-     "label": "As now (Piper)",
-     "value": "",
-     "file": "ture/udtale/discountkaede-A.mp3"
-    },
-    {
-     "id": "B",
-     "label": "NST",
-     "value": "/diskˈɑwntkˌɛːðə/",
-     "file": "ture/udtale/discountkaede-B.mp3"
     }
    ]
   },
