@@ -1,5 +1,5 @@
 {
-  "voice": "piper-da_DK-talesyntese-medium-v1",
+  "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
     "ebf86e6e",
     "0da71534",
@@ -10,13 +10,13 @@
     "ff4614da"
   ],
   "spoken": [
-    "739e75ae",
-    "568764e2",
-    "aa9289be",
-    "e55ffa73",
-    "ecaf2f4b",
-    "1bffa134",
-    "0d7b208f"
+    "01d22853",
+    "eaa0aa85",
+    "079f7e3b",
+    "f8a6720c",
+    "2557b9dc",
+    "1e5bfe51",
+    "88d293c7"
   ],
   "failed": []
 }

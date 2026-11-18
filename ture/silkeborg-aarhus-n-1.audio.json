@@ -1,14 +1,14 @@
 {
-  "voice": "piper-da_DK-talesyntese-medium-v1",
+  "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
     "d0a8f557",
     "08e2f2d5",
     "44a46c16"
   ],
   "spoken": [
-    "4393bca0",
-    "08e2f2d5",
-    "44a46c16"
+    "d3eaba9e",
+    "075df820",
+    "3e09eb7b"
   ],
   "failed": []
 }
