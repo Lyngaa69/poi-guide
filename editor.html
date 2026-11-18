@@ -78,6 +78,19 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
 a.tour { text-decoration: none; }
+.iconbtn { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--text); touch-action: manipulation; flex: none; }
+.iconbtn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+#scrim { position: fixed; inset: 0; z-index: 190; background: rgba(8, 20, 36, 0.55); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
+#scrim.on { opacity: 1; visibility: visible; }
+#drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 200; width: min(420px, 100%); background: var(--bg); border-left: 1px solid var(--line); display: flex; flex-direction: column; transform: translateX(100%); visibility: hidden; transition: transform .22s ease, visibility .22s; }
+#drawer.open { transform: translateX(0); visibility: visible; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px; border-bottom: 1px solid var(--line); }
+.drawer-head h2 { margin: 0; font-size: 1.2rem; }
+.drawer-body { overflow-y: auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling: touch; }
+.drawer-body h3 { margin: 18px 0 0; }
+.exrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.exrow select { width: auto; min-height: 40px; flex: 1 1 160px; max-width: 260px; }
+@media (prefers-reduced-motion: reduce) { #drawer, #scrim { transition: none; } }
 .loading { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); font-weight: 600; }
 .spinner { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--sign); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -125,12 +138,110 @@ details.tips li { margin-bottom: 4px; }
 </head>
 <body>
 
+<div id="scrim"></div>
+<aside id="drawer" aria-label="Menu" aria-hidden="true">
+  <div class="drawer-head">
+    <h2>Menu</h2>
+    <button class="iconbtn" id="closeBtn" type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <h3>Voice for the audio</h3>
+    <p class="hint" style="margin-top:4px;">One setting for all routes. When you save, GitHub remakes the audio for all routes with the new voice.</p>
+
+    <label class="field"><span>Voice engine</span>
+      <select id="vProvider">
+        <option value="gemini">Gemini (AI voice, needs the key in GitHub)</option>
+        <option value="piper">Piper (free, runs on GitHub, more robotic)</option>
+      </select>
+    </label>
+
+    <div id="vGemini">
+      <label class="field"><span>Model</span>
+        <select id="vModel">
+          <option value="gemini-3.8-flash-tts">Gemini 3.8 Flash TTS (best quality)</option>
+          <option value="gemini-3.8-flash-lite-tts">Gemini 3.8 Flash-Lite TTS (faster, simpler)</option>
+        </select>
+      </label>
+      <label class="field"><span>Voice</span>
+        <select id="vVoice">
+          <option value="Achernar">Achernar – Soft</option>
+          <option value="Achird">Achird – Friendly</option>
+          <option value="Algenib">Algenib – Gravelly</option>
+          <option value="Algieba">Algieba – Smooth</option>
+          <option value="Alnilam">Alnilam – Firm</option>
+          <option value="Aoede">Aoede – Breezy</option>
+          <option value="Autonoe">Autonoe – Bright</option>
+          <option value="Callirrhoe">Callirrhoe – Easy-going</option>
+          <option value="Charon">Charon – Informative</option>
+          <option value="Despina">Despina – Smooth</option>
+          <option value="Enceladus">Enceladus – Breathy</option>
+          <option value="Erinome">Erinome – Clear</option>
+          <option value="Fenrir">Fenrir – Excitable</option>
+          <option value="Gacrux">Gacrux – Mature</option>
+          <option value="Iapetus">Iapetus – Clear</option>
+          <option value="Kore">Kore – Firm</option>
+          <option value="Laomedeia">Laomedeia – Upbeat</option>
+          <option value="Leda">Leda – Youthful</option>
+          <option value="Orus">Orus – Firm</option>
+          <option value="Puck">Puck – Upbeat</option>
+          <option value="Pulcherrima">Pulcherrima – Forward</option>
+          <option value="Rasalgethi">Rasalgethi – Informative</option>
+          <option value="Sadachbia">Sadachbia – Lively</option>
+          <option value="Sadaltager">Sadaltager – Knowledgeable</option>
+          <option value="Schedar">Schedar – Even</option>
+          <option value="Sulafat">Sulafat – Warm</option>
+          <option value="Umbriel">Umbriel – Easy-going</option>
+          <option value="Vindemiatrix">Vindemiatrix – Gentle</option>
+          <option value="Zephyr">Zephyr – Bright</option>
+          <option value="Zubenelgenubi">Zubenelgenubi – Casual</option>
+        </select>
+      </label>
+      <label class="field"><span>Voice type (style)</span>
+        <select id="vPreset">
+          <option value="podcast">Podcast</option>
+          <option value="audiobook">Audiobook narrator</option>
+          <option value="guide">Tour guide</option>
+          <option value="news">News reader</option>
+          <option value="story">Storyteller</option>
+          <option value="calm">Calm and relaxed</option>
+          <option value="none">None (the voice&rsquo;s own way)</option>
+          <option value="custom">My own text below</option>
+        </select>
+      </label>
+      <label class="field"><span>Style text (English, short)</span>
+        <textarea id="vStyle" rows="3" spellcheck="false" style="min-height:70px;"></textarea>
+      </label>
+      <p class="hint">Keep it short, for example &ldquo;relaxed podcast host, warm and conversational&rdquo;. Do not write age, gender or accent here. You can copy the style text from Google AI Studio.</p>
+      <label class="check"><input type="checkbox" id="vNumbers"><span>Write numbers as words before sending (use this if numbers or years sound wrong)</span></label>
+    </div>
+
+    <div class="row" style="margin-top:16px;">
+      <button class="btn sign" id="vSave" type="button">Save voice settings</button>
+    </div>
+    <p class="status" id="vStatus" role="status"></p>
+    <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 2.</p>
+
+    <h3>Pronunciation</h3>
+    <a class="tour" href="udtale.html" style="margin-top:8px;">
+      <span><span class="t-title">Pronunciation of words</span><span class="t-desc">For the Piper voice. Plain respellings also work with Gemini.</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+</aside>
+
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
     <span>Wayside Studio</span>
   </div>
-  <a class="btn small" href="index.html">Open Wayside</a>
+  <div class="row" style="flex:none; flex-wrap:nowrap;">
+    <a class="btn small" href="index.html">Open Wayside</a>
+    <button class="iconbtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
 </header>
 
 <main>
@@ -186,6 +297,7 @@ details.tips li { margin-bottom: 4px; }
     <div class="card">
       <h2>2. Write the texts</h2>
       <p class="hint" style="margin-top:0;">Leave a text empty if you want Claude to write it later. Wayside then only reads out the name.</p>
+      <p class="hint">With the Gemini voice you can add expressions such as &lt;breath&gt; or &lt;chuckle&gt; where the cursor is: pick one under a text and press Insert. The phone voice and the Listen button skip them.</p>
       <div id="stopList"></div>
       <p class="status" id="summary"></p>
     </div>
@@ -664,6 +776,17 @@ details.tips li { margin-bottom: 4px; }
       var ta = document.createElement('textarea'); ta.value = s.text; ta.placeholder = 'Text to read out (leave empty to let Claude write it)';
       ta.setAttribute('aria-label', 'Text of stop ' + (i + 1)); ta.style.marginTop = '10px';
       ta.addEventListener('input', function () { s.text = ta.value; saveDraft(); updateSummary(); updateWarn(); });
+      var exrow = document.createElement('div'); exrow.className = 'exrow';
+      var exSel = document.createElement('select'); exSel.setAttribute('aria-label', 'Expression for stop ' + (i + 1));
+      exSel.appendChild(new Option('Add an expression\u2026', ''));
+      EXPRESSIONS.forEach(function (g) {
+        var og = document.createElement('optgroup'); og.label = g[0];
+        g[1].forEach(function (t) { og.appendChild(new Option('<' + t + '>', t)); });
+        exSel.appendChild(og);
+      });
+      var exBtn = document.createElement('button'); exBtn.type = 'button'; exBtn.className = 'btn small'; exBtn.textContent = 'Insert';
+      exBtn.addEventListener('click', function () { if (!exSel.value) return; insertAtCursor(ta, '<' + exSel.value + '>'); exSel.value = ''; });
+      exrow.appendChild(exSel); exrow.appendChild(exBtn);
       var act = document.createElement('div'); act.className = 'actions';
       function btn(label, fn, cls) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small' + (cls ? ' ' + cls : ''); b.textContent = label; b.addEventListener('click', fn); act.appendChild(b); return b; }
       btn('Listen', function () { speakStop(s); });
@@ -676,7 +799,7 @@ details.tips li { margin-bottom: 4px; }
         stops.splice(i, 1); if (selected === i) selected = -1; else if (selected > i) selected--;
         renderAll(false); saveDraft(); schedulePreview();
       }, 'danger');
-      c.appendChild(head); c.appendChild(ta); c.appendChild(act);
+      c.appendChild(head); c.appendChild(ta); c.appendChild(exrow); c.appendChild(act);
       els.stopList.appendChild(c);
     });
     if (!stops.length) {
@@ -697,7 +820,7 @@ details.tips li { margin-bottom: 4px; }
   function speakStop(s) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(s.text ? s.name + '. ' + s.text : s.name);
+    var u = new SpeechSynthesisUtterance((s.text ? s.name + '. ' + s.text : s.name).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim());
     var v = (window.speechSynthesis.getVoices() || []).filter(function (x) { return /^da/i.test(x.lang); })[0];
     u.lang = v ? v.lang : 'da-DK'; if (v) u.voice = v;
     window.speechSynthesis.speak(u);
@@ -1051,6 +1174,100 @@ details.tips li { margin-bottom: 4px; }
       })
       .catch(function () {});
   }
+
+  /* ---------- expressions (Gemini voice) ---------- */
+  var EXPRESSIONS = [
+    ['Pauses', ['short pause', 'long pause']],
+    ['Breath and sighs', ['breath', 'heavy breath', 'exhales', 'sigh', 'pant', 'phew', 'yawn']],
+    ['Laughter and joy', ['chuckle', 'giggle', 'laugh', 'snicker', 'cackle', 'cheer']],
+    ['Other sounds', ['gasp', 'cough', 'throat-clearing', 'argh', 'groan', 'grunt', 'growl', 'grr', 'hiss', 'moan', 'whimper', 'sob', 'cry', 'scream', 'shout', 'shriek', 'sneeze', 'snort', 'tsk', 'pff', 'whispers']]
+  ];
+  function insertAtCursor(ta, text) {
+    var v = ta.value, s = typeof ta.selectionStart === 'number' ? ta.selectionStart : v.length, e = typeof ta.selectionEnd === 'number' ? ta.selectionEnd : s;
+    var before = v.slice(0, s), after = v.slice(e);
+    var pre = before && !/\s$/.test(before) ? ' ' : '', post = after && !/^[\s.,;:!?)]/.test(after) ? ' ' : '';
+    ta.value = before + pre + text + post + after;
+    var pos = (before + pre + text + post).length;
+    ta.focus(); try { ta.setSelectionRange(pos, pos); } catch (err) { }
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  /* ---------- menu with the voice settings ---------- */
+  var PRESETS = {
+    podcast: 'relaxed podcast host, warm and conversational, natural pacing',
+    audiobook: 'calm audiobook narrator, clear and steady',
+    guide: 'friendly tour guide, warm, engaging and clear',
+    news: 'clear and neutral news reader',
+    story: 'warm storyteller, expressive and unhurried',
+    calm: 'calm and relaxed',
+    none: ''
+  };
+  var VOICE_DEFAULTS = { provider: 'gemini', model: 'gemini-3.8-flash-tts', voice: 'Gacrux', stylePreset: 'podcast', style: PRESETS.podcast, numbers: 'model' };
+  var lastFocus = null;
+  function openMenu() {
+    lastFocus = document.activeElement;
+    $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false');
+    $('scrim').classList.add('on'); $('menuBtn').setAttribute('aria-expanded', 'true');
+    loadVoiceSettings();
+    setTimeout(function () { $('closeBtn').focus(); }, 30);
+  }
+  function closeMenu() {
+    $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true');
+    $('scrim').classList.remove('on'); $('menuBtn').setAttribute('aria-expanded', 'false');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('menuBtn').addEventListener('click', function () { if ($('drawer').classList.contains('open')) closeMenu(); else openMenu(); });
+  $('closeBtn').addEventListener('click', closeMenu);
+  $('scrim').addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('drawer').classList.contains('open')) closeMenu(); });
+
+  function vStatus(msg, bad) { var el = $('vStatus'); el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || ''; }
+  function showVoice(s) {
+    $('vProvider').value = s.provider === 'piper' ? 'piper' : 'gemini';
+    $('vModel').value = s.model || VOICE_DEFAULTS.model;
+    if (!$('vModel').value) $('vModel').value = VOICE_DEFAULTS.model;
+    $('vVoice').value = s.voice || VOICE_DEFAULTS.voice;
+    if (!$('vVoice').value) $('vVoice').value = VOICE_DEFAULTS.voice;
+    var preset = s.stylePreset && (s.stylePreset in PRESETS || s.stylePreset === 'custom') ? s.stylePreset : 'custom';
+    $('vPreset').value = preset;
+    $('vStyle').value = typeof s.style === 'string' ? s.style : PRESETS.podcast;
+    $('vNumbers').checked = s.numbers === 'program';
+    $('vGemini').classList.toggle('hidden', $('vProvider').value !== 'gemini');
+  }
+  function loadVoiceSettings() {
+    showVoice(VOICE_DEFAULTS);
+    if (!window.fetch) return;
+    fetch('tools/lyd.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('none'); return r.json(); })
+      .then(function (j) { showVoice(Object.assign({}, VOICE_DEFAULTS, j)); })
+      .catch(function () { });
+  }
+  $('vProvider').addEventListener('change', function () { $('vGemini').classList.toggle('hidden', $('vProvider').value !== 'gemini'); });
+  $('vPreset').addEventListener('change', function () {
+    var p = $('vPreset').value;
+    if (p in PRESETS) $('vStyle').value = PRESETS[p];
+  });
+  $('vStyle').addEventListener('input', function () {
+    var cur = $('vStyle').value.trim(), match = 'custom';
+    Object.keys(PRESETS).forEach(function (k) { if (PRESETS[k] === cur) match = k; });
+    $('vPreset').value = match;
+  });
+  $('vSave').addEventListener('click', function () {
+    if (!gh.token || !gh.repo) { vStatus('Set up the GitHub connection first: open a route and fill in "GitHub connection" under step 3. You only do it once.', true); return; }
+    var s = {
+      provider: $('vProvider').value,
+      model: $('vModel').value,
+      voice: $('vVoice').value,
+      stylePreset: $('vPreset').value,
+      style: $('vStyle').value.replace(/\s+/g, ' ').trim(),
+      numbers: $('vNumbers').checked ? 'program' : 'model'
+    };
+    $('vSave').disabled = true; vStatus('Saving\u2026');
+    putFile('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'Piper') + ')')
+      .then(function () { vStatus('Saved. GitHub now remakes the audio for all routes with this voice. It takes a few minutes, and a little longer with Gemini because of its speed limit.'); })
+      .catch(function (e) { vStatus('Not saved. ' + e.message, true); })
+      .then(function () { $('vSave').disabled = false; });
+  });
 
   loadGh();
 

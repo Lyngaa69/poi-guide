@@ -148,6 +148,7 @@ details.tips li { margin-bottom: 4px; }
   <h1>Pronunciation</h1>
   <p class="lede">Listen to the versions of each word and pick the one that sounds best. Your choices are saved in the repository, and GitHub remakes the audio for the stops that use those words. Pick <b>A</b> if the voice already says the word correctly.</p>
 
+  <div id="engineNote" class="banner hidden">The audio currently uses the <b>Gemini</b> voice. Choices made here with lydskrift (IPA between / /) only change the <b>Piper</b> voice. Plain respellings (for example <i>torvet = tårvet</i>) also work with Gemini. No new word list is made while Gemini is on.</div>
   <div id="noConn" class="banner hidden">GitHub is not connected on this device. Open <a href="editor.html">Routes</a>, open any route, and fill in &ldquo;GitHub connection&rdquo; under step 3. Then come back here.</div>
   <p class="status" id="status" role="status"></p>
 
@@ -265,6 +266,38 @@ details.tips li { margin-bottom: 4px; }
   }
   function removeOk(text, key) { return text.split('\n').filter(function (l) { return l.trim().toLowerCase() !== key; }).join('\n'); }
 
+
+  /* ---------- IPA from the web -> what the voice understands (same rules as tools/make_audio.py) ---------- */
+  var PIPER_SYMBOLS = new Set(Array.from(" !\"#$'(),-.0123456789:;?^_abcdefhijklmnopqrstuvwxyzæçðøħŋœǀǁǂǃɐɑɒɓɔɕɖɗɘəɚɛɜɞɟɠɡɢɣɤɥɦɧɨɪɫɬɭɮɯɰɱɲɳɴɵɶɸɹɺɻɽɾʀʁʂʃʄʈʉʊʋʌʍʎʏʐʑʒʔʕʘʙʛʜʝʟʡʢʰʲˈˌːˑ˞ˤ̧̩̪̯̺̻̃βεθχᵻ↑↓ⱱ"));
+  var IPA_V = new Set(Array.from('iyɨʉɯuɪʏʊeøɘɵɤoəɛœɜɞʌɔæɐaɶɑɒɚεᵻ'));
+  var IPA_C = new Set(Array.from('bcdfɡghjklmnŋpqrstvwxzʁʋðʃɕçʒɹɾʔθβχ'));
+  function looksLikeIpa(s) { return /^\s*[\[\/]/.test(s) || /[ˈˌːɑɒɔəɐʌʁðŋʋʔɕʃɛεˀ\u030a\u0325]/.test(s); }
+  function cleanIpa(str) {
+    var s = Array.from(str.trim().replace(/^[\[\/\s]+|[\]\/\s]+$/g, ''));
+    s = s.map(function (c) { return c === 'g' ? 'ɡ' : c === 'ˀ' ? 'ʔ' : c; }).filter(function (c) { return c !== '.' && c !== '\u203f'; });
+    var out = [], i = 0;
+    while (i < s.length) {
+      var c = s[i];
+      if ('bdɡ'.indexOf(c) !== -1 && i + 1 < s.length && (s[i + 1] === '\u030a' || s[i + 1] === '\u0325')) {
+        var nxt = s[i + 2] || '';
+        var coda = nxt === '' || nxt === 'ˈ' || nxt === 'ˌ' || IPA_C.has(nxt);
+        out.push(coda ? { b: 'p', d: 't', 'ɡ': 'k' }[c] : c); i += 2; continue;
+      }
+      out.push(c); i++;
+    }
+    var res = []; i = 0;
+    while (i < out.length) {
+      var m = out[i];
+      if (m === 'ˈ' || m === 'ˌ') {
+        var j = i + 1;
+        while (j < out.length && !IPA_V.has(out[j]) && out[j] !== 'ˈ' && out[j] !== 'ˌ') j++;
+        if (j < out.length && IPA_V.has(out[j])) { Array.prototype.push.apply(res, out.slice(i + 1, j)); res.push(m); i = j; continue; }
+      }
+      res.push(m); i++;
+    }
+    return res.filter(function (ch) { return PIPER_SYMBOLS.has(ch); }).join('');
+  }
+
   /* ---------- audio ---------- */
   function playFile(file, btn) {
     if (player) { player.pause(); if (playingBtn) { playingBtn.classList.remove('on'); playingBtn.textContent = '\u25B6'; } }
@@ -315,15 +348,22 @@ details.tips li { margin-bottom: 4px; }
     // own pronunciation
     var cu = document.createElement('div'); cu.className = 'custom';
     var cr = document.createElement('input'); cr.type = 'radio'; cr.name = group; cr.style.cssText = 'width:22px;height:22px;accent-color:var(--sign);flex:none;';
-    var ci = document.createElement('input'); ci.type = 'text'; ci.placeholder = 'Own: /tˈɒwʔəð/ or a respelling'; ci.setAttribute('aria-label', 'Own pronunciation of ' + w.word);
+    var ci = document.createElement('input'); ci.type = 'text'; ci.placeholder = 'Own: paste IPA, e.g. [ˈdɑnˌmɑɡ̊], or write a respelling'; ci.setAttribute('aria-label', 'Own pronunciation of ' + w.word);
+    var ch = document.createElement('p'); ch.className = 'hint'; ch.style.margin = '0 0 6px 36px';
     function pickCustom() {
-      var v = ci.value.trim();
+      var raw = ci.value.trim(), v = '';
       el.querySelectorAll('.vrow').forEach(function (x) { x.classList.remove('on'); });
       cr.checked = true;
+      if (!raw) { ch.textContent = ''; }
+      else if (looksLikeIpa(raw)) {
+        var c = cleanIpa(raw);
+        if (c) { v = '/' + c + '/'; ch.textContent = 'Will be saved as ' + v + (('/' + raw.replace(/^[\[\/\s]+|[\]\/\s]+$/g, '') + '/') === v ? '' : ' (cleaned for the voice)'); }
+        else ch.textContent = 'The voice cannot use anything in this text.';
+      } else { v = raw; ch.textContent = 'Will be read as a respelling: ' + raw; }
       if (v) choose(w.key, 'custom', v); else choose(w.key, null);
     }
     cr.addEventListener('change', pickCustom); ci.addEventListener('input', pickCustom);
-    cu.appendChild(cr); cu.appendChild(ci); el.appendChild(cu);
+    cu.appendChild(cr); cu.appendChild(ci); el.appendChild(cu); el.appendChild(ch);
     return el;
   }
   function render() {
@@ -419,6 +459,10 @@ details.tips li { margin-bottom: 4px; }
       .catch(function (e) { say('Not removed. ' + e.message, true); });
   }
 
+  fetch('tools/lyd.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { if (j && j.provider !== 'piper') $('engineNote').classList.remove('hidden'); })
+    .catch(function () { });
   loadList();
   loadDecided();
 })();
