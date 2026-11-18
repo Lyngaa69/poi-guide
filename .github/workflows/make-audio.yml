@@ -17,7 +17,9 @@ concurrency:
 jobs:
   audio:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,19 +32,25 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Remember the voice between runs
+      - name: Install ffmpeg
         if: steps.plan.outputs.needed == 'true'
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg bzip2
+          ffmpeg -version | head -1
+
+      - name: Remember the Piper voice between runs
+        if: steps.plan.outputs.piper == 'true'
         uses: actions/cache@v4
         with:
           path: .voice
           key: voice-da-talesyntese-medium-v1
 
-      - name: Get the voice and tools
-        if: steps.plan.outputs.needed == 'true'
+      - name: Get the Piper voice and tools
+        if: steps.plan.outputs.piper == 'true'
         run: |
           set -euxo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bzip2 ffmpeg
           if [ ! -f .voice/da_DK-talesyntese-medium.onnx ]; then
             mkdir -p .voice
             curl -fsSL --retry 3 -o voice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-da_DK-talesyntese-medium.tar.bz2
@@ -54,7 +62,6 @@ jobs:
           python --version
           python -m pip install --quiet piper-tts
           python -c "import piper; print('piper ok')"
-          ffmpeg -version | head -1
 
       - name: Make the audio
         if: steps.plan.outputs.needed == 'true'
