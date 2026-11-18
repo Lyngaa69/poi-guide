@@ -18,11 +18,19 @@
 
 
 
-<wpt lat="56.177986" lon="9.513215"><name>Start</name><desc>Så er vi igang. God tur til arbejde</desc></wpt>
-<wpt lat="56.176193" lon="9.523652"><name>Nyt lyskryds</name><desc>Nyt lyskryds mellem Eidervej og Kjærsgårdsvej</desc></wpt>
-<wpt lat="56.182570" lon="9.583891"><name>Motorvej</name><desc>Så er vi på motorvejen, nu skal det gå stærkt</desc></wpt>
-<wpt lat="56.216113" lon="10.103599"><name>E45</name><desc>&lt;laugh&gt;endelig på e45. &lt;short pause&gt;nu skal der gas på</desc></wpt>
-<wpt lat="56.206495" lon="10.168919"><name>Djurslandsmotorvejen</name><desc>Er du klar til at komme ud på Djurslandsmotorvejen &lt;heavy breath&gt; Det bliver en lang tur &lt;long pause&gt;måske er der kø</desc></wpt>
+
+
+
+
+
+<wpt lat="56.177986" lon="9.513215"><name>Home</name><desc>Home-sweet-home &lt;chuckle&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.176193" lon="9.523652"><name>Nyt lyskryds</name><desc>Nyt lyskryds mellem Eidervej og Kjærsgårdsvej</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
+<wpt lat="56.181698" lon="9.586138"><name>Tunnelen</name><desc>&lt;scream&gt; Er det ikke bare totalt fedt at køre i tunnelen. Lyden og lyset er mega nice</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.145964" lon="9.807660"><name>Krejleren</name><desc>Den berømte hestehandler Låsby-Svendsen boede i Låsby som vi passerer syd om lige nu</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
+<wpt lat="56.156921" lon="10.044713"><name>Firkløveren</name><desc>Den fine 4 kløver der håndterer sammenfletningen nord, syd, øst, vest mellem Silkeborg motorvejen og E45.</desc></wpt>
+<wpt lat="56.222232" lon="10.119587"><name>Stop</name><desc>Mellem Djurslandsmotorvejen og E45. Det er såååå fedt at sammenfletningen er færdig &lt;cheer&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">400</radius></extensions></wpt>
+<wpt lat="56.201158" lon="10.158311"><name>Force Technology</name><desc>&lt;throat-clearing&gt; Vidste du at vores leverandør indenfor EMC, Force Technology, ligger ca 800 meter sydvest herfra</desc><extensions><radius xmlns="https://wayside.app/ns/1">1000</radius></extensions></wpt>
+<wpt lat="56.195118" lon="10.179086"><name>Develco</name><desc>&lt;whispers&gt;Den aller fedeste arbejdsplads &lt;shout&gt;EVER</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <trk>
 		<name>Silkeborg - Aarhus N</name>
 		<trkseg>
