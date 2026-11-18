@@ -78,6 +78,14 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
 a.tour { text-decoration: none; }
+.rdrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.rdrow > span { font-weight: 600; }
+.rdrow select { width: auto; min-height: 40px; flex: 1 1 170px; max-width: 280px; }
+.rdinfo { color: var(--muted); font-size: 0.88rem; margin: 4px 0 0; }
+.engine { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+.engine i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); flex: none; }
+.engine.gemini i { background: #12805c; } .engine.piper i { background: #0b61c4; } .engine.local i { background: #7c3aed; } .engine.wait i { background: #d9480f; }
+.engine b { color: var(--text); font-weight: 600; }
 .iconbtn { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--text); touch-action: manipulation; flex: none; }
 .iconbtn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
 #scrim { position: fixed; inset: 0; z-index: 190; background: rgba(8, 20, 36, 0.55); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
@@ -290,6 +298,7 @@ details.tips li { margin-bottom: 4px; }
       <label class="check"><input type="checkbox" id="tapAdd" checked><span>Tap on the map to add a stop</span></label>
       <label class="check"><input type="checkbox" id="snap" checked><span>Snap stops onto the route line</span></label>
       <label class="check"><input type="checkbox" id="keepOrder" checked><span>Keep stops in route order</span></label>
+      <label class="check"><input type="checkbox" id="showRadii" checked><span>Show the trigger circles (orange where stops overlap and are read one after the other)</span></label>
       <p class="hint">A stop is read out when you drive within the trigger radius of it. Snapping puts the stop on the road so it is always triggered. For a place away from the road, snap a stop onto the nearest point of the route and say in the text where the place is.</p>
       <p class="status" id="mapStatus" role="status"></p>
     </div>
@@ -307,8 +316,9 @@ details.tips li { margin-bottom: 4px; }
       <label class="field"><span>File name (no spaces)</span><input type="text" id="fileName" autocomplete="off" autocapitalize="none"></label>
       <label class="field"><span>Route title shown in Wayside</span><input type="text" id="title" autocomplete="off"></label>
       <label class="field"><span>Short description</span><input type="text" id="desc" autocomplete="off"></label>
-      <label class="field"><span>Trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
-      <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed</span></label>
+      <label class="field"><span>Default trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
+      <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
+      <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 2.</p>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads, here and in Wayside (for files without a track)</span></label>
       <label class="check"><input type="checkbox" id="visible" checked><span>Show this route in Wayside</span></label>
       <p class="hint" style="margin-top:2px;">Untick to keep the route hidden until you are ready to release it. You can change it later from the route list.</p>
@@ -368,7 +378,7 @@ details.tips li { margin-bottom: 4px; }
     tapAdd: $('tapAdd'), snap: $('snap'), keepOrder: $('keepOrder'), mapStatus: $('mapStatus'),
     stopList: $('stopList'), summary: $('summary'),
     fileName: $('fileName'), title: $('title'), desc: $('desc'), radius: $('radius'), radiusVal: $('radiusVal'),
-    adaptive: $('adaptive'), osrm: $('osrm'), visible: $('visible'), audioWarn: $('audioWarn'),
+    adaptive: $('adaptive'), osrm: $('osrm'), visible: $('visible'), audioWarn: $('audioWarn'), showRadii: $('showRadii'),
     dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
     deleteBox: $('deleteBox'), deleteBtn: $('deleteBtn'),
     publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
@@ -434,6 +444,19 @@ details.tips li { margin-bottom: 4px; }
     }
     return [];
   }
+  function radiusFromFile(w) {
+    for (var i = 0; i < w.children.length; i++) {
+      if ((w.children[i].localName || '').toLowerCase() !== 'extensions') continue;
+      var ex = w.children[i].children;
+      for (var k = 0; k < ex.length; k++) {
+        if ((ex[k].localName || '').toLowerCase() === 'radius') {
+          var r = parseFloat(ex[k].textContent);
+          if (r >= 10 && r <= 3000) return r;
+        }
+      }
+    }
+    return null;
+  }
   function readStops(doc) {
     var out = [];
     var w = doc.getElementsByTagName('wpt');
@@ -443,10 +466,73 @@ details.tips li { margin-bottom: 4px; }
       out.push({
         name: cleanText(childText(w[i], ['name'])) || ('Stop ' + (out.length + 1)),
         text: cleanText(childText(w[i], ['desc', 'cmt'])),
+        radius: radiusFromFile(w[i]),
         lat: lat, lon: lon, pos: 0
       });
     }
     return out;
+  }
+
+
+  /* ---------- trigger radius per stop ---------- */
+  var RADIUS_STEPS = [25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000];
+  function plainOf(t) {
+    return String(t || '').replace(/<br\s*\/?>/gi, '. ').replace(/<\/p>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function stopPlain(s, i) {
+    var name = plainOf(s.name) || ('Stop ' + (i + 1)), desc = plainOf(s.text);
+    return desc ? name + '. ' + desc : name;
+  }
+  function routeRadius() { return Number(els.radius.value) || 300; }
+  function effRadius(s) { return s.radius || routeRadius(); }
+  function readingSeconds(s, i) { return Math.max(3, Math.round(stopPlain(s, i).length / 13)); }
+  function radiusInfo(s, i) {
+    var sec = readingSeconds(s, i), r = effRadius(s);
+    var d50 = Math.round(sec * 50 / 3.6 / 10) * 10, d80 = Math.round(sec * 80 / 3.6 / 10) * 10, d110 = Math.round(sec * 110 / 3.6 / 10) * 10;
+    return 'About ' + sec + ' s to read. You drive about ' + d50 + ' m at 50 km/h, ' + d80 + ' m at 80 km/h and ' + d110 + ' m at 110 km/h in that time.' +
+      (r < d50 ? ' This radius is shorter than that at 50 km/h, so the story ends after you have passed the stop.' : '');
+  }
+  function updateRadiusTexts() {
+    document.querySelectorAll('.stop').forEach(function (c, i) {
+      var s = stops[i]; if (!s) return;
+      var def = c.querySelector('.rdsel option[value=""]'); if (def) def.textContent = 'Route default (' + routeRadius() + ' m)';
+      var inf = c.querySelector('.rdinfo'); if (inf) inf.textContent = radiusInfo(s, i);
+    });
+    drawMap(false);
+  }
+
+  /* ---------- which voice made the audio for each stop ---------- */
+  var manifest = null;
+  function fnv1a(text) {
+    var bytes = new TextEncoder().encode(text), h = 0x811c9dc5;
+    for (var i = 0; i < bytes.length; i++) { h ^= bytes[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+    return ('00000000' + h.toString(16)).slice(-8);
+  }
+  function engineName(e) {
+    if (!e) return '';
+    if (e.indexOf('gemini:') === 0) { var p = e.split(':'); return 'Gemini \u00B7 ' + (p[2] || ''); }
+    if (e.indexOf('local:') === 0) return 'Own audio (' + e.slice(6) + ')';
+    if (e.indexOf('piper') === 0) return 'Piper';
+    return e;
+  }
+  function engineState(s, i) {
+    if (!manifest) return { cls: '', text: 'No audio yet. The phone voice is used until the route is published.' };
+    var h = manifest.stops && manifest.stops[i];
+    if (h !== fnv1a(stopPlain(s, i))) return { cls: 'wait', text: 'The text is new or changed. New audio is made after you publish.' };
+    if ((manifest.failed || []).indexOf(i + 1) !== -1) return { cls: 'wait', text: 'The audio could not be made. The phone voice is used.' };
+    var e = manifest.engines ? manifest.engines[i] : manifest.voice;
+    if (!e) return { cls: 'wait', text: 'No audio file yet. It is made at the next run, and the phone voice is used until then.' };
+    var cls = e.indexOf('gemini:') === 0 ? 'gemini' : e.indexOf('local:') === 0 ? 'local' : 'piper';
+    var cur = manifest.voice;
+    return { cls: cls, text: '<b>' + engineName(e) + '</b>' + (cur && e !== cur && e.indexOf('local:') !== 0 ? ' (older than the current voice, will be remade)' : '') };
+  }
+  function renderEngines() {
+    document.querySelectorAll('.stop').forEach(function (c, i) {
+      var el = c.querySelector('.engine'), s = stops[i]; if (!el || !s) return;
+      var st = engineState(s, i);
+      el.className = 'engine ' + st.cls;
+      el.innerHTML = '<i></i><span>' + (st.text.charAt(0) === '<' ? '' : 'Audio: ') + st.text.replace(/^(<b>)/, 'Audio: $1') + '</span>';
+    });
   }
 
   /* ---------- snapping ---------- */
@@ -646,11 +732,21 @@ details.tips li { margin-bottom: 4px; }
     lmap.on('click', function (e) { if (els.tapAdd.checked) addStopAt(e.latlng.lat, e.latlng.lng); });
     return true;
   }
+  function distM(a, b) {
+    var kx = 111320 * Math.cos(a.lat * Math.PI / 180), ky = 110540, dx = (b.lon - a.lon) * kx, dy = (b.lat - a.lat) * ky;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
   function drawMap(fit) {
     if (!ensureMap()) { els.mapStatus.textContent = 'The map could not be loaded. Check your internet connection.'; return; }
     layer.clearLayers();
     if (track.length > 1) L.polyline(track, { color: '#7c3aed', weight: 4, opacity: 0.75 }).addTo(layer);
     else if (stops.length > 1) L.polyline(stops.map(function (s) { return [s.lat, s.lon]; }), { color: '#7c3aed', weight: 3, opacity: 0.6, dashArray: '8 8' }).addTo(layer);
+    if (els.showRadii.checked) {
+      stops.forEach(function (s, i) {
+        var r = effRadius(s), over = stops.some(function (o, k) { return k !== i && distM(s, o) < r + effRadius(o); });
+        L.circle([s.lat, s.lon], { radius: r, color: over ? '#d9480f' : '#0b61c4', weight: i === selected ? 3 : 1.5, fillColor: over ? '#d9480f' : '#0b61c4', fillOpacity: 0.1, interactive: false }).addTo(layer);
+      });
+    }
     stops.forEach(function (s, i) {
       var m = L.marker([s.lat, s.lon], {
         draggable: true, title: s.name,
@@ -773,9 +869,20 @@ details.tips li { margin-bottom: 4px; }
       name.addEventListener('input', function () { s.name = name.value; saveDraft(); updateSummary(); updateWarn(); });
       name.addEventListener('focus', function () { if (selected !== i) { selected = i; document.querySelectorAll('.stop').forEach(function (el, k) { el.classList.toggle('sel', k === i); }); drawMap(false); } });
       head.appendChild(num); head.appendChild(name);
+      var eng = document.createElement('div'); eng.className = 'engine';
       var ta = document.createElement('textarea'); ta.value = s.text; ta.placeholder = 'Text to read out (leave empty to let Claude write it)';
       ta.setAttribute('aria-label', 'Text of stop ' + (i + 1)); ta.style.marginTop = '10px';
-      ta.addEventListener('input', function () { s.text = ta.value; saveDraft(); updateSummary(); updateWarn(); });
+      ta.addEventListener('input', function () { s.text = ta.value; saveDraft(); updateSummary(); updateWarn(); rdinfo.textContent = radiusInfo(s, i); renderEngines(); });
+      var rdrow = document.createElement('div'); rdrow.className = 'rdrow';
+      var rdl = document.createElement('span'); rdl.textContent = 'Trigger radius';
+      var rdsel = document.createElement('select'); rdsel.className = 'rdsel'; rdsel.setAttribute('aria-label', 'Trigger radius for stop ' + (i + 1));
+      rdsel.appendChild(new Option('Route default (' + routeRadius() + ' m)', ''));
+      RADIUS_STEPS.forEach(function (m) { rdsel.appendChild(new Option(m + ' m', String(m))); });
+      if (s.radius && RADIUS_STEPS.indexOf(s.radius) === -1) rdsel.appendChild(new Option(Math.round(s.radius) + ' m (from file)', String(s.radius)));
+      rdsel.value = s.radius ? String(s.radius) : '';
+      var rdinfo = document.createElement('p'); rdinfo.className = 'rdinfo'; rdinfo.textContent = radiusInfo(s, i);
+      rdsel.addEventListener('change', function () { s.radius = rdsel.value ? Number(rdsel.value) : null; rdinfo.textContent = radiusInfo(s, i); saveDraft(); drawMap(false); });
+      rdrow.appendChild(rdl); rdrow.appendChild(rdsel);
       var exrow = document.createElement('div'); exrow.className = 'exrow';
       var exSel = document.createElement('select'); exSel.setAttribute('aria-label', 'Expression for stop ' + (i + 1));
       exSel.appendChild(new Option('Add an expression\u2026', ''));
@@ -799,13 +906,14 @@ details.tips li { margin-bottom: 4px; }
         stops.splice(i, 1); if (selected === i) selected = -1; else if (selected > i) selected--;
         renderAll(false); saveDraft(); schedulePreview();
       }, 'danger');
-      c.appendChild(head); c.appendChild(ta); c.appendChild(exrow); c.appendChild(act);
+      c.appendChild(head); c.appendChild(eng); c.appendChild(ta); c.appendChild(exrow); c.appendChild(rdrow); c.appendChild(rdinfo); c.appendChild(act);
       els.stopList.appendChild(c);
     });
     if (!stops.length) {
       var p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No stops yet. Tap the map to add the first one.';
       els.stopList.appendChild(p);
     }
+    renderEngines();
   }
   function move(i, d) {
     var j = i + d; if (j < 0 || j >= stops.length) return;
@@ -833,16 +941,23 @@ details.tips li { margin-bottom: 4px; }
     audioTimer = setTimeout(function () {
       var base = slug(els.fileName.value);
       if (!base || !window.fetch) { hasAudio = false; updateWarn(); return; }
-      fetch('ture/' + encodeURIComponent(base) + '-01.mp3', { method: 'HEAD' })
-        .then(function (r) { hasAudio = r.ok; updateWarn(); })
-        .catch(function () { hasAudio = false; updateWarn(); });
+      fetch('ture/' + encodeURIComponent(base) + '.audio.json', { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('none'); return r.json(); })
+        .then(function (m) { manifest = m; hasAudio = true; updateWarn(); renderEngines(); })
+        .catch(function () {
+          manifest = null; renderEngines();
+          fetch('ture/' + encodeURIComponent(base) + '-01.mp3', { method: 'HEAD' })
+            .then(function (r) { hasAudio = r.ok; updateWarn(); })
+            .catch(function () { hasAudio = false; updateWarn(); });
+        });
     }, 300);
   }
   function updateWarn() { els.audioWarn.classList.toggle('hidden', !(hasAudio && signature() !== initialSig)); }
 
   /* ---------- publish ---------- */
   function syncRadius() { els.radiusVal.textContent = els.radius.value + ' m'; }
-  els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); });
+  els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); updateRadiusTexts(); });
+  els.showRadii.addEventListener('change', function () { drawMap(false); });
   ['title', 'desc'].forEach(function (k) { els[k].addEventListener('input', saveDraft); });
   els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); updateDeleteBox(); });
   ['adaptive', 'osrm', 'visible', 'snap', 'keepOrder'].forEach(function (k) {
@@ -881,6 +996,10 @@ details.tips li { margin-bottom: 4px; }
       w.setAttribute('lat', s.lat.toFixed(6)); w.setAttribute('lon', s.lon.toFixed(6));
       w.appendChild(el('name', s.name || 'Stop'));
       if (s.text && s.text.trim()) w.appendChild(el('desc', s.text.trim()));
+      if (s.radius) {
+        var ext = el('extensions'), rd = doc.createElementNS('https://wayside.app/ns/1', 'radius');
+        rd.textContent = String(Math.round(s.radius)); ext.appendChild(rd); w.appendChild(ext);
+      }
       if (anchor) { root.insertBefore(w, anchor); root.insertBefore(doc.createTextNode('\n'), anchor); }
       else { root.appendChild(w); root.appendChild(doc.createTextNode('\n')); }
     });

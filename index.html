@@ -169,6 +169,16 @@ main {
 .simbanner .btn { background: rgba(255,255,255,.18); color: #fff; border-color: rgba(255,255,255,.7); min-height: 38px; }
 .btn.active { background: var(--sign-grad); color: #fff; border-color: transparent; }
 @media (prefers-reduced-motion: reduce) { .simdot { animation: none; } }
+.btn.start { background: #12805c; color: #fff; border: 3px solid #0b5c42; box-shadow: 0 0 0 2px #12805c; font-size: 1.1rem; }
+.btn.stop { background: #b3261e; color: #fff; border: 3px solid #7f1a15; box-shadow: 0 0 0 2px #b3261e; font-size: 1.1rem; }
+.runbanner { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; padding: 10px 12px; background: #12805c; color: #fff; border-radius: 12px; font-weight: 600; }
+.rundot { width: 12px; height: 12px; border-radius: 50%; background: #fff; flex: none; animation: simpulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rundot { animation: none; } }
+.prep { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 10px 12px; }
+.prep summary { font-weight: 700; cursor: pointer; }
+.prep ul { list-style: none; margin: 10px 0 2px; padding: 0; display: grid; gap: 14px; }
+.prep li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.35; }
+.prep svg { flex: none; width: 30px; height: 30px; stroke: var(--sign); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
 #map {
@@ -292,6 +302,11 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span class="routename" id="routeName"></span>
     </div>
 
+    <div id="runBanner" class="runbanner hidden" role="status" aria-live="polite">
+      <span class="rundot" aria-hidden="true"></span>
+      <span class="txt" id="runText">Guide running</span>
+    </div>
+
     <div id="simBanner" class="simbanner hidden" role="status" aria-live="polite">
       <span class="simdot" aria-hidden="true"></span>
       <span class="txt" id="simText">Simulation running</span>
@@ -305,8 +320,22 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <div class="sub" id="nextSub">Tap Start to turn on GPS</div>
     </div>
 
+    <details class="prep" id="prep" open>
+      <summary>Before you start</summary>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-9.3-5M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M10.3 21a2 2 0 0 0 3.4 0M2 2l20 20"/></svg>
+          <span><b>Turn off silent mode.</b> iPhone: the switch on the side must not show orange. Android: do not use silent or vibrate mode.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          <span><b>Turn the volume up.</b> The guide plays at media volume. Connect the phone to the car by Bluetooth or CarPlay if you want it through the car speakers.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          <span><b>Tap Start guide before you drive</b> and keep this page open. The screen stays on while the guide runs, so the phone does not lock.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <span><b>Dark screen</b> puts a black screen over the app to save battery and avoid glare. The guide keeps running underneath. Tap anywhere to see the screen again.</span></li>
+      </ul>
+    </details>
+
     <div class="row">
-      <button class="btn sign" id="startBtn" type="button">Start guide</button>
+      <button class="btn start" id="startBtn" type="button" aria-pressed="false">&#9654; Start guide</button>
       <button class="btn" id="dimBtn" type="button" disabled>Dark screen</button>
     </div>
     <p class="status" id="status" role="status"></p>
@@ -350,14 +379,14 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 
     <h3>Triggering</h3>
     <label class="field">
-      <span class="top"><span>Trigger radius</span><span class="val" id="radiusVal"></span></span>
+      <span class="top"><span>Default trigger radius</span><span class="val" id="radiusVal"></span></span>
       <input type="range" id="radius" min="50" max="600" step="25" value="250">
     </label>
     <label class="check">
       <input type="checkbox" id="adaptive" checked>
       <span>Larger radius at high speed</span>
     </label>
-    <p class="hint">At speed, the radius grows to about 12 seconds of driving so a stop is read out in time.</p>
+    <p class="hint">At speed, the radius grows to about 12 seconds of driving so a stop is read out in time. A stop with its own radius in the file ignores this and is not widened.</p>
 
     <h3>Voice</h3>
     <label class="field">
@@ -422,6 +451,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
+    runBanner: $('runBanner'), runText: $('runText'), prep: $('prep'),
     map: $('map'), mapHint: $('mapHint'), routeBtn: $('routeBtn'), poiList: $('poiList'),
     menuBtn: $('menuBtn'), closeBtn: $('closeBtn'), drawer: $('drawer'), scrim: $('scrim'),
     radius: $('radius'), radiusVal: $('radiusVal'), adaptive: $('adaptive'),
@@ -440,6 +470,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var watchId = null;
   var wakeLock = null;
   var lastPos = null;
+  var prevFix = null;
   var queue = [];
   var speaking = false;
   var voiceEntries = [];
@@ -611,6 +642,19 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     }
     return [];
   }
+  function stopRadiusFromFile(w) {
+    for (var i = 0; i < w.children.length; i++) {
+      if ((w.children[i].localName || '').toLowerCase() !== 'extensions') continue;
+      var ex = w.children[i].children;
+      for (var k = 0; k < ex.length; k++) {
+        if ((ex[k].localName || '').toLowerCase() === 'radius') {
+          var r = parseFloat(ex[k].textContent);
+          if (r >= 10 && r <= 3000) return r;
+        }
+      }
+    }
+    return null;
+  }
   function parseGpx(xmlText) {
     var doc = new DOMParser().parseFromString(xmlText, 'application/xml');
     if (doc.getElementsByTagName('parsererror').length) throw new Error('This file could not be read as GPX.');
@@ -624,6 +668,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       list.push({
         name: cleanText(childText(w, ['name'])) || ('Stop ' + (list.length + 1)),
         desc: cleanText(childText(w, ['desc', 'cmt'])),
+        radius: stopRadiusFromFile(w),
         lat: lat, lon: lon, read: false, dist: null
       });
     }
@@ -918,11 +963,18 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var i = queue.shift();
     var p = pois[i];
     if (!p) return pump();
+    if (!p.force && lastPos && p.dist != null && p.dist > Math.max(1000, stopRadius(p, lastPos.speed) * 4)) {
+      p.read = true; p.skipped = true;                           // waited in the queue and is now far behind: skip it
+      renderList(); updateNext();
+      setStatus('Skipped "' + p.name + '" because you had already driven past it.');
+      return pump();
+    }
+    p.force = false;
     speaking = true;
-    p.read = true;
+    p.read = true; p.skipped = false;
     renderList();
     updateNext();
-    setStatus('Reading: ' + p.name);
+    setStatus('Reading: ' + p.name + (queue.length ? ' (' + queue.length + ' more waiting)' : ''));
     var text = p.desc ? (p.name + '. ' + p.desc) : p.name;
     var after = function () {
       speaking = false;
@@ -934,6 +986,17 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   }
 
   /* ---------- GPS ---------- */
+  function stopRadius(p, speed) {
+    return p.radius ? p.radius : effectiveRadius(speed);        // a radius set for the stop is used exactly as set
+  }
+  function segDist(p, a, b) {                                   // metres from a stop to the line between two GPS fixes
+    var kx = 111320 * Math.cos(p.lat * Math.PI / 180), ky = 110540;
+    var ax = (a.lon - p.lon) * kx, ay = (a.lat - p.lat) * ky, bx = (b.lon - p.lon) * kx, by = (b.lat - p.lat) * ky;
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    var u = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+    var px = ax + u * dx, py = ay + u * dy;
+    return Math.sqrt(px * px + py * py);
+  }
   function effectiveRadius(speed) {
     var base = parseFloat(els.radius.value) || 250;
     if (els.adaptive.checked && speed && speed > 0) return Math.min(900, Math.max(base, speed * 12));
@@ -941,19 +1004,31 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   }
   function onPosition(pos) {
     var c = pos.coords;
+    if (lastPos === null && running && !simTimer) { els.runText.textContent = 'Guide running. GPS connected.'; }
     lastPos = c;
     var speedKmh = c.speed != null && c.speed >= 0 ? Math.round(c.speed * 3.6) : null;
     pois.forEach(function (p) { p.dist = distance(c.latitude, c.longitude, p.lat, p.lon); });
     var r = effectiveRadius(c.speed);
     var good = c.accuracy == null || c.accuracy <= 150;
     if (good) {
-      pois.forEach(function (p, i) { if (!p.read && p.dist <= r) enqueue(i); });
+      var now = Date.now();
+      var prev = prevFix && now - prevFix.t <= 15000 ? prevFix : null;
+      var cur = { lat: c.latitude, lon: c.longitude };
+      pois.forEach(function (p, i) {
+        if (p.read) return;
+        var rs = stopRadius(p, c.speed);
+        var hit = p.dist <= rs;
+        if (!hit && prev && distance(prev.lat, prev.lon, cur.lat, cur.lon) <= 800) hit = segDist(p, prev, cur) <= rs;   // passed between two fixes
+        if (hit) enqueue(i);
+      });
+      prevFix = { lat: cur.lat, lon: cur.lon, t: now };
     }
     updateNext();
     renderList();
     var parts = ['GPS ±' + Math.round(c.accuracy || 0) + ' m'];
     if (speedKmh != null) parts.push(speedKmh + ' km/h');
-    parts.push('radius ' + Math.round(r) + ' m');
+    var ni0 = nextIndex();
+    parts.push('radius ' + Math.round(ni0 > -1 ? stopRadius(pois[ni0], c.speed) : r) + ' m');
     els.nextSub.textContent = parts.join(' · ') + (good ? '' : ' (too imprecise, waiting)');
     if (els.dim.classList.contains('on')) updateDim();
   }
@@ -979,12 +1054,22 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     if (running && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
   });
 
+  function setStartUi(on) {
+    els.startBtn.textContent = on ? '\u25A0 Stop guide' : '\u25B6 Start guide';
+    els.startBtn.classList.toggle('stop', on);
+    els.startBtn.classList.toggle('start', !on);
+    els.startBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    els.prep.classList.toggle('hidden', on);
+  }
   async function startGuide() {
     if (running || !pois.length) return;
     if (!('geolocation' in navigator)) { setStatus('This browser has no GPS access.', true); return; }
     running = true;
+    prevFix = null;
     unlockAudio();
-    els.startBtn.textContent = 'Stop guide';
+    setStartUi(true);
+    els.runText.textContent = 'Guide running. Waiting for GPS signal\u2026';
+    els.runBanner.classList.remove('hidden');
     els.dimBtn.disabled = false;
     say('Guide started.', 'Guiden er startet.');   // also unlocks speech on iPhone
     var wl = await requestWakeLock();
@@ -1003,7 +1088,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     speaking = false;
     stopAudio();
     running = false;
-    els.startBtn.textContent = 'Start guide';
+    prevFix = null;
+    setStartUi(false);
+    els.runBanner.classList.add('hidden');
     els.dimBtn.disabled = true;
     stopSim();
     hideDim();
@@ -1028,12 +1115,14 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     if (!pois.length) return;
     var path = track.length > 1 ? track.map(function (t) { return { lat: t[0], lon: t[1] }; }) : pois;
     if (running) stopGuide();
-    pois.forEach(function (p) { p.read = false; p.dist = null; });
+    pois.forEach(function (p) { p.read = false; p.skipped = false; p.dist = null; });
     queue = [];
     renderList();
     running = true;
+    prevFix = null;
     unlockAudio();
-    els.startBtn.textContent = 'Stop guide';
+    setStartUi(true);
+    els.runBanner.classList.add('hidden');
     els.dimBtn.disabled = false;
     els.simBtn.textContent = 'Stop simulation';
     els.simBtn.classList.add('active');
@@ -1118,7 +1207,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       var mid = document.createElement('div');
       var nm = document.createElement('div'); nm.className = 'poi-name'; nm.textContent = (i + 1) + '. ' + p.name;
       var meta = document.createElement('div'); meta.className = 'poi-meta';
-      meta.textContent = (p.read ? 'Read out' : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '') + (p.audioBlob ? ' · audio file' : '');
+      meta.textContent = (p.read ? (p.skipped ? 'Skipped (passed)' : 'Read out') : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '') + (p.radius ? ' · radius ' + Math.round(p.radius) + ' m' : '') + (p.audioBlob ? ' · audio file' : '');
       mid.appendChild(nm); mid.appendChild(meta);
       var b = document.createElement('button');
       b.className = 'btn small'; b.type = 'button'; b.textContent = 'Play';
@@ -1128,6 +1217,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         stopAudio();
         unlockAudio();
         queue = []; speaking = false;
+        p.force = true;
         enqueue(i);
       });
       li.appendChild(dot); li.appendChild(mid); li.appendChild(b);
@@ -1161,7 +1251,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var ni = nextIndex();
     if (ni > -1) {
       L.circle([pois[ni].lat, pois[ni].lon], {
-        radius: parseFloat(els.radius.value) || 250,
+        radius: pois[ni].radius || parseFloat(els.radius.value) || 250,
         color: '#d9480f', weight: 2, dashArray: '4 4', fill: false
       }).addTo(layer);
     }
@@ -1249,6 +1339,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   els.adaptive.checked = load('adaptive', 'true') === 'true';
   els.allLangs.checked = load('allLangs', 'false') === 'true';
   els.follow.checked = load('follow', 'true') === 'true';
+  els.prep.open = load('prepOpen', 'true') === 'true';
+  els.prep.addEventListener('toggle', function () { save('prepOpen', els.prep.open); });
   syncLabels();
   els.radius.addEventListener('input', function () { syncLabels(); save('radius', els.radius.value); drawMap(); });
   els.rate.addEventListener('input', function () { syncLabels(); save('rate', els.rate.value); });
@@ -1263,7 +1355,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       'This is a test of the voice. Stops along your route will be read out like this.', null);
   });
   els.resetBtn.addEventListener('click', function () {
-    pois.forEach(function (p) { p.read = false; });
+    pois.forEach(function (p) { p.read = false; p.skipped = false; });
     queue = [];
     renderList(); updateNext();
     setStatus('All stops have been reset.');
