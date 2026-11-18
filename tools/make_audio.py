@@ -274,6 +274,35 @@ def gemini_spoken_hash(raw):
     s = load_settings()
     return fnv1a(json.dumps({'style': s['style'], 'numbers': s['numbers'], 'text': gemini_text(raw)}, ensure_ascii=False, sort_keys=True))
 
+# ---------- which voice made which file ----------
+def mp3_sample_rate(path):
+    """Sample rate from the first MP3 frame (Piper files are 22050 Hz, Gemini files 24000 Hz), or None."""
+    try:
+        with open(path, 'rb') as f:
+            head = f.read(200000)
+    except OSError:
+        return None
+    k = 0
+    if head[:3] == b'ID3' and len(head) >= 10:
+        k = 10 + (((head[6] & 0x7f) << 21) | ((head[7] & 0x7f) << 14) | ((head[8] & 0x7f) << 7) | (head[9] & 0x7f))
+    table = {3: (44100, 48000, 32000), 2: (22050, 24000, 16000), 0: (11025, 12000, 8000)}
+    while k + 4 <= len(head):
+        if head[k] == 0xFF and (head[k + 1] & 0xE0) == 0xE0:
+            version = (head[k + 1] >> 3) & 3; layer = (head[k + 1] >> 1) & 3; idx = (head[k + 2] >> 2) & 3
+            if version in table and layer == 1 and idx != 3:
+                return table[version][idx]
+        k += 1
+    return None
+
+def guess_engine(path, legacy_voice):
+    """For manifests from before the engine list existed: tell the voice from the file itself."""
+    rate = mp3_sample_rate(path)
+    if rate == 22050:
+        return VOICE_ID
+    if rate == 24000:
+        return legacy_voice if str(legacy_voice).startswith('gemini:') else 'gemini:unknown'
+    return str(legacy_voice or '')
+
 # ---------- planning ----------
 def plan_route(gpx, provider='piper'):
     base = gpx.stem
@@ -294,27 +323,56 @@ def plan_route(gpx, provider='piper'):
         man = {}
     if str(man.get('voice', '')).startswith('local:'):          # audio made on someone's own computer: hands off
         return dict(base=base, stops=stops, raws=raws, hashes=hashes, spoken_hashes=spoken_hashes, width=width, voice_id=vid,
-                    todo=[], orphans=[], manifest_ok=True, failed=set(), external=man['voice'])
-    same_voice = man.get('voice') == vid
-    old = man.get('stops', []) if same_voice else []
-    failed = set(man.get('failed', [])) if same_voice else set()
-    old_spoken = man.get('spoken') if same_voice else None
+                    todo=[], orphans=[], manifest_ok=True, failed=set(), external=man['voice'], old_hashes=[], engines_old=[])
+    old = man.get('stops', []) if isinstance(man.get('stops'), list) else []
+    old_spoken = man.get('spoken') if isinstance(man.get('spoken'), list) else None
+    failed = set(man.get('failed', []))
+    listed = man.get('engines') if isinstance(man.get('engines'), list) else None
+    engines_old = []
+    for i in range(1, len(stops) + 1):
+        mp3 = TURE / ('%s-%0*d.mp3' % (base, width, i))
+        e = listed[i - 1] if listed is not None and i <= len(listed) else None
+        if e is None:
+            e = guess_engine(mp3, man.get('voice', '')) if mp3.exists() else ''
+        engines_old.append(e)
     todo = []
     for i, h in enumerate(hashes, 1):
         mp3 = TURE / ('%s-%0*d.mp3' % (base, width, i))
-        unchanged = i <= len(old) and old[i - 1] == h
-        if unchanged:
+        same_text = i <= len(old) and old[i - 1] == h
+        if same_text:
             if old_spoken is not None:
-                unchanged = i <= len(old_spoken) and old_spoken[i - 1] == spoken_hashes[i - 1]
+                same_text = i <= len(old_spoken) and old_spoken[i - 1] == spoken_hashes[i - 1]
             else:                                  # old manifest: only stops touched by the dictionary need new audio
-                unchanged = spoken(stops[i - 1]) == normalize(stops[i - 1])
-        if not (unchanged and (mp3.exists() or i in failed)):
-            todo.append(i)
+                same_text = spoken(stops[i - 1]) == normalize(stops[i - 1])
+        if same_text and i in failed:
+            continue                               # known failure: not tried again until the text or the voice settings change
+        if same_text and mp3.exists() and engines_old[i - 1] == vid:
+            continue
+        todo.append(i)
     pat = re.compile('^' + re.escape(base) + r'-(\d+)\.mp3$')
     orphans = [p for p in TURE.iterdir() if (m := pat.match(p.name)) and int(m.group(1)) > len(stops)]
-    manifest_ok = same_voice and man.get('stops') == hashes and man.get('spoken') == spoken_hashes
+    manifest_ok = (not todo and man.get('voice') == vid and man.get('stops') == hashes and man.get('spoken') == spoken_hashes
+                   and listed is not None and len(listed) == len(stops))
     return dict(base=base, stops=stops, raws=raws, hashes=hashes, spoken_hashes=spoken_hashes, width=width, voice_id=vid,
-                todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed)
+                todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed, old_hashes=old, engines_old=engines_old)
+
+def drop_if_stale(p, i):
+    """A stop that could not be made now: keep an older file only if its text is still the same."""
+    out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
+    same = i <= len(p['old_hashes']) and p['old_hashes'][i - 1] == p['hashes'][i - 1]
+    if out.exists() and not same:
+        out.unlink()
+
+def write_manifest(p, made, failed):
+    """Write the fingerprint file so that it tells the truth about every file that is on disk."""
+    engines, spoken_list = [], []
+    for i in range(1, len(p['stops']) + 1):
+        mp3 = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
+        label = (made.get(i) or p['engines_old'][i - 1] or p['voice_id']) if mp3.exists() else ''
+        engines.append(label)
+        spoken_list.append(p['spoken_hashes'][i - 1] if (label == p['voice_id'] or i in failed) else '')
+    (TURE / (p['base'] + '.audio.json')).write_text(json.dumps(
+        {'voice': p['voice_id'], 'stops': p['hashes'], 'spoken': spoken_list, 'engines': engines, 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
 
 def all_plans(provider='piper'):
     return [plan_route(g, provider) for g in sorted(TURE.glob('*.gpx')) if read_stops(g)]
@@ -382,7 +440,7 @@ def gemini_call(text, settings):
     req = urllib.request.Request(url, data=json.dumps(gemini_body(text, settings)).encode('utf-8'), method='POST', headers={
         'Content-Type': 'application/json', 'x-goog-api-key': os.environ['GEMINI_API_KEY'].strip()})
     try:
-        with urllib.request.urlopen(req, timeout=180) as r:
+        with urllib.request.urlopen(req, timeout=90) as r:
             return find_audio(json.loads(r.read().decode('utf-8')))
     except urllib.error.HTTPError as e:
         detail = _redact(e.read().decode('utf-8', 'replace')[:300])
@@ -394,7 +452,7 @@ def gemini_call(text, settings):
     except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
         raise Transient(_redact(str(e)))
 
-def gemini_wav(text, settings):
+def gemini_wav(text, settings, deadline=None):
     attempts = int(os.environ.get('GEMINI_ATTEMPTS', '4'))
     for k in range(1, attempts + 1):
         try:
@@ -405,11 +463,13 @@ def gemini_wav(text, settings):
             ra = getattr(e, 'retry_after', None)
             if wait is None:
                 wait = min(90.0, float(ra)) if ra and str(ra).replace('.', '', 1).isdigit() else 20.0 * k
+            if deadline and time.time() + wait > deadline:
+                raise                                        # no time left for another try in this run
             print('Gemini asked us to wait (%s). Trying again in %d s.' % (_redact(str(e))[:80], wait))
             time.sleep(wait)
 
-def make_mp3_gemini(raw, out_mp3, settings):
-    data = gemini_wav(gemini_text(raw), settings)
+def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
+    data = gemini_wav(gemini_text(raw), settings, deadline)
     wav_path = str(out_mp3) + '.wav'
     if data[:4] == b'RIFF':
         open(wav_path, 'wb').write(data)
@@ -425,7 +485,7 @@ def generate_gemini(plans):
     settings = load_settings()
     pace = float(os.environ.get('GEMINI_PACE', '6.5'))
     deadline = time.time() + float(os.environ.get('AUDIO_TIME_BUDGET', '840'))
-    last = 0.0; stop_all = False; trouble = 0
+    last = 0.0; stop_all = False; trouble = 0; total_made = 0
     print('Voice: Gemini %s, %s. Style: %s' % (settings['model'], settings['voice'], settings['style'] or '(none)'))
     for p in plans:
         if p.get('external'):
@@ -433,25 +493,28 @@ def generate_gemini(plans):
         for path in p['orphans']:
             path.unlink(); print('removed', path.name)
         failed = set(p['failed']) - set(p['todo'])
+        made = {}
         for i in p['todo']:
             if stop_all or time.time() > deadline:
                 if not stop_all:
                     print('::warning::Time budget used up. The stops that are missing are made the next time the job runs.')
                 stop_all = True
+                drop_if_stale(p, i)
                 continue
             if last and time.time() - last < pace:
                 time.sleep(pace - (time.time() - last))
             out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
             try:
-                make_mp3_gemini(p['raws'][i - 1], out, settings)
+                make_mp3_gemini(p['raws'][i - 1], out, settings, deadline)
                 last = time.time(); trouble = 0
-                failed.discard(i); print('made', out.name)
+                made[i] = p['voice_id']; total_made += 1
+                failed.discard(i); print('made %s (%d of %d in %s)' % (out.name, i, len(p['stops']), p['base']))
             except BadKey as e:
                 print('::error::Gemini did not accept the key (GEMINI_API_KEY). Check the secret in GitHub. %s' % _redact(str(e)))
                 sys.exit(1)
             except Transient as e:
                 last = time.time(); trouble += 1
-                if out.exists(): out.unlink()
+                drop_if_stale(p, i)
                 print('::warning::Gemini was busy for stop %d in %s (%s). It is tried again at the next run.' % (i, p['base'], _redact(str(e))[:120]))
                 if trouble >= 3:
                     print('::warning::Gemini keeps saying no. Stopping for now.')
@@ -461,8 +524,8 @@ def generate_gemini(plans):
                 failed.add(i)
                 if out.exists(): out.unlink()
                 print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, _redact(str(e))[:200]))
-        (TURE / (p['base'] + '.audio.json')).write_text(
-            json.dumps({'voice': p['voice_id'], 'stops': p['hashes'], 'spoken': p['spoken_hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
+        write_manifest(p, made, failed)
+    return total_made
 
 # ---------- word previews (the pronunciation page in Studio) ----------
 UD_DIR = TURE / 'udtale'          # inside ture/, so the existing commit step saves it
@@ -556,7 +619,16 @@ def make_previews(plan, voice_loader):
     path.write_text(json.dumps(plan, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     print('previews: %d words listed' % len(plan['words']))
 
+def set_output(key, value):
+    if os.environ.get('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write('%s=%s\n' % (key, value))
+
 def main():
+    try:
+        sys.stdout.reconfigure(line_buffering=True)          # show progress live in the GitHub log
+    except Exception:
+        pass
     provider = active_provider()
     plans = all_plans(provider) if provider != 'none' else []
     if '--plan' in sys.argv:
@@ -590,8 +662,21 @@ def main():
         print('::warning::The voice is set to Gemini, but GEMINI_API_KEY is not set in GitHub. No audio is made.')
         return
     if provider == 'gemini':
-        generate_gemini(plans)
+        made = generate_gemini(plans)
+        remaining = sum(len(q['todo']) for q in all_plans('gemini') if not q.get('external'))
+        chain = int(os.environ.get('AUDIO_CHAIN', '0') or 0); limit = int(os.environ.get('AUDIO_MAX_CHAIN', '6'))
+        more = remaining > 0 and made > 0 and chain < limit
+        if remaining == 0:
+            print('All stops have audio.')
+        elif more:
+            print('%d stops are still missing. The job starts itself again (run %d of %d).' % (remaining, chain + 2, limit + 1))
+        elif made == 0:
+            print('::warning::%d stops are still missing, and nothing could be made in this run, so the job does not start again by itself.' % remaining)
+        else:
+            print('::warning::%d stops are still missing, and the job has already started itself %d times. Press Run workflow to continue.' % (remaining, chain))
+        set_output('more', 'true' if more else 'false')
         return
+    set_output('more', 'false')
     voice = None
     for p in plans:
         if p.get('external'):
@@ -599,19 +684,20 @@ def main():
         for path in p['orphans']:
             path.unlink(); print('removed', path.name)
         failed = set(p['failed']) - set(p['todo'])
+        made = {}
         for i in p['todo']:
             out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
             try:
                 if voice is None: voice = load_voice()
                 make_mp3(voice, p['stops'][i - 1], out)
+                made[i] = p['voice_id']
                 failed.discard(i)
                 print('made', out.name)
             except Exception as e:          # keep going; Wayside uses the phone voice for this stop
                 failed.add(i)
                 if out.exists(): out.unlink()
                 print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, e))
-        (TURE / (p['base'] + '.audio.json')).write_text(
-            json.dumps({'voice': p['voice_id'], 'stops': p['hashes'], 'spoken': p['spoken_hashes'], 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
+        write_manifest(p, made, failed)
     pplan = preview_plan()
     if previews_needed(pplan):
         make_previews(pplan, load_voice)
