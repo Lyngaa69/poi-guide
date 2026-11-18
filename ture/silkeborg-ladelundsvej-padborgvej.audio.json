@@ -13,7 +13,7 @@
     "d3217303",
     "5c0b1996",
     "9aec6c19",
-    "",
+    "ea5a60e6",
     "27193e6e"
   ],
   "engines": [
@@ -21,7 +21,7 @@
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "piper-da_DK-talesyntese-medium-v1",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux"
   ],
   "failed": []
