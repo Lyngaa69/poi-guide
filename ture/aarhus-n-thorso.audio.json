@@ -18,5 +18,14 @@
     "a0883f28",
     "df9058a5"
   ],
+  "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux"
+  ],
   "failed": []
 }

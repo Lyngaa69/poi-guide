@@ -14,5 +14,12 @@
     "c86ef39d",
     "ceec2f04"
   ],
+  "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux"
+  ],
   "failed": []
 }
