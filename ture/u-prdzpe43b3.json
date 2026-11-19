@@ -1,0 +1,12 @@
+{
+ "v": 1,
+ "routes": [
+  {
+   "navn": "Magnus workout",
+   "fil": "magnus-workout-j32scrc5.gpx",
+   "beskrivelse": "",
+   "radius": 300,
+   "adaptiv": true
+  }
+ ]
+}
