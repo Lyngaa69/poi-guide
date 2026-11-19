@@ -15,9 +15,9 @@
     "075df820",
     "8295d5e6",
     "41ee4e98",
-    "",
-    "",
-    "",
+    "d7f87089",
+    "930d7a34",
+    "e3cc8951",
     ""
   ],
   "engines": [
@@ -25,9 +25,9 @@
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "",
-    "",
-    "",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     ""
   ],
   "failed": []
