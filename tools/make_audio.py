@@ -577,9 +577,20 @@ def slug(word):
     s = word.lower().replace('æ', 'ae').replace('ø', 'oe').replace('å', 'aa')
     return re.sub(r'[^a-z0-9]+', '-', s).strip('-') or 'ord'
 
+def open_route_files():
+    """Routes that are in the public list. Invite-only routes and drafts are not, and their texts must not leak into the public word list."""
+    try:
+        lst = json.loads((TURE / 'ture.json').read_text(encoding='utf-8'))
+        return {t['fil'] for t in lst if isinstance(t, dict) and t.get('fil') and t.get('vis') is not False}
+    except Exception:
+        return None
+
 def collect_words():
     info = {}
+    only = open_route_files()
     for g in sorted(TURE.glob('*.gpx')):
+        if only is not None and g.name not in only:
+            continue
         for s in read_stops(g):
             for mo in re.finditer(r"[A-Za-zÆØÅæøå]+", s):
                 w = mo.group(0); k = w.lower()
