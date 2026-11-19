@@ -3,16 +3,19 @@
   "stops": [
     "2a1f5f53",
     "2ef6d66d",
+    "8d4cab2b",
     "ba7149b6",
     "9b37459b"
   ],
   "spoken": [
     "2e06a4d2",
     "00d67388",
+    "a024106b",
     "07252972",
     "f185f58d"
   ],
   "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
