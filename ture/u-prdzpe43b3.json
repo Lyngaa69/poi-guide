@@ -2,6 +2,13 @@
  "v": 1,
  "routes": [
   {
+   "navn": "Silkeborg   Aarhus N (1)",
+   "fil": "silkeborg-aarhus-n-1-egyqr4mf.gpx",
+   "beskrivelse": "",
+   "radius": 300,
+   "adaptiv": true
+  },
+  {
    "navn": "Magnus workout",
    "fil": "magnus-workout-j32scrc5.gpx",
    "beskrivelse": "",
