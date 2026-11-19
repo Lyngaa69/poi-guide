@@ -421,6 +421,11 @@ class Permanent(Exception):      # trying again will not help for this stop
 class BadKey(Exception):
     pass
 
+class DailyLimit(Exception):     # the free quota for today is used up: nothing helps until it resets
+    pass
+
+RATE_HITS = 0                    # how many times Google has said "too fast" in this run
+
 def _redact(msg):
     key = os.environ.get('GEMINI_API_KEY', '').strip()
     return msg.replace(key, '***') if key else msg
@@ -461,6 +466,8 @@ def gemini_call(text, settings):
         detail = _redact(e.read().decode('utf-8', 'replace')[:300])
         if e.code in (401, 403):
             raise BadKey('HTTP %d: %s' % (e.code, detail))
+        if e.code == 429 and re.search(r'per day|requests_per_day|requestsperday|daily|\bRPD\b', detail, re.IGNORECASE):
+            raise DailyLimit(detail)
         if e.code in (429, 500, 502, 503, 504):
             t = Transient('HTTP %d: %s' % (e.code, detail)); t.retry_after = e.headers.get('Retry-After'); raise t
         raise Permanent('HTTP %d: %s' % (e.code, detail))
@@ -473,6 +480,8 @@ def gemini_wav(text, settings, deadline=None):
         try:
             return gemini_call(text, settings)
         except Transient as e:
+            global RATE_HITS
+            RATE_HITS += 1
             if k == attempts: raise
             wait = float(os.environ.get('GEMINI_RETRY_SLEEP', '0') or 0) or None
             ra = getattr(e, 'retry_after', None)
@@ -498,9 +507,9 @@ def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
 
 def generate_gemini(plans):
     settings = load_settings()
-    pace = float(os.environ.get('GEMINI_PACE', '6.5'))
+    pace = float(os.environ.get('GEMINI_PACE', '21'))          # seconds between the start of two calls (3 per minute = 20 s)
     deadline = time.time() + float(os.environ.get('AUDIO_TIME_BUDGET', '840'))
-    last = 0.0; stop_all = False; trouble = 0; total_made = 0
+    last = 0.0; stop_all = False; trouble = 0; total_made = 0; hits_seen = RATE_HITS; daily_hit = False
     print('Voice: Gemini %s, %s. Style: %s' % (settings['model'], settings['voice'], settings['style'] or '(none)'))
     for p in plans:
         if p.get('external'):
@@ -516,31 +525,39 @@ def generate_gemini(plans):
                 stop_all = True
                 drop_if_stale(p, i)
                 continue
+            if RATE_HITS > hits_seen:
+                hits_seen = RATE_HITS
+                pace = min(60.0, max(pace, 3.0) * 1.3)
+                print('Google said "too fast". Pace is now %d s between calls.' % pace)
             if last and time.time() - last < pace:
                 time.sleep(pace - (time.time() - last))
+            last = time.time()                                       # a call starts now
             out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
             try:
                 make_mp3_gemini(p['raws'][i - 1], out, settings, deadline)
-                last = time.time(); trouble = 0
+                trouble = 0
                 made[i] = p['voice_id']; total_made += 1
                 failed.discard(i); print('made %s (%d of %d in %s)' % (out.name, i, len(p['stops']), p['base']))
+            except DailyLimit as e:
+                drop_if_stale(p, i)
+                print('::warning::Google\'s daily limit for %s is used up (%s). The rest is made after the limit resets, around 09:00 Danish time.' % (settings['model'], _redact(str(e))[:140]))
+                daily_hit = True; stop_all = True
             except BadKey as e:
                 print('::error::Gemini did not accept the key (GEMINI_API_KEY). Check the secret in GitHub. %s' % _redact(str(e)))
                 sys.exit(1)
             except Transient as e:
-                last = time.time(); trouble += 1
+                trouble += 1
                 drop_if_stale(p, i)
                 print('::warning::Gemini was busy for stop %d in %s (%s). It is tried again at the next run.' % (i, p['base'], _redact(str(e))[:120]))
                 if trouble >= 3:
                     print('::warning::Gemini keeps saying no. Stopping for now.')
                     stop_all = True
             except Exception as e:
-                last = time.time()
                 failed.add(i)
                 if out.exists(): out.unlink()
                 print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, _redact(str(e))[:200]))
         write_manifest(p, made, failed)
-    return total_made
+    return total_made, daily_hit
 
 # ---------- word previews (the pronunciation page in Studio) ----------
 UD_DIR = TURE / 'udtale'          # inside ture/, so the existing commit step saves it
@@ -677,12 +694,14 @@ def main():
         print('::warning::The voice is set to Gemini, but GEMINI_API_KEY is not set in GitHub. No audio is made.')
         return
     if provider == 'gemini':
-        made = generate_gemini(plans)
+        made, daily_hit = generate_gemini(plans)
         remaining = sum(len(q['todo']) for q in all_plans('gemini') if not q.get('external'))
         chain = int(os.environ.get('AUDIO_CHAIN', '0') or 0); limit = int(os.environ.get('AUDIO_MAX_CHAIN', '6'))
-        more = remaining > 0 and made > 0 and chain < limit
+        more = remaining > 0 and made > 0 and chain < limit and not daily_hit
         if remaining == 0:
             print('All stops have audio.')
+        elif daily_hit:
+            print('%d stops are still missing. They are made by the daily run after the limit resets (around 09:00 Danish time), or press Run workflow then.' % remaining)
         elif more:
             print('%d stops are still missing. The job starts itself again (run %d of %d).' % (remaining, chain + 2, limit + 1))
         elif made == 0:
