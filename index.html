@@ -181,6 +181,11 @@ main {
 .prep li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.35; }
 .prep svg { flex: none; width: 30px; height: 30px; stroke: var(--sign); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--sign); vertical-align: middle; }
+.lochelp { margin: 12px 0; padding: 12px 14px; border: 2px solid var(--warn); border-radius: 12px; background: var(--surface); line-height: 1.4; }
+.lochelp strong { display: block; font-size: 1.05rem; }
+.lochelp p { margin: 8px 0 0; }
+.lochelp ol { margin: 8px 0 0; padding-left: 20px; }
+.lochelp li { margin: 6px 0; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
 #map {
@@ -325,12 +330,25 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
           <span><b>Turn off silent mode.</b> iPhone: the switch on the side must not show orange. Android: do not use silent or vibrate mode.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
           <span><b>Turn the volume up.</b> The guide plays at media volume. Connect the phone to the car by Bluetooth or CarPlay if you want it through the car speakers.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+          <span><b>Allow location</b> when the phone asks. Without your position the guide cannot tell when you reach a stop.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
           <span><b>Tap Start guide before you drive</b> and keep this page open. The screen stays on while the guide runs, so the phone does not lock.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
           <span><b>Dark screen</b> puts a black screen over the app to save battery and avoid glare. The guide keeps running underneath. Tap anywhere to see the screen again.</span></li>
       </ul>
     </details>
+
+    <div id="locHelp" class="lochelp hidden" role="alert">
+      <strong>Wayside kan ikke se din placering</strong>
+      <p id="locWhy"></p>
+      <ol id="locSteps"></ol>
+      <p id="locInApp" class="hidden"></p>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn small" id="locRetry" type="button">Prøv igen</button>
+        <button class="btn small" id="locClose" type="button">Luk</button>
+      </div>
+    </div>
 
     <div class="row">
       <button class="btn start" id="startBtn" type="button" aria-pressed="false">&#9654; Start guide</button>
@@ -387,7 +405,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside version 13 (19 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside version 14 (19 Nov 2026)</p>
 
   </div>
 </aside>
@@ -416,6 +434,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
     runBanner: $('runBanner'), runText: $('runText'), prep: $('prep'),
+    locHelp: $('locHelp'), locWhy: $('locWhy'), locSteps: $('locSteps'), locInApp: $('locInApp'), locRetry: $('locRetry'), locClose: $('locClose'),
     map: $('map'), mapHint: $('mapHint'), routeBtn: $('routeBtn'), poiList: $('poiList'),
     menuBtn: $('menuBtn'), closeBtn: $('closeBtn'), drawer: $('drawer'), scrim: $('scrim'),
     follow: $('follow'), simBtn: $('simBtn'), resetBtn: $('resetBtn'),
@@ -659,6 +678,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.routeName.textContent = label;
     setLoadStatus('');
     show('guide');
+    queryLocation().then(function (st) { if (st === 'denied') showLocHelp(); else hideLocHelp(); });
     els.simBtn.disabled = false;
     els.resetBtn.disabled = false;
     renderList();
@@ -1047,7 +1067,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   }
   function onGpsError(err) {
     var msg = 'GPS error.';
-    if (err.code === 1) msg = 'Location access was denied. Allow location for this site in your phone settings.';
+    if (err.code === 1) { msg = 'Placering blev afvist. Se hjælpen herunder.'; showLocHelp(); }
     else if (err.code === 2) msg = 'Your position is not available right now.';
     else if (err.code === 3) msg = 'GPS is not responding. Trying again.';
     setStatus(msg, err.code === 1);
@@ -1074,9 +1094,74 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.startBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     els.prep.classList.toggle('hidden', on);
   }
+  /* ---------- location: say what is wrong, and how to fix it ---------- */
+  function platformOf() {
+    var ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Android/.test(ua)) return 'android';
+    return 'other';
+  }
+  function inAppBrowser() {                                     // a link opened inside Messages, Mail, Facebook and so on
+    var ua = navigator.userAgent || '';
+    if (/FBAN|FBAV|Instagram|Messenger|Line\/|GSA\/|MicroMessenger/.test(ua)) return true;
+    return /iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua) && !navigator.standalone;
+  }
+  var LOC_STEPS = {
+    ios: [
+      'Åbn Indstillinger > Anonymitet og sikkerhed > Lokalitetstjenester. Den skal være slået <b>Til</b>.',
+      'Rul ned i samme liste til <b>Safari-websteder</b>, og vælg <b>Mens appen bruges</b>.',
+      'Åbn Wayside i Safari. Tryk på <b>aA</b> til venstre i adressefeltet > <b>Webstedsindstillinger</b> > <b>Lokalitet</b> > <b>Tillad</b>.',
+      'Tryk <b>Prøv igen</b> herunder (eller genindlæs siden), og tryk <b>Tillad</b>, når telefonen spørger om din placering.'
+    ],
+    android: [
+      'Tryk på ikonet (hængelåsen) til venstre i adressefeltet > <b>Tilladelser</b> > <b>Placering</b> > <b>Tillad</b>.',
+      'Tjek, at placering er slået til i telefonens indstillinger, og at Chrome må bruge den (Indstillinger > Apps > Chrome > Tilladelser > Placering).',
+      'Tryk <b>Prøv igen</b> herunder, og vælg <b>Tillad</b>, når telefonen spørger.'
+    ],
+    other: [
+      'Tillad placering for denne side i browserens indstillinger (ikonet til venstre i adressefeltet).',
+      'Tryk <b>Prøv igen</b> herunder.'
+    ]
+  };
+  function showLocHelp(whyDenied) {
+    var p = platformOf();
+    els.locWhy.textContent = whyDenied === false ? '' : 'Telefonen har sagt nej til placering for Wayside. Derfor kan guiden ikke vide, hvor du kører, og kan ikke starte. Sådan retter du det:';
+    els.locSteps.innerHTML = '';
+    LOC_STEPS[p].forEach(function (s) { var li = document.createElement('li'); li.innerHTML = s; els.locSteps.appendChild(li); });
+    var inApp = inAppBrowser();
+    els.locInApp.classList.toggle('hidden', !inApp);
+    if (inApp) els.locInApp.textContent = 'Det ser ud til, at Wayside er åbnet inde i en anden app (fx Beskeder eller Mail). Det kan være årsagen. Tryk på Del-ikonet eller de tre prikker, og vælg ' + (p === 'ios' ? '"Åbn i Safari"' : '"Åbn i Chrome"') + '.';
+    els.locHelp.classList.remove('hidden');
+    try { els.locHelp.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+  }
+  function hideLocHelp() { els.locHelp.classList.add('hidden'); }
+  var permWatched = null;
+  function queryLocation() {                                    // 'granted' | 'prompt' | 'denied' | null (not supported)
+    if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(null);
+    return navigator.permissions.query({ name: 'geolocation' }).then(function (s) {
+      if (permWatched !== s) {
+        permWatched = s;
+        s.onchange = function () {
+          if (s.state === 'granted') { hideLocHelp(); setStatus('Placering er tilladt. Tryk Start guide.'); }
+          else if (s.state === 'denied') showLocHelp();
+        };
+      }
+      return s.state;
+    }, function () { return null; });
+  }
+  els.locRetry.addEventListener('click', function () {
+    hideLocHelp();
+    if (running) stopGuide();
+    startGuide();
+  });
+  els.locClose.addEventListener('click', hideLocHelp);
+
   async function startGuide() {
     if (running || !pois.length) return;
     if (!('geolocation' in navigator)) { setStatus('This browser has no GPS access.', true); return; }
+    var perm = await queryLocation();
+    if (perm === 'denied') { setStatus('Placering er slået fra for Wayside. Se hjælpen herunder.', true); showLocHelp(); return; }
+    hideLocHelp();
     running = true;
     prevFix = null;
     unlockAudio();
