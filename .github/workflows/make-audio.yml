@@ -70,13 +70,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ffmpeg
+      - name: Get ffmpeg (from Python, no apt, which can be very slow)
         if: steps.plan.outputs.needed == 'true'
+        timeout-minutes: 6
         run: |
           set -euxo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg bzip2
-          ffmpeg -version | head -1
+          if python -m pip install --quiet imageio-ffmpeg; then
+            python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"
+          else
+            echo "pip did not work, trying apt instead"
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
 
       - name: Remember the Piper voice between runs
         if: steps.plan.outputs.piper == 'true'
@@ -89,6 +94,7 @@ jobs:
         if: steps.plan.outputs.piper == 'true'
         run: |
           set -euxo pipefail
+          command -v bzip2 >/dev/null || sudo apt-get install -y -qq bzip2
           if [ ! -f .voice/da_DK-talesyntese-medium.onnx ]; then
             mkdir -p .voice
             curl -fsSL --retry 3 -o voice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-da_DK-talesyntese-medium.tar.bz2
