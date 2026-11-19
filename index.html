@@ -279,11 +279,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Ready-made routes</span><span class="t-desc" id="routeCount"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-    <label class="dropzone hidden" id="dropzone" for="file">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-      <strong>Upload a GPX file</strong>
-      <span>Waypoints become stops. A track or route is drawn on the map.</span>
-    </label>
     <p class="hint hidden" id="inviteHint">You do not have any routes yet. Open the invitation link you were sent, or enter your invitation code from the menu.</p>
     <p class="status" id="loadStatus" role="status"></p>
   </section>
@@ -358,7 +353,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   </section>
 </main>
 
-<input type="file" id="file" class="vh" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*" tabindex="-1" aria-hidden="true">
 
 <div id="scrim"></div>
 
@@ -375,50 +369,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Ready-made routes</span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-    <button class="tour" id="menuUpload" type="button" style="margin-bottom:8px;">
-      <span><span class="t-title">Upload a GPX file</span></span>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-    </button>
     <button class="tour" id="menuInvite" type="button">
       <span><span class="t-title">Enter invitation code</span><span class="t-desc" id="inviteInfo"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-
-    <h3>Triggering</h3>
-    <label class="field">
-      <span class="top"><span>Default trigger radius</span><span class="val" id="radiusVal"></span></span>
-      <input type="range" id="radius" min="50" max="600" step="25" value="250">
-    </label>
-    <label class="check">
-      <input type="checkbox" id="adaptive" checked>
-      <span>Larger radius at high speed</span>
-    </label>
-    <p class="hint">At speed, the radius grows to about 12 seconds of driving so a stop is read out in time. A stop with its own radius in the file ignores this and is not widened.</p>
-
-    <h3>Voice</h3>
-    <label class="field">
-      <span class="top"><span>Voice</span></span>
-      <select id="voice"></select>
-    </label>
-    <label class="check">
-      <input type="checkbox" id="allLangs">
-      <span>Show voices in all languages</span>
-    </label>
-    <p class="hint" id="voiceInfo"></p>
-    <p class="hint" id="voiceHint"></p>
-    <label class="field">
-      <span class="top"><span>Speech speed</span><span class="val" id="rateVal"></span></span>
-      <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="1">
-    </label>
-    <p class="hint">Speech speed only applies to the built-in voice, not to audio files.</p>
-    <div class="row" style="margin-top:14px;">
-      <button class="btn small" id="testVoice" type="button">Test voice</button>
-    </div>
-    <details class="tips">
-      <summary>Voice tips for iPhone</summary>
-      <p>iPhone voices come in quality levels: Basic (&ldquo;super-compact&rdquo;), Standard, Enhanced and Premium. On many iPhones, Safari only gives web pages the Basic version of a voice, even if you have downloaded a better one under Settings &gt; Accessibility &gt; Spoken Content &gt; Voices.</p>
-      <p>Turn on &ldquo;Show voices in all languages&rdquo; to see every voice Safari offers. The line under the voice list shows exactly which voice is in use.</p>
-    </details>
 
     <h3>Map</h3>
     <label class="check">
@@ -451,10 +405,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     home: $('home'), guide: $('guide'), loadStatus: $('loadStatus'),
-    tourList: $('tourList'), file: $('file'), dropzone: $('dropzone'),
+    tourList: $('tourList'),
     openRoutes: $('openRoutes'), routeCount: $('routeCount'), routes: $('routes'), routesBack: $('routesBack'),
     routeSearch: $('routeSearch'), noRoutes: $('noRoutes'), routesStatus: $('routesStatus'),
-    menuRoutes: $('menuRoutes'), menuUpload: $('menuUpload'), audioInfo: $('audioInfo'),
+    menuRoutes: $('menuRoutes'), audioInfo: $('audioInfo'),
     menuInvite: $('menuInvite'), inviteInfo: $('inviteInfo'), inviteHint: $('inviteHint'),
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
@@ -462,9 +416,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     runBanner: $('runBanner'), runText: $('runText'), prep: $('prep'),
     map: $('map'), mapHint: $('mapHint'), routeBtn: $('routeBtn'), poiList: $('poiList'),
     menuBtn: $('menuBtn'), closeBtn: $('closeBtn'), drawer: $('drawer'), scrim: $('scrim'),
-    radius: $('radius'), radiusVal: $('radiusVal'), adaptive: $('adaptive'),
-    voice: $('voice'), allLangs: $('allLangs'), voiceInfo: $('voiceInfo'), voiceHint: $('voiceHint'),
-    rate: $('rate'), rateVal: $('rateVal'), testVoice: $('testVoice'),
     follow: $('follow'), simBtn: $('simBtn'), resetBtn: $('resetBtn'),
     simBanner: $('simBanner'), simText: $('simText'), simStop: $('simStop'),
     dim: $('dim'), dimName: $('dimName'), dimDist: $('dimDist')
@@ -481,7 +432,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var prevFix = null;
   var queue = [];
   var speaking = false;
-  var voiceEntries = [];
+  var voiceEntries = [], chosenVoice = null;
+  var routeRadius = 250, routeAdaptive = true;      // from the route's own entry; nothing to set here
   var simTimer = null;
   var lmap = null, layer = null, fitPending = false;
 
@@ -700,9 +652,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     lastPos = null;
     queue = [];
     fitPending = true;
-    if (opts.radius) { els.radius.value = opts.radius; }
-    if (opts.adaptive === false) { els.adaptive.checked = false; }
-    syncLabels();
+    routeRadius = opts && Number(opts.radius) > 0 ? Number(opts.radius) : 250;
+    routeAdaptive = !(opts && opts.adaptive === false);
     els.routeName.textContent = label;
     setLoadStatus('');
     show('guide');
@@ -736,31 +687,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     setLoadStatus(msg, true);
     setStatus(msg, true);
   }
-
-  function readFile(f) {
-    if (!f) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      try { loadRoute(parseGpx(String(reader.result)), f.name.replace(/\.gpx$/i, '')); }
-      catch (e) { notify(e.message); }
-    };
-    reader.onerror = function () { notify('The file could not be opened.'); };
-    reader.readAsText(f);
-  }
-  els.file.addEventListener('change', function () {
-    readFile(els.file.files && els.file.files[0]);
-    els.file.value = '';
-  });
-  ['dragenter', 'dragover'].forEach(function (ev) {
-    els.dropzone.addEventListener(ev, function (e) { e.preventDefault(); els.dropzone.classList.add('over'); });
-  });
-  ['dragleave', 'drop'].forEach(function (ev) {
-    els.dropzone.addEventListener(ev, function (e) { e.preventDefault(); els.dropzone.classList.remove('over'); });
-  });
-  els.dropzone.addEventListener('drop', function (e) {
-    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    readFile(f);
-  });
 
   /* ---------- ready-made routes (ture/ture.json) ---------- */
   var tours = [];
@@ -817,7 +743,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     });
     els.noRoutes.classList.toggle('hidden', shown > 0);
   }
-  function showUploadFallback() { els.dropzone.classList.remove('hidden'); }
+  function showNoRoutes() { els.inviteHint.classList.remove('hidden'); }
 
   /* ---------- invitations: a personal file ture/u-<code>.json lists the routes a person may open ---------- */
   function normCode(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -882,7 +808,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   }
   var inviteNotice = '';
   function loadTours(fresh) {
-    if (!window.fetch) { showUploadFallback(); return; }
+    if (!window.fetch) { showNoRoutes(); return; }
     var captured = captureInvite() || fresh || null;
     Promise.all([fetchOpen(), fetchInvited()]).then(function (res) {
       var open = res[0], invited = res[1], seen = {}, list = [], gone = [], total = 0;
@@ -910,7 +836,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       } else if (captured && invited.some(function (i) { return i.code === captured && i.gone; })) {
         setLoadStatus('That invitation code is not valid (any more). Check the code, or ask for a new link.', true);
       } else if (inviteNotice) { setLoadStatus(inviteNotice, true); inviteNotice = ''; }
-      if (!tours.length) { showUploadFallback(); return; }
+      if (!tours.length) { showNoRoutes(); return; }
       els.openRoutes.classList.remove('hidden');
       els.menuRoutes.classList.remove('hidden');
       els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
@@ -930,7 +856,6 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   els.menuRoutes.addEventListener('click', openRoutes);
   els.routesBack.addEventListener('click', function () { show(pois.length ? 'guide' : 'home'); });
   els.routeSearch.addEventListener('input', renderTours);
-  els.menuUpload.addEventListener('click', function () { closeMenu(); els.file.click(); });
   els.menuInvite.addEventListener('click', enterInviteCode);
 
   /* ---------- distance ---------- */
@@ -959,65 +884,22 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function qualityRank(q) { return q === 'Premium' ? 0 : q === 'Enhanced' ? 1 : q === '' ? 2 : q === 'Standard' ? 3 : 4; }
   function langRank(l) { return /^da/i.test(l) ? 0 : /^en/i.test(l) ? 1 : 2; }
 
-  function refreshVoices() {
-    if (!('speechSynthesis' in window)) {
-      els.voiceHint.textContent = 'This browser cannot read text aloud.';
-      return;
-    }
-    var all = window.speechSynthesis.getVoices() || [];
-    var seen = {};
-    var entries = [];
-    all.forEach(function (v) {          // iOS can list the same voice twice; show it once
+  function refreshVoices() {                      // the built-in voice is picked automatically: Danish first, best quality first
+    if (!('speechSynthesis' in window)) return;
+    var all = window.speechSynthesis.getVoices() || [], seen = {}, entries = [];
+    all.forEach(function (v) {                    // iOS can list the same voice twice
       var key = v.voiceURI + '::' + v.name + '::' + v.lang;
       if (seen[key]) return;
       seen[key] = true;
-      entries.push({ v: v, key: key, q: voiceQuality(v) });
+      entries.push({ v: v, q: voiceQuality(v) });
     });
-    var showAll = els.allLangs.checked;
-    voiceEntries = entries.filter(function (e) { return showAll || /^(da|en)/i.test(e.v.lang); });
+    voiceEntries = entries.filter(function (e) { return /^(da|en)/i.test(e.v.lang); });
     voiceEntries.sort(function (a, b) {
-      return langRank(a.v.lang) - langRank(b.v.lang) ||
-             qualityRank(a.q) - qualityRank(b.q) ||
-             a.v.name.localeCompare(b.v.name);
+      return langRank(a.v.lang) - langRank(b.v.lang) || qualityRank(a.q) - qualityRank(b.q) || a.v.name.localeCompare(b.v.name);
     });
-    var saved = load('voice', '');
-    els.voice.innerHTML = '';
-    voiceEntries.forEach(function (e) {
-      var o = document.createElement('option');
-      o.value = e.key;
-      o.textContent = e.v.name + (e.q ? ' · ' + e.q : '') + ' · ' + String(e.v.lang).replace('_', '-');
-      els.voice.appendChild(o);
-    });
-    if (!voiceEntries.length) {
-      var o = document.createElement('option');
-      o.textContent = 'Default voice';
-      els.voice.appendChild(o);
-    } else if (saved && voiceEntries.some(function (e) { return e.key === saved; })) {
-      els.voice.value = saved;
-    } else {
-      els.voice.value = voiceEntries[0].key;
-    }
-    var hasDa = voiceEntries.some(function (e) { return /^da/i.test(e.v.lang); });
-    var goodDa = voiceEntries.some(function (e) { return /^da/i.test(e.v.lang) && (e.q === 'Enhanced' || e.q === 'Premium'); });
-    els.voiceHint.textContent = !hasDa ?
-      'No Danish voice found. The stops are written in Danish, so they will sound odd with another voice. On iPhone, add one under Settings > Accessibility > Spoken Content > Voices > Danish, then reopen this page.' :
-      (goodDa ? '' : 'Safari only offers a basic-quality Danish voice on this device. See the voice tips below.');
-    updateVoiceInfo();
+    chosenVoice = voiceEntries.length ? voiceEntries[0].v : null;
   }
-  function currentEntry() {
-    var key = els.voice.value;
-    for (var i = 0; i < voiceEntries.length; i++) if (voiceEntries[i].key === key) return voiceEntries[i];
-    return null;
-  }
-  function currentVoice() { var e = currentEntry(); return e ? e.v : null; }
-  function updateVoiceInfo() {
-    var e = currentEntry();
-    if (!e) { els.voiceInfo.textContent = ''; return; }
-    var v = e.v;
-    els.voiceInfo.textContent = 'In use: ' + v.name + ', ' + String(v.lang).replace('_', '-') +
-      (e.q ? ', ' + e.q + ' quality' : '') + (v.localService ? ', on this device' : '') +
-      '. ID: ' + v.voiceURI;
-  }
+  function currentVoice() { return chosenVoice; }
   if ('speechSynthesis' in window) {
     refreshVoices();
     window.speechSynthesis.onvoiceschanged = refreshVoices;
@@ -1048,7 +930,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       var u = new SpeechSynthesisUtterance(c);
       u.lang = (v && v.lang) || 'da-DK';
       if (v) u.voice = v;
-      u.rate = parseFloat(els.rate.value) || 1;
+      u.rate = 1;
       if (idx === chunks.length - 1) {
         u.onend = function () { if (done) done(); };
         u.onerror = function () { if (done) done(); };
@@ -1065,7 +947,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var i = queue.shift();
     var p = pois[i];
     if (!p) return pump();
-    if (!p.force && lastPos && p.dist != null && p.dist > Math.max(1000, stopRadius(p, lastPos.speed) * 4)) {
+    if (!simTimer && !p.force && lastPos && p.dist != null && p.dist > Math.max(1000, stopRadius(p, lastPos.speed) * 4)) {
       p.read = true; p.skipped = true;                           // waited in the queue and is now far behind: skip it
       renderList(); updateNext();
       setStatus('Skipped "' + p.name + '" because you had already driven past it.');
@@ -1100,8 +982,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     return Math.sqrt(px * px + py * py);
   }
   function effectiveRadius(speed) {
-    var base = parseFloat(els.radius.value) || 250;
-    if (els.adaptive.checked && speed && speed > 0) return Math.min(900, Math.max(base, speed * 12));
+    var base = routeRadius;
+    if (routeAdaptive && speed && speed > 0) return Math.min(900, Math.max(base, speed * 12));
     return base;
   }
   function onPosition(pos) {
@@ -1239,14 +1121,29 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var totalM = 0;
     for (var k = 0; k < path.length - 1; k++) totalM += distance(path[k].lat, path[k].lon, path[k + 1].lat, path[k + 1].lon);
     var stepM = Math.max(speed, totalM / 150);
-    setStatus(stepM > speed ? 'Simulating a drive along the route (sped up, as the route is long).' : 'Simulating a drive at 50 km/h along the route.');
+    setStatus((stepM > speed ? 'Simulating a drive along the route (sped up, as the route is long).' : 'Simulating a drive at 50 km/h along the route.') + ' The car waits while a stop is read.');
+    var waited = 0;
     var seg = 0, frac = 0;
     function pointAt() {
       if (seg >= path.length - 1) return { lat: path[path.length - 1].lat, lon: path[path.length - 1].lon };
       var a = path[seg], b = path[seg + 1];
       return { lat: a.lat + (b.lat - a.lat) * frac, lon: a.lon + (b.lon - a.lon) * frac };
     }
+    var started = false;
     simTimer = setInterval(function () {
+      if (!started) {                                       // the first position is the very start of the route, so a stop there is read too
+        started = true;
+        var p0 = pointAt();
+        onPosition({ coords: { latitude: p0.lat, longitude: p0.lon, accuracy: 5, speed: speed } });
+        return;
+      }
+      if (speaking && waited < 240) {                       // the car stands still while a stop is read, so no stop is driven past unread
+        waited++;
+        els.simText.textContent = 'Simulation paused while a stop is read';
+        return;
+      }
+      waited = 0;
+      els.simText.textContent = 'Simulation running';
       var remain = stepM;
       while (remain > 0 && seg < path.length - 1) {
         var a = path[seg], b = path[seg + 1];
@@ -1353,7 +1250,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var ni = nextIndex();
     if (ni > -1) {
       L.circle([pois[ni].lat, pois[ni].lon], {
-        radius: pois[ni].radius || parseFloat(els.radius.value) || 250,
+        radius: pois[ni].radius || routeRadius,
         color: '#d9480f', weight: 2, dashArray: '4 4', fill: false
       }).addTo(layer);
     }
@@ -1432,30 +1329,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   els.dim.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hideDim(); });
 
   /* ---------- settings ---------- */
-  function syncLabels() {
-    els.radiusVal.textContent = els.radius.value + ' m';
-    els.rateVal.textContent = parseFloat(els.rate.value).toFixed(2) + '×';
-  }
-  els.radius.value = load('radius', '250');
-  els.rate.value = load('rate', '1');
-  els.adaptive.checked = load('adaptive', 'true') === 'true';
-  els.allLangs.checked = load('allLangs', 'false') === 'true';
   els.follow.checked = load('follow', 'true') === 'true';
   els.prep.open = load('prepOpen', 'true') === 'true';
   els.prep.addEventListener('toggle', function () { save('prepOpen', els.prep.open); });
-  syncLabels();
-  els.radius.addEventListener('input', function () { syncLabels(); save('radius', els.radius.value); drawMap(); });
-  els.rate.addEventListener('input', function () { syncLabels(); save('rate', els.rate.value); });
-  els.adaptive.addEventListener('change', function () { save('adaptive', els.adaptive.checked); });
   els.follow.addEventListener('change', function () { save('follow', els.follow.checked); });
-  els.allLangs.addEventListener('change', function () { save('allLangs', els.allLangs.checked); refreshVoices(); });
-  els.voice.addEventListener('change', function () { save('voice', els.voice.value); updateVoiceInfo(); });
-  els.testVoice.addEventListener('click', function () {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    speak(voiceIsDanish() ?
-      'Dette er en test af stemmen. Kronborg ved Helsingør er et godt eksempel på et punkt langs ruten.' :
-      'This is a test of the voice. Stops along your route will be read out like this.', null);
-  });
   els.resetBtn.addEventListener('click', function () {
     pois.forEach(function (p) { p.read = false; p.skipped = false; });
     queue = [];
