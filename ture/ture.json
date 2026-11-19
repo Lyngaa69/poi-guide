@@ -6,14 +6,5 @@
     "radius": 400,
     "adaptiv": true,
     "rute": "osrm"
-  },
-  {
-    "navn": "Silkeborg: Ladelundsvej to Padborgvej",
-    "fil": "silkeborg-ladelundsvej-padborgvej.gpx",
-    "beskrivelse": "Short test trip with 6 stops",
-    "radius": 150,
-    "adaptiv": false,
-    "rute": "osrm",
-    "vis": false
   }
 ]
