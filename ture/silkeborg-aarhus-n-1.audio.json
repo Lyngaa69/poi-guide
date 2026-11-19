@@ -1,7 +1,7 @@
 {
   "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
-    "8983b7c6",
+    "860ab55b",
     "08e2f2d5",
     "13975712",
     "c676627d",
@@ -11,7 +11,7 @@
     "fc265a4f"
   ],
   "spoken": [
-    "",
+    "52ac52af",
     "075df820",
     "8295d5e6",
     "41ee4e98",
@@ -21,7 +21,7 @@
     "d3094422"
   ],
   "engines": [
-    "",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
