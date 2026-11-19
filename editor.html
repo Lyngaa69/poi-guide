@@ -229,6 +229,7 @@ details.tips li { margin-bottom: 4px; }
       <button class="btn sign" id="vSave" type="button">Save voice settings</button>
     </div>
     <p class="status" id="vStatus" role="status"></p>
+    <p class="hint">Free Gemini has a daily limit (about 10 stops per day for the best model, shown in your own AI Studio). A new voice remakes every stop, so it can take several days. The rest is made automatically every morning.</p>
     <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 2.</p>
 
     <h3>Pronunciation</h3>
@@ -521,7 +522,7 @@ details.tips li { margin-bottom: 4px; }
     if (h !== fnv1a(stopPlain(s, i))) return { cls: 'wait', text: 'The text is new or changed. New audio is made after you publish.' };
     if ((manifest.failed || []).indexOf(i + 1) !== -1) return { cls: 'wait', text: 'The audio could not be made. The phone voice is used.' };
     var e = manifest.engines ? manifest.engines[i] : manifest.voice;
-    if (!e) return { cls: 'wait', text: 'No audio file yet. It is made at the next run, and the phone voice is used until then.' };
+    if (!e) return { cls: 'wait', text: 'No audio file yet. It is made at the next run (the next morning, if the daily limit is reached). The phone voice is used until then.' };
     var cls = e.indexOf('gemini:') === 0 ? 'gemini' : e.indexOf('local:') === 0 ? 'local' : 'piper';
     var cur = manifest.voice;
     return { cls: cls, text: '<b>' + engineName(e) + '</b>' + (cur && e !== cur && e.indexOf('local:') !== 0 ? ' (older than the current voice, will be remade)' : '') };
@@ -1383,7 +1384,7 @@ details.tips li { margin-bottom: 4px; }
     };
     $('vSave').disabled = true; vStatus('Saving\u2026');
     putFile('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'Piper') + ')')
-      .then(function () { vStatus('Saved. GitHub now remakes the audio for all routes with this voice. It takes a few minutes, and a little longer with Gemini because of its speed limit.'); })
+      .then(function () { vStatus('Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
       .catch(function (e) { vStatus('Not saved. ' + e.message, true); })
       .then(function () { $('vSave').disabled = false; });
   });
