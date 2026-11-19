@@ -22,7 +22,7 @@ Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it shoul
   ~aa = å                   (starts with ~: replaces these letters inside every word)
 Lines starting with # are ignored. Words match whole words, in any capitalisation.
 """
-import base64, json, os, re, subprocess, sys, time, wave
+import base64, json, os, re, shutil, subprocess, sys, time, wave
 import urllib.error, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -391,10 +391,25 @@ def make_mp3(voice, text, out_mp3, raw=False):
     wav_path = str(out_mp3) + '.wav'
     with wave.open(wav_path, 'wb') as w:
         voice.synthesize_wav(text if raw else spoken(text), w)
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav_path,
+    subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', wav_path,
                     '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
                     '-ac', '1', '-ar', '22050', '-b:a', '64k', str(out_mp3)], check=True)
     os.remove(wav_path)
+
+# ---------- ffmpeg ----------
+_FFMPEG = None
+def ffmpeg_exe():
+    """The ffmpeg to use: $FFMPEG, one on the PATH, or the one that comes with the Python package imageio-ffmpeg."""
+    global _FFMPEG
+    if _FFMPEG is None:
+        _FFMPEG = os.environ.get('FFMPEG') or shutil.which('ffmpeg')
+        if not _FFMPEG:
+            try:
+                import imageio_ffmpeg
+                _FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+            except Exception:
+                _FFMPEG = 'ffmpeg'
+    return _FFMPEG
 
 # ---------- the Gemini voice ----------
 class Transient(Exception):      # worth trying again later (rate limit, server hiccup)
@@ -476,7 +491,7 @@ def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
     else:                                                       # headerless 16-bit, 24 kHz, mono
         with wave.open(wav_path, 'wb') as w:
             w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(data)
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav_path,
+    subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', wav_path,
                     '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
                     '-ac', '1', '-ar', '24000', '-b:a', '64k', str(out_mp3)], check=True)
     os.remove(wav_path)
