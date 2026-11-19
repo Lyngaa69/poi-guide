@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b61c4">
+<meta name="robots" content="noindex, nofollow">
 <title>Wayside – audio guide for the road</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -179,6 +180,7 @@ main {
 .prep ul { list-style: none; margin: 10px 0 2px; padding: 0; display: grid; gap: 14px; }
 .prep li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.35; }
 .prep svg { flex: none; width: 30px; height: 30px; stroke: var(--sign); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--sign); vertical-align: middle; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
 #map {
@@ -282,6 +284,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <strong>Upload a GPX file</strong>
       <span>Waypoints become stops. A track or route is drawn on the map.</span>
     </label>
+    <p class="hint hidden" id="inviteHint">You do not have any routes yet. Open the invitation link you were sent, or enter your invitation code from the menu.</p>
     <p class="status" id="loadStatus" role="status"></p>
   </section>
 
@@ -372,8 +375,12 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Ready-made routes</span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-    <button class="tour" id="menuUpload" type="button">
+    <button class="tour" id="menuUpload" type="button" style="margin-bottom:8px;">
       <span><span class="t-title">Upload a GPX file</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <button class="tour" id="menuInvite" type="button">
+      <span><span class="t-title">Enter invitation code</span><span class="t-desc" id="inviteInfo"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
 
@@ -448,6 +455,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     openRoutes: $('openRoutes'), routeCount: $('routeCount'), routes: $('routes'), routesBack: $('routesBack'),
     routeSearch: $('routeSearch'), noRoutes: $('noRoutes'), routesStatus: $('routesStatus'),
     menuRoutes: $('menuRoutes'), menuUpload: $('menuUpload'), audioInfo: $('audioInfo'),
+    menuInvite: $('menuInvite'), inviteInfo: $('inviteInfo'), inviteHint: $('inviteHint'),
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
@@ -783,6 +791,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       var title = document.createElement('span');
       title.className = 't-title';
       title.textContent = t.navn;
+      if (t.invited) { var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'Invited'; title.appendChild(tag); }
       left.appendChild(title);
       if (t.beskrivelse) {
         var d = document.createElement('span');
@@ -809,27 +818,120 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.noRoutes.classList.toggle('hidden', shown > 0);
   }
   function showUploadFallback() { els.dropzone.classList.remove('hidden'); }
-  function loadTours() {
-    if (!window.fetch) { showUploadFallback(); return; }
-    fetch('ture/ture.json', { cache: 'no-cache' })
+
+  /* ---------- invitations: a personal file ture/u-<code>.json lists the routes a person may open ---------- */
+  function normCode(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function isCode(c) { return /^[a-z0-9]{6,32}$/.test(c); }
+  function inviteCodes() {
+    try { var a = JSON.parse(load('invites', '[]')); return Array.isArray(a) ? a.filter(isCode) : []; } catch (e) { return []; }
+  }
+  function saveInvites(a) { save('invites', JSON.stringify(a)); }
+  function addInvite(code) {
+    var a = inviteCodes();
+    if (a.indexOf(code) === -1) { a.push(code); saveInvites(a); }
+  }
+  function codeFromText(text) {
+    text = String(text || '');
+    var m = /[#&?]u=([^&\s]+)/.exec(text);
+    if (m) return normCode(decodeURIComponent(m[1]));
+    var c = /[a-z0-9]{5}-?[a-z0-9]{5}/i.exec(text);            // "Code: k7x2p-9qam4" or just "k7x2p9qam4"
+    return normCode(c ? c[0] : text);
+  }
+  function captureInvite() {                                    // an invitation link: .../#u=<code>
+    var m = /(?:^|[#&])u=([^&]+)/.exec(location.hash || '');
+    if (!m) return null;
+    var code = normCode(decodeURIComponent(m[1]));
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }   // keep the code out of the address bar
+    if (!isCode(code)) return null;
+    addInvite(code);
+    return code;
+  }
+  function okRoute(t) {
+    return t && t.fil && t.navn && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
+  }
+  function fetchInvited() {
+    var codes = inviteCodes();
+    return Promise.all(codes.map(function (c) {
+      return fetch('ture/u-' + c + '.json', { cache: 'no-store' })
+        .then(function (r) {
+          if (r.status === 404) return { code: c, gone: true };
+          if (!r.ok) throw new Error('http ' + r.status);
+          return r.json().then(function (j) {
+            var routes = Array.isArray(j && j.routes) ? j.routes.filter(okRoute) : [];
+            save('access.' + c, JSON.stringify(routes));
+            return { code: c, routes: routes };
+          });
+        })
+        .catch(function () {                                    // no network: use what was fetched last time
+          try { return { code: c, routes: JSON.parse(load('access.' + c, '[]')), offline: true }; }
+          catch (e) { return { code: c, routes: [], offline: true }; }
+        });
+    }));
+  }
+  function fetchOpen() {
+    return fetch('ture/ture.json', { cache: 'no-cache' })
       .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
       .then(function (list) {
-        if (!Array.isArray(list)) { showUploadFallback(); return; }
-        tours = list.filter(function (t) {
-          return t && t.fil && t.navn && t.vis !== false && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
-        });
-        if (!tours.length) { showUploadFallback(); return; }
-        els.openRoutes.classList.remove('hidden');
-        els.menuRoutes.classList.remove('hidden');
-        els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
+        var l = Array.isArray(list) ? list.filter(function (t) { return okRoute(t) && t.vis !== false; }) : [];
+        save('openlist', JSON.stringify(l));
+        return l;
       })
-      .catch(function () { showUploadFallback(); });
+      .catch(function () {                                      // no network: the list from last time
+        try { var c = JSON.parse(load('openlist', '[]')); return Array.isArray(c) ? c : []; } catch (e) { return []; }
+      });
+  }
+  var inviteNotice = '';
+  function loadTours(fresh) {
+    if (!window.fetch) { showUploadFallback(); return; }
+    var captured = captureInvite() || fresh || null;
+    Promise.all([fetchOpen(), fetchInvited()]).then(function (res) {
+      var open = res[0], invited = res[1], seen = {}, list = [], gone = [], total = 0;
+      open.forEach(function (t) { if (!seen[t.fil]) { seen[t.fil] = 1; list.push(t); } });
+      invited.forEach(function (inv) {
+        if (inv.gone) { gone.push(inv.code); return; }
+        (inv.routes || []).forEach(function (t) {
+          if (seen[t.fil]) return;
+          seen[t.fil] = 1; total++;
+          var copy = {}; Object.keys(t).forEach(function (k) { copy[k] = t[k]; }); copy.invited = true;
+          list.push(copy);
+        });
+      });
+      if (gone.length) {                                        // an invitation that has been withdrawn
+        saveInvites(inviteCodes().filter(function (c) { return gone.indexOf(c) === -1; }));
+        gone.forEach(function (c) { try { localStorage.removeItem('wayside:access.' + c); } catch (e) { } });
+        inviteNotice = gone.length === 1 ? 'An invitation is no longer valid, so its routes have been removed.' : gone.length + ' invitations are no longer valid, so their routes have been removed.';
+      }
+      tours = list;
+      var n = inviteCodes().length;
+      els.inviteInfo.textContent = n ? n + (n === 1 ? ' invitation on this phone' : ' invitations on this phone') : 'Use the code from your invitation';
+      els.inviteHint.classList.toggle('hidden', !!tours.length);
+      if (captured && !gone.length && invited.some(function (i) { return i.code === captured && !i.gone; })) {
+        setLoadStatus(total ? 'Invitation accepted. ' + total + (total === 1 ? ' route was' : ' routes were') + ' added.' : 'Invitation accepted. You have no routes yet. They appear here when they are added.');
+      } else if (captured && invited.some(function (i) { return i.code === captured && i.gone; })) {
+        setLoadStatus('That invitation code is not valid (any more). Check the code, or ask for a new link.', true);
+      } else if (inviteNotice) { setLoadStatus(inviteNotice, true); inviteNotice = ''; }
+      if (!tours.length) { showUploadFallback(); return; }
+      els.openRoutes.classList.remove('hidden');
+      els.menuRoutes.classList.remove('hidden');
+      els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
+      if (!els.routes.classList.contains('hidden')) renderTours();
+    });
+  }
+  function enterInviteCode() {
+    var text = window.prompt('Paste your invitation link or type your invitation code:');
+    if (text === null) return;
+    var code = codeFromText(text);
+    if (!isCode(code)) { setLoadStatus('That does not look like an invitation code.', true); closeMenu(); return; }
+    addInvite(code);
+    closeMenu();
+    loadTours(code);
   }
   els.openRoutes.addEventListener('click', openRoutes);
   els.menuRoutes.addEventListener('click', openRoutes);
   els.routesBack.addEventListener('click', function () { show(pois.length ? 'guide' : 'home'); });
   els.routeSearch.addEventListener('input', renderTours);
   els.menuUpload.addEventListener('click', function () { closeMenu(); els.file.click(); });
+  els.menuInvite.addEventListener('click', enterInviteCode);
 
   /* ---------- distance ---------- */
   function distance(lat1, lon1, lat2, lon2) {

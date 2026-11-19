@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b61c4">
+<meta name="robots" content="noindex, nofollow">
+<title>Wayside Studio – people</title>
+<style>
+:root {
+  --bg: #eef4fa; --surface: #ffffff; --line: #d3e0ee; --text: #0e2238; --muted: #53687e;
+  --sign: #0b61c4;
+  --sign-grad: linear-gradient(135deg, #0a58b8 0%, #1479df 100%); --sign-text: #ffffff; --ok: #12805c; --warn: #c2410c;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a2b; --surface: #12263c; --line: #25405c; --text: #e8f1fb; --muted: #9db3c9;
+    --sign: #3b8fe8;
+    --ok: #5fd3a0; --warn: #ff9b5e; color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px; line-height: 1.45;
+}
+h1 { font-size: 1.6rem; margin: 6px 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 0 0 10px; }
+p { margin: 0 0 10px; }
+.hidden { display: none !important; }
+.lede { color: var(--muted); margin-bottom: 18px; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+.status { color: var(--muted); font-size: 0.95rem; margin: 10px 0 0; min-height: 1.4em; }
+.status.bad { color: var(--warn); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; }
+.logo { width: 32px; height: 32px; border-radius: 9px; background: var(--sign-grad); display: grid; place-items: center; }
+.logo svg { width: 20px; height: 20px; fill: var(--sign-text); }
+main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe-area-inset-bottom, 0px)); }
+
+.btn {
+  font: inherit; font-weight: 600; min-height: 48px; padding: 10px 16px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  cursor: pointer; touch-action: manipulation; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.sign { background: var(--sign-grad); color: var(--sign-text); border: 3px solid var(--sign-text); box-shadow: 0 0 0 2px var(--sign); }
+.btn.small { min-height: 40px; padding: 4px 12px; font-size: 0.92rem; }
+.btn.danger { color: var(--warn); }
+.linkbtn { font: inherit; font-weight: 600; color: var(--text); background: none; border: 0; padding: 8px 0; min-height: 40px; cursor: pointer; text-decoration: underline; }
+:is(.btn, .linkbtn, .tour, input, select, textarea, summary):focus-visible, .dropzone:focus-within { outline: 3px solid var(--warn); outline-offset: 2px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row > .grow { flex: 1 1 200px; }
+
+.tours { display: grid; gap: 10px; margin-bottom: 14px; }
+.tour {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left;
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--sign);
+  border-radius: 14px; padding: 14px 14px 14px 16px; cursor: pointer;
+}
+.tour .t-title { display: block; font-weight: 700; line-height: 1.25; }
+.tour .t-desc { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 3px; }
+.dropzone { display: block; text-align: center; cursor: pointer; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); padding: 22px 16px; }
+.dropzone:hover, .dropzone.over { border-color: var(--sign); }
+.dropzone input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dropzone svg { width: 34px; height: 34px; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; margin-bottom: 6px; }
+.dropzone strong { display: block; font-size: 1.05rem; }
+.dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+a.tour { text-decoration: none; }
+.rdrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.rdrow > span { font-weight: 600; }
+.rdrow select { width: auto; min-height: 40px; flex: 1 1 170px; max-width: 280px; }
+.rdinfo { color: var(--muted); font-size: 0.88rem; margin: 4px 0 0; }
+.engine { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+.engine i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); flex: none; }
+.engine.gemini i { background: #12805c; } .engine.piper i { background: #0b61c4; } .engine.local i { background: #7c3aed; } .engine.wait i { background: #d9480f; }
+.engine b { color: var(--text); font-weight: 600; }
+.iconbtn { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--text); touch-action: manipulation; flex: none; }
+.iconbtn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+#scrim { position: fixed; inset: 0; z-index: 190; background: rgba(8, 20, 36, 0.55); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
+#scrim.on { opacity: 1; visibility: visible; }
+#drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 200; width: min(420px, 100%); background: var(--bg); border-left: 1px solid var(--line); display: flex; flex-direction: column; transform: translateX(100%); visibility: hidden; transition: transform .22s ease, visibility .22s; }
+#drawer.open { transform: translateX(0); visibility: visible; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px; border-bottom: 1px solid var(--line); }
+.drawer-head h2 { margin: 0; font-size: 1.2rem; }
+.drawer-body { overflow-y: auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling: touch; }
+.drawer-body h3 { margin: 18px 0 0; }
+.exrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.exrow select { width: auto; min-height: 40px; flex: 1 1 160px; max-width: 260px; }
+@media (prefers-reduced-motion: reduce) { #drawer, #scrim { transition: none; } }
+.loading { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); font-weight: 600; }
+.spinner { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--sign); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+.routecard { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
+.routecard .tour { border: 0; border-radius: 0; margin: 0; border-left: 6px solid var(--sign); background: transparent; }
+.routetools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 4px 12px 8px 16px; }
+.routetools .check { margin: 0; min-height: 40px; flex: 1 1 auto; }
+.badge { font-size: 0.8rem; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.off { color: var(--warn); border-color: var(--warn); }
+.routerow { display: flex; gap: 8px; align-items: stretch; }
+.routerow .tour { flex: 1; }
+.routerow > .btn { flex: none; }
+.sectionlabel { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
+input[type=text], input[type=search], textarea, select {
+  width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); min-height: 46px;
+}
+textarea { min-height: 96px; resize: vertical; }
+label.field { display: block; margin-top: 12px; }
+label.field > span { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+input[type=range] { width: 100%; height: 36px; accent-color: var(--sign); }
+.check { display: flex; gap: 10px; align-items: center; min-height: 36px; margin-top: 8px; }
+.check input { width: 22px; height: 22px; accent-color: var(--sign); flex: none; }
+
+#map { width: 100%; height: 420px; border-radius: 12px; border: 1px solid var(--line); position: relative; isolation: isolate; background: var(--bg); margin-top: 10px; }
+.pin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; color: #fff; background: #0b61c4; font: 700 13px/24px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.pin.sel { background: #d9480f; transform: scale(1.2); }
+.results { display: grid; gap: 6px; margin-top: 8px; }
+.results button { text-align: left; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+
+.stop { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 12px; background: var(--bg); }
+.stop.sel { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn); }
+.stop .head { display: flex; align-items: center; gap: 10px; }
+.stop .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--sign-grad); color: var(--sign-text); display: grid; place-items: center; font-weight: 700; font-size: 0.9rem; }
+.stop .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.banner { border: 1px solid var(--warn); border-radius: 10px; padding: 10px 12px; margin-top: 12px; color: var(--text); background: var(--surface); }
+details.tips { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+details.tips summary { cursor: pointer; font-weight: 600; min-height: 28px; }
+details.tips ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 0.95rem; }
+details.tips li { margin-bottom: 4px; }
+
+.person, .group { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 12px; background: var(--surface); }
+.person.fresh { box-shadow: inset 0 0 0 2px var(--sign); }
+.person .namerow, .group .namerow { display: flex; gap: 8px; align-items: center; }
+.person .namerow input, .group .namerow input { flex: 1; min-width: 0; font-weight: 700; }
+.person .sub { color: var(--muted); font-size: 0.9rem; margin: 8px 0 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 4px; }
+.chips label { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
+.chips input { width: 20px; height: 20px; accent-color: var(--sign); }
+.linkbox { margin-top: 10px; padding: 10px; border-radius: 10px; background: var(--bg); border: 1px dashed var(--line); }
+.linkbox input { font-size: 0.85rem; }
+.linkbox .row { margin-top: 8px; }
+.qrbox { margin-top: 10px; text-align: center; }
+.qrbox canvas, .qrbox img { background: #fff; padding: 8px; border-radius: 8px; }
+.summary-line { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; border: 1px solid var(--line); color: var(--muted); }
+.pill.invite { background: var(--sign); color: #fff; border-color: transparent; }
+.savebar { position: sticky; bottom: 0; z-index: 40; margin-top: 18px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.savebar .count { flex: 1 1 160px; color: var(--muted); }
+.addrow { display: flex; gap: 8px; margin-top: 12px; }
+.addrow input { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
+    <span>Wayside Studio</span>
+  </div>
+  <div class="row" style="flex:none;"><a class="btn small" href="editor.html">Routes</a></div>
+</header>
+
+<main>
+  <h1>People</h1>
+  <p class="lede">Invite people to routes. Everyone gets a personal link. If you remove someone, their link stops working. The names are kept in a private repository, never on the public site.</p>
+
+  <div id="noConn" class="banner hidden">GitHub is not connected on this device. Open <a href="editor.html">Routes</a>, open any route, and fill in &ldquo;GitHub connection&rdquo; under step 3. Then come back here.</div>
+
+  <section id="setup" class="card hidden">
+    <h2>Set up the private list</h2>
+    <p class="hint" style="margin-top:0;">The list of people must be kept in a <b>private</b> repository, separate from the public site. You only do this once.</p>
+    <ol class="hint" style="padding-left:20px;line-height:1.5;">
+      <li>On GitHub, create a new repository. Name it for example <b id="suggest">poi-guide-admin</b>. Choose <b>Private</b> and tick <b>Add a README file</b>.</li>
+      <li>Let the Studio token reach it: GitHub &gt; Settings &gt; Developer settings &gt; Fine-grained tokens &gt; your token &gt; Edit. Under &ldquo;Repository access&rdquo; add the new repository. Keep <b>Contents: Read and write</b>. Save.</li>
+      <li>Write the name here and press Check.</li>
+    </ol>
+    <label class="field"><span>Private repository (owner/name)</span><input type="text" id="adminRepo" placeholder="myname/poi-guide-admin" autocomplete="off" spellcheck="false"></label>
+    <div class="row"><button class="btn sign" id="checkBtn" type="button">Check</button></div>
+    <p class="status" id="setupMsg" role="status"></p>
+  </section>
+
+  <section id="app" class="hidden">
+    <p class="status" id="status" role="status"></p>
+
+    <div class="card">
+      <h2>People (<span id="peopleCount">0</span>)</h2>
+      <div id="people"></div>
+      <div class="addrow"><input type="text" id="newPerson" placeholder="Name of a new person" aria-label="Name of a new person" autocomplete="off"><button class="btn" id="addPerson" type="button">Add</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Groups (<span id="groupCount">0</span>)</h2>
+      <p class="hint" style="margin-top:0;">A group is a set of routes, for example a weekend. Put a person in a group and they get all its routes, including routes you add later.</p>
+      <div id="groups"></div>
+      <div class="addrow"><input type="text" id="newGroup" placeholder="Name of a new group" aria-label="Name of a new group" autocomplete="off"><button class="btn" id="addGroup" type="button">Add</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Routes</h2>
+      <p class="hint" style="margin-top:0;">Here are the routes that are not open to everyone. Change who can see a route on the route list in <a href="editor.html">Studio</a>.</p>
+      <div id="routes"></div>
+    </div>
+
+    <div class="savebar">
+      <span class="count" id="count">Nothing changed</span>
+      <button class="btn sign" id="saveBtn" type="button" disabled>Save and publish</button>
+    </div>
+  </section>
+</main>
+
+<script src="access.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var A = window.Access;
+  var model = null, adminSha = null, dirty = false, rotate = {}, saving = false;
+
+  function say(msg, bad) { var el = $('status'); el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || ''; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function uid(prefix) { return prefix + A.random(6); }
+  function mark() { dirty = true; updateBar(); }
+  function updateBar() {
+    $('count').textContent = dirty ? 'Changes are not saved yet' : 'Nothing changed';
+    $('saveBtn').disabled = !dirty || saving;
+  }
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  /* ---------- start ---------- */
+  function start() {
+    var cfg = A.cfg;
+    if (!cfg.ready()) { $('noConn').classList.remove('hidden'); return; }
+    $('suggest').textContent = (cfg.repo().split('/')[0] || 'myname') + '/poi-guide-admin';
+    $('adminRepo').value = cfg.adminRepo() || (cfg.repo().split('/')[0] || '') + '/poi-guide-admin';
+    if (!cfg.adminRepo()) { $('setup').classList.remove('hidden'); return; }
+    load();
+  }
+  function load() {
+    $('setup').classList.add('hidden'); $('app').classList.remove('hidden'); say('Loading…');
+    A.loadAdmin().then(function (a) {
+      model = a.model; adminSha = a.sha; dirty = false; rotate = {};
+      render(); say(''); updateBar();
+    }).catch(function (e) {
+      $('app').classList.add('hidden'); $('setup').classList.remove('hidden');
+      $('setupMsg').className = 'status bad'; $('setupMsg').textContent = e.message;
+    });
+  }
+  $('checkBtn').addEventListener('click', function () {
+    var repo = $('adminRepo').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+    var m = $('setupMsg'); m.className = 'status';
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { m.className = 'status bad'; m.textContent = 'Write the repository as owner/name.'; return; }
+    m.textContent = 'Checking…';
+    A.checkAdmin(repo).then(function () { A.cfg.setAdminRepo(repo); m.textContent = ''; load(); })
+      .catch(function (e) { m.className = 'status bad'; m.textContent = e.message; });
+  });
+
+  /* ---------- helpers on the model ---------- */
+  function inviteRoutes() { return model.routes.filter(function (r) { return r.access === 'invite'; }); }
+  function routeName(rid) { var r = model.routes.filter(function (x) { return x.rid === rid; })[0]; return r ? r.navn : '?'; }
+  function groupName(gid) { var g = model.groups.filter(function (x) { return x.id === gid; })[0]; return g ? g.name : '?'; }
+  function toggle(list, id, on) { var i = list.indexOf(id); if (on && i === -1) list.push(id); if (!on && i !== -1) list.splice(i, 1); }
+  function clean() {
+    return JSON.parse(JSON.stringify(model, function (k, v) { return k.charAt(0) === '_' ? undefined : v; }));
+  }
+
+  /* ---------- the link to send ---------- */
+  function message(p) {
+    var link = A.linkFor(p.code);
+    return 'Hej ' + p.name + '! Her er dit personlige link til Wayside, en lydguide til bilture:\n\n' + link +
+      '\n\nÅbn linket på din telefon. Husk at slå lydløs fra og skrue op for lyden.\n' +
+      'Linket er personligt, så del det ikke videre. Virker det ikke, kan du skrive koden ' + A.prettyCode(p.code) + ' under Menu > Enter invitation code.';
+  }
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    else { var t = el('textarea'); t.value = text; document.body.appendChild(t); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { } document.body.removeChild(t); done(ok); }
+  }
+  function showQr(box, link) {
+    box.innerHTML = '';
+    function draw() { try { new window.QRCode(box, { text: link, width: 220, height: 220 }); } catch (e) { box.textContent = 'The QR code could not be made.'; } }
+    if (window.QRCode) { draw(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = draw; s.onerror = function () { box.textContent = 'The QR code could not be loaded. Check the internet connection.'; };
+    document.head.appendChild(s);
+  }
+  function linkBox(p) {
+    var box = el('div', 'linkbox');
+    if (p._new) {
+      box.appendChild(el('p', 'hint', 'Save first. The link works only after the person has been published.'));
+      return box;
+    }
+    var inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = A.linkFor(p.code); inp.setAttribute('aria-label', 'Link for ' + p.name);
+    box.appendChild(inp);
+    var row = el('div', 'row');
+    function b(label, fn) { var x = el('button', 'btn small', label); x.type = 'button'; x.addEventListener('click', fn); row.appendChild(x); return x; }
+    var copyBtn = b('Copy link', function () { copyText(inp.value, function (ok) { copyBtn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1800); }); });
+    if (navigator.share) b('Share…', function () { navigator.share({ title: 'Wayside', text: message(p) }).catch(function () { }); });
+    b('E-mail', function () { location.href = 'mailto:?subject=' + encodeURIComponent('Dit link til Wayside') + '&body=' + encodeURIComponent(message(p)); });
+    var qrBox = el('div', 'qrbox');
+    b('QR code', function () { if (qrBox.firstChild) { qrBox.innerHTML = ''; } else showQr(qrBox, inp.value); });
+    b('Code', function () { codeP.textContent = codeP.textContent ? '' : 'Code: ' + A.prettyCode(p.code); });
+    box.appendChild(row);
+    var codeP = el('p', 'hint'); codeP.style.margin = '8px 0 0'; box.appendChild(codeP);
+    box.appendChild(qrBox);
+    return box;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    // people
+    $('peopleCount').textContent = model.people.length;
+    var pbox = $('people'); pbox.innerHTML = '';
+    var invRoutes = inviteRoutes();
+    model.people.forEach(function (p) {
+      var card = el('div', 'person' + (p._new ? ' fresh' : ''));
+      var nr = el('div', 'namerow');
+      var name = el('input'); name.type = 'text'; name.value = p.name; name.setAttribute('aria-label', 'Name');
+      name.addEventListener('input', function () { p.name = name.value; mark(); });
+      var rm = el('button', 'btn small danger', 'Remove'); rm.type = 'button'; rm.addEventListener('click', function () { removePerson(p); });
+      nr.appendChild(name); nr.appendChild(rm); card.appendChild(nr);
+      if (model.groups.length) {
+        card.appendChild(el('p', 'sub', 'Groups'));
+        var gc = el('div', 'chips');
+        model.groups.forEach(function (g) {
+          var l = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = p.groups.indexOf(g.id) !== -1;
+          c.addEventListener('change', function () { toggle(p.groups, g.id, c.checked); mark(); render(); });
+          l.appendChild(c); l.appendChild(el('span', null, g.name)); gc.appendChild(l);
+        });
+        card.appendChild(gc);
+      }
+      if (invRoutes.length) {
+        card.appendChild(el('p', 'sub', 'Extra routes (besides the groups)'));
+        var rc = el('div', 'chips');
+        invRoutes.forEach(function (r) {
+          var l = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = p.routes.indexOf(r.rid) !== -1;
+          c.addEventListener('change', function () { toggle(p.routes, r.rid, c.checked); mark(); render(); });
+          l.appendChild(c); l.appendChild(el('span', null, r.navn)); rc.appendChild(l);
+        });
+        card.appendChild(rc);
+      }
+      var ids = A.routeIdsOf(model, p), names = invRoutes.filter(function (r) { return ids[r.rid]; }).map(function (r) { return r.navn; });
+      card.appendChild(el('p', 'summary-line', names.length ? 'Can open: ' + names.join(', ') : 'Cannot open any route yet.'));
+      card.appendChild(linkBox(p));
+      pbox.appendChild(card);
+    });
+    if (!model.people.length) pbox.appendChild(el('p', 'hint', 'No one yet. Add a name below.'));
+
+    // groups
+    $('groupCount').textContent = model.groups.length;
+    var gbox = $('groups'); gbox.innerHTML = '';
+    model.groups.forEach(function (g) {
+      var card = el('div', 'group');
+      var nr = el('div', 'namerow');
+      var name = el('input'); name.type = 'text'; name.value = g.name; name.setAttribute('aria-label', 'Group name');
+      name.addEventListener('input', function () { g.name = name.value; mark(); });
+      var rm = el('button', 'btn small danger', 'Delete'); rm.type = 'button'; rm.addEventListener('click', function () { removeGroup(g); });
+      nr.appendChild(name); nr.appendChild(rm); card.appendChild(nr);
+      var rc = el('div', 'chips');
+      if (!invRoutes.length) rc.appendChild(el('span', 'hint', 'There are no invite-only routes yet.'));
+      invRoutes.forEach(function (r) {
+        var l = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = g.routes.indexOf(r.rid) !== -1;
+        c.addEventListener('change', function () { toggle(g.routes, r.rid, c.checked); mark(); render(); });
+        l.appendChild(c); l.appendChild(el('span', null, r.navn)); rc.appendChild(l);
+      });
+      card.appendChild(rc);
+      var n = model.people.filter(function (p) { return p.groups.indexOf(g.id) !== -1; }).length;
+      card.appendChild(el('p', 'summary-line', n + (n === 1 ? ' person' : ' people') + ' in this group'));
+      gbox.appendChild(card);
+    });
+    if (!model.groups.length) gbox.appendChild(el('p', 'hint', 'No groups yet.'));
+
+    // routes
+    var rbox = $('routes'); rbox.innerHTML = '';
+    model.routes.forEach(function (r) {
+      var row = el('div', 'summary-line');
+      var pill = el('span', 'pill' + (r.access === 'invite' ? ' invite' : ''), r.access === 'invite' ? 'Invite only' : 'Draft');
+      row.appendChild(pill); row.appendChild(document.createTextNode('  ' + r.navn));
+      var who = model.people.filter(function (p) { return A.routeIdsOf(model, p)[r.rid]; }).length;
+      if (r.access === 'invite') row.appendChild(document.createTextNode('  \u00B7 ' + who + (who === 1 ? ' person' : ' people')));
+      rbox.appendChild(row);
+    });
+    if (!model.routes.length) rbox.appendChild(el('p', 'hint', 'No invite-only routes yet. Change a route to "Invite only" on the route list in Studio.'));
+  }
+
+  /* ---------- changes ---------- */
+  $('addPerson').addEventListener('click', function () {
+    var n = $('newPerson').value.trim(); if (!n) return;
+    model.people.push({ id: uid('p'), name: n, code: A.newCode(), groups: [], routes: [], created: new Date().toISOString().slice(0, 10), _new: true });
+    $('newPerson').value = ''; mark(); render();
+  });
+  $('addGroup').addEventListener('click', function () {
+    var n = $('newGroup').value.trim(); if (!n) return;
+    model.groups.push({ id: uid('g'), name: n, routes: [] });
+    $('newGroup').value = ''; mark(); render();
+  });
+  function removeGroup(g) {
+    if (!window.confirm('Delete the group "' + g.name + '"? The people in it lose the routes that came only from this group.')) return;
+    model.groups = model.groups.filter(function (x) { return x !== g; });
+    model.people.forEach(function (p) { toggle(p.groups, g.id, false); });
+    mark(); render();
+  }
+  function removePerson(p) {
+    if (!window.confirm('Remove ' + p.name + '?\n\nTheir link stops working a few minutes after you press Save and publish.')) return;
+    if (!p._new) {
+      var ids = A.routeIdsOf(model, p), rids = inviteRoutes().filter(function (r) { return ids[r.rid]; }).map(function (r) { return r.rid; });
+      if (rids.length && window.confirm('Give the ' + rids.length + (rids.length === 1 ? ' route' : ' routes') + ' that ' + p.name + ' could open a new secret file name?\n\nRecommended. Then the old file names stop working too. Everyone else keeps working without a new link.\n\nOK = yes, Cancel = no.')) {
+        rids.forEach(function (r) { rotate[r] = true; });
+      }
+    }
+    model.people = model.people.filter(function (x) { return x !== p; });
+    mark(); render();
+  }
+
+  /* ---------- save: personal files and renames into the public repository, then the private list ---------- */
+  $('saveBtn').addEventListener('click', function () {
+    if (!dirty || saving) return;
+    saving = true; updateBar(); say('Saving…');
+    A.loadAdmin().then(function (cur) {
+      if (cur.sha !== adminSha) throw new Error('The list was changed somewhere else (another window). Reload this page and make your changes again.');
+      return A.publishModel(model, { rotate: Object.keys(rotate), message: 'Studio: update who can see which routes' });
+    }).then(function () {
+      return A.saveAdmin(clean(), adminSha, 'Studio: update people');
+    }).then(function (sha) {
+      adminSha = sha || adminSha; rotate = {}; dirty = false;
+      model.people.forEach(function (p) { delete p._new; });
+      render(); say('Saved. The changes are online in about 1 to 2 minutes. Send the links after that.');
+    }).catch(function (e) { say('Not saved. ' + e.message, true); })
+      .then(function () { saving = false; updateBar(); });
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>

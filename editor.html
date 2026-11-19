@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b61c4">
+<meta name="robots" content="noindex, nofollow">
 <title>Wayside Studio – add stops to a route</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -232,6 +233,12 @@ details.tips li { margin-bottom: 4px; }
     <p class="hint">Free Gemini has a daily limit (about 10 stops per day for the best model, shown in your own AI Studio). A new voice remakes every stop, so it can take several days. The rest is made automatically every morning.</p>
     <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 2.</p>
 
+    <h3>People and invitations</h3>
+    <a class="tour" href="people.html" style="margin:8px 0 14px;">
+      <span><span class="t-title">People</span><span class="t-desc">Invite people to routes and remove them again</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+
     <h3>Pronunciation</h3>
     <a class="tour" href="udtale.html" style="margin-top:8px;">
       <span><span class="t-title">Pronunciation of words</span><span class="t-desc">For the Piper voice. Plain respellings also work with Gemini.</span></span>
@@ -264,6 +271,10 @@ details.tips li { margin-bottom: 4px; }
       <div id="existingList" class="tours"></div>
     </div>
 
+    <a class="tour" href="people.html" style="margin-bottom:10px;">
+      <span><span class="t-title">People</span><span class="t-desc">Invite people to routes and remove them again</span></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
     <a class="tour" href="udtale.html" id="udtaleCard" style="margin-bottom:14px;">
       <span><span class="t-title">Pronunciation</span><span class="t-desc" id="udtaleDesc">Listen to the versions of each word and choose the best</span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
@@ -321,8 +332,14 @@ details.tips li { margin-bottom: 4px; }
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
       <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 2.</p>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads, here and in Wayside (for files without a track)</span></label>
-      <label class="check"><input type="checkbox" id="visible" checked><span>Show this route in Wayside</span></label>
-      <p class="hint" style="margin-top:2px;">Untick to keep the route hidden until you are ready to release it. You can change it later from the route list.</p>
+      <label class="field"><span>Who can see this route</span>
+        <select id="access">
+          <option value="open">Everyone (open)</option>
+          <option value="invite">Invited people only</option>
+          <option value="draft">Nobody yet (draft)</option>
+        </select>
+      </label>
+      <p class="hint" id="accessHint" style="margin-top:2px;"></p>
       <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
@@ -367,6 +384,7 @@ details.tips li { margin-bottom: 4px; }
   </section>
 </main>
 
+<script src="access.js"></script>
 <script>
 (function () {
   'use strict';
@@ -379,7 +397,7 @@ details.tips li { margin-bottom: 4px; }
     tapAdd: $('tapAdd'), snap: $('snap'), keepOrder: $('keepOrder'), mapStatus: $('mapStatus'),
     stopList: $('stopList'), summary: $('summary'),
     fileName: $('fileName'), title: $('title'), desc: $('desc'), radius: $('radius'), radiusVal: $('radiusVal'),
-    adaptive: $('adaptive'), osrm: $('osrm'), visible: $('visible'), audioWarn: $('audioWarn'), showRadii: $('showRadii'),
+    adaptive: $('adaptive'), osrm: $('osrm'), access: $('access'), accessHint: $('accessHint'), audioWarn: $('audioWarn'), showRadii: $('showRadii'),
     dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
     deleteBox: $('deleteBox'), deleteBtn: $('deleteBtn'),
     publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
@@ -580,7 +598,10 @@ details.tips li { margin-bottom: 4px; }
     els.radius.value = opts.radius || 300;
     els.adaptive.checked = opts.adaptive !== false;
     els.osrm.checked = opts.osrm != null ? !!opts.osrm : track.length < 2;
-    els.visible.checked = opts.vis !== false;
+    currentSource = opts.source || 'new';
+    els.access.value = opts.access || (adminReady() ? 'invite' : 'open');
+    els.access.disabled = currentSource !== 'new';
+    updateAccessHint();
     els.snap.checked = track.length >= 2;
     els.keepOrder.checked = track.length >= 2;
     els.sourceName.textContent = opts.label || '';
@@ -634,7 +655,65 @@ details.tips li { margin-bottom: 4px; }
 
   // routes already published in Wayside
   var existing = [];
+  var currentSource = 'new';              // 'new' | 'list' (a route in ture.json) | 'admin' (an invite-only route or draft)
+  function adminReady() { return Access.cfg.adminReady(); }
+  function accessOf(t) { return t._access || (t.vis === false ? 'draft' : 'open'); }
+  function accessLabel(a) { return a === 'invite' ? 'Invite only' : a === 'draft' ? 'Draft' : 'Open'; }
+  function updateAccessHint() {
+    var a = els.access.value, h = '';
+    if (currentSource !== 'new') h = 'To change who can see an existing route, use the route list on the first screen.';
+    else if (a === 'invite') h = adminReady() ? 'The route gets a secret file name and is not in the public list. Give people access on the People page after publishing.' : 'Set up the list of people first (People page), then you can publish invite-only routes.';
+    else if (a === 'draft') h = 'Nobody sees the route yet.';
+    els.accessHint.textContent = h;
+  }
   var listLoaded = false;
+  function renderExisting() {
+    els.existingList.innerHTML = '';
+    existing.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tour';
+      var left = document.createElement('span');
+      var a = document.createElement('span'); a.className = 't-title'; a.textContent = t.navn || t.fil;
+      left.appendChild(a);
+      if (t.beskrivelse) { var d = document.createElement('span'); d.className = 't-desc'; d.textContent = t.beskrivelse; left.appendChild(d); }
+      b.appendChild(left);
+      b.addEventListener('click', function () {
+        busy('Opening ' + (t.navn || t.fil) + '…');
+        fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-store' })
+          .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
+          .then(function (txt) {
+            busy('Preparing the route on the map…');
+            return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
+              openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', access: accessOf(t), source: t._access ? 'admin' : 'list', label: t.fil });
+              setStart('');
+              idle();
+            });
+          })
+          .catch(function (e) { idle(); setStart('Could not open the route. ' + e.message, true); });
+      });
+      var row = document.createElement('div'); row.className = 'routecard';
+      row.appendChild(b);
+      var tools = document.createElement('div'); tools.className = 'routetools';
+      var lab = document.createElement('label'); lab.className = 'check';
+      var sel = document.createElement('select'); sel.className = 'accsel';
+      sel.setAttribute('aria-label', 'Who can see ' + (t.navn || t.fil));
+      [['open', 'Everyone (open)'], ['invite', 'Invited people only'], ['draft', 'Nobody yet (draft)']].forEach(function (o) { sel.appendChild(new Option(o[1], o[0])); });
+      sel.value = accessOf(t);
+      sel.style.cssText = 'width:auto;min-height:40px;flex:1 1 170px;max-width:260px;';
+      lab.appendChild(sel);
+      var badge = document.createElement('span'); badge.className = 'badge' + (accessOf(t) === 'open' ? '' : ' off'); badge.textContent = accessLabel(accessOf(t));
+      sel.addEventListener('change', function () { changeAccess(t, sel, badge); });
+      var del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Delete';
+      del.setAttribute('aria-label', 'Delete route ' + (t.navn || t.fil));
+      del.addEventListener('click', function () { deleteRoute(t, row, false); });
+      tools.appendChild(lab); tools.appendChild(badge); tools.appendChild(del);
+      row.appendChild(tools);
+      els.existingList.appendChild(row);
+    });
+    if (existing.length) els.existingBox.classList.remove('hidden');
+    updateDeleteBox();
+  }
   function loadExisting() {
     if (!window.fetch) return;
     fetch('ture/ture.json', { cache: 'no-store' })
@@ -643,58 +722,57 @@ details.tips li { margin-bottom: 4px; }
         if (!Array.isArray(list)) return;
         listLoaded = true;
         existing = list.filter(function (t) { return t && t.fil && String(t.fil).indexOf('/') === -1 && String(t.fil).indexOf('..') === -1; });
-        existing.forEach(function (t) {
-          var b = document.createElement('button');
-          b.type = 'button'; b.className = 'tour';
-          var left = document.createElement('span');
-          var a = document.createElement('span'); a.className = 't-title'; a.textContent = t.navn || t.fil;
-          left.appendChild(a);
-          if (t.beskrivelse) { var d = document.createElement('span'); d.className = 't-desc'; d.textContent = t.beskrivelse; left.appendChild(d); }
-          b.appendChild(left);
-          b.addEventListener('click', function () {
-            busy('Opening ' + (t.navn || t.fil) + '…');
-            fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-store' })
-              .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
-              .then(function (txt) {
-                busy('Preparing the route on the map…');
-                return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
-                  openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', vis: t.vis, label: t.fil });
-                  setStart('');
-                  idle();
-                });
-              })
-              .catch(function (e) { idle(); setStart('Could not open the route. ' + e.message, true); });
-          });
-          var row = document.createElement('div'); row.className = 'routecard';
-          row.appendChild(b);
-          var tools = document.createElement('div'); tools.className = 'routetools';
-          var lab = document.createElement('label'); lab.className = 'check';
-          var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = t.vis !== false;
-          cb.setAttribute('aria-label', 'Show ' + (t.navn || t.fil) + ' in Wayside');
-          var sp = document.createElement('span'); sp.textContent = 'Show in Wayside';
-          lab.appendChild(cb); lab.appendChild(sp);
-          var badge = document.createElement('span'); badge.className = 'badge' + (cb.checked ? '' : ' off'); badge.textContent = cb.checked ? 'Visible' : 'Hidden';
-          cb.addEventListener('change', function () { setVisible(t, cb, badge); });
-          var del = document.createElement('button');
-          del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Delete';
-          del.setAttribute('aria-label', 'Delete route ' + (t.navn || t.fil));
-          del.addEventListener('click', function () { deleteRoute(t, row, false); });
-          tools.appendChild(lab); tools.appendChild(badge); tools.appendChild(del);
-          row.appendChild(tools);
-          els.existingList.appendChild(row);
-        });
-        if (existing.length) els.existingBox.classList.remove('hidden');
-        updateDeleteBox();
+        renderExisting();
+        if (!adminReady()) return;
+        return Access.hiddenRoutes().then(function (hidden) {                // invite-only routes and drafts, from the private list
+          existing = existing.concat(hidden.filter(function (h) { return !existing.some(function (t) { return t.fil === h.fil; }); }));
+          renderExisting();
+        }).catch(function (e) { setStart('The invite-only routes could not be loaded: ' + e.message, true); });
       })
       .catch(function () {});
   }
 
-  /* ---------- draft ---------- */
+  /* ---------- who can see a route: open / invited people only / nobody yet ---------- */
+  function changeAccess(t, sel, badge) {
+    var want = sel.value, was = accessOf(t);
+    var revert = function () { sel.value = was; };
+    if (want === was) return;
+    if (!gh.token || !gh.repo) { revert(); setStart('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true); return; }
+    var legacy = !adminReady() && (want === 'draft' || want === 'open') && !t._access;     // the old way: a flag in the public list
+    if (!legacy && !adminReady()) {
+      revert(); setStart('Set up the list of people first (People page in the menu). Then you can make routes invite-only.', true); return;
+    }
+    if (!legacy && was === 'open' && want !== 'open' && !window.confirm('Make "' + (t.navn || t.fil) + '" ' + (want === 'invite' ? 'invite-only' : 'a draft') + '?\n\nThe route and its audio get a secret file name, and the route leaves the public list. Anyone who already has the old address loses it.')) { revert(); return; }
+    sel.disabled = true; setStart('Saving…');
+    var job = legacy ? legacyAccess(t, want) : Access.setRouteAccess(t, want).then(function (rec) {
+      if (rec) { t.fil = rec.fil; t._access = rec.access; t._rid = rec.rid; } else { delete t._access; delete t._rid; }
+    });
+    job.then(function () {
+      if (want === 'open') { delete t.vis; delete t._access; } else if (legacy) t.vis = false;
+      badge.textContent = accessLabel(want); badge.className = 'badge' + (want === 'open' ? '' : ' off');
+      setStart('"' + (t.navn || t.fil) + '" is now ' + (want === 'open' ? 'open to everyone' : want === 'invite' ? 'invite only. Give people access on the People page.' : 'a draft that nobody sees.') + ' The change shows up in about 3 minutes.');
+      updateDeleteBox();
+    }).catch(function (e) { revert(); setStart('Not saved. ' + e.message, true); })
+      .then(function () { sel.disabled = false; });
+  }
+  function legacyAccess(t, want) {                    // without the private list: hide or show with a flag in ture.json
+    return withRetry(function () {
+      return ghGetFile('ture/ture.json').then(function (f) {
+        if (!f) throw new Error('The route list was not found.');
+        var list = JSON.parse(fromB64(f.content));
+        var e = list.filter(function (x) { return x && x.fil === t.fil; })[0];
+        if (!e) throw new Error('The route is not in the list.');
+        if (want === 'open') delete e.vis; else e.vis = false;
+        return ghPut('ture/ture.json', JSON.stringify(list, null, 2), 'Studio: ' + (want === 'open' ? 'show ' : 'hide ') + t.fil, f.sha);
+      });
+    });
+  }
+
   function saveDraft() {
     if (!rawXml) return;
     save('draft', JSON.stringify({
       rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
-      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, visible: els.visible.checked,
+      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, access: els.access.value, source: currentSource,
       snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig
     }));
   }
@@ -706,7 +784,7 @@ details.tips li { margin-bottom: 4px; }
       var doc = parseGpx(d.rawXml);
       rawXml = d.rawXml; track = readTrack(doc); trackSource = track.length > 1 ? 'file' : ''; stops = d.stops || []; selected = -1;
       els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || '';
-      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; els.visible.checked = d.visible !== false;
+      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; currentSource = d.source || 'new'; els.access.value = d.access || (d.visible === false ? 'draft' : (adminReady() ? 'invite' : 'open')); els.access.disabled = currentSource !== 'new'; updateAccessHint();
       els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
       initialSig = d.initialSig || signature();
       els.start.classList.add('hidden'); els.editor.classList.remove('hidden');
@@ -959,9 +1037,10 @@ details.tips li { margin-bottom: 4px; }
   function syncRadius() { els.radiusVal.textContent = els.radius.value + ' m'; }
   els.radius.addEventListener('input', function () { syncRadius(); saveDraft(); updateRadiusTexts(); });
   els.showRadii.addEventListener('change', function () { drawMap(false); });
+  els.access.addEventListener('change', function () { updateAccessHint(); saveDraft(); });
   ['title', 'desc'].forEach(function (k) { els[k].addEventListener('input', saveDraft); });
   els.fileName.addEventListener('input', function () { checkAudio(); saveDraft(); updateWarn(); updateDeleteBox(); });
-  ['adaptive', 'osrm', 'visible', 'snap', 'keepOrder'].forEach(function (k) {
+  ['adaptive', 'osrm', 'snap', 'keepOrder'].forEach(function (k) {
     els[k].addEventListener('change', function () {
       if (k === 'keepOrder') { sortStops(); renderAll(false); schedulePreview(); }
       if (k === 'osrm') schedulePreview(50);
@@ -1025,7 +1104,7 @@ details.tips li { margin-bottom: 4px; }
       adaptiv: els.adaptive.checked
     };
     if (els.osrm.checked) entry.rute = 'osrm';
-    if (!els.visible.checked) entry.vis = false;
+    if (els.access.value === 'draft' && (currentSource === 'list' || !adminReady())) entry.vis = false;      // an old-style hidden route (no private list)
     return entry;
   }
   function mergeEntry(list, entry) {
@@ -1165,11 +1244,33 @@ details.tips li { margin-bottom: 4px; }
       els.ghBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    var access = els.access.value;
+    if (currentSource === 'new' && access === 'invite' && !adminReady()) {
+      dlMsg('To publish an invite-only route, set up the list of people first (People page). Or choose Everyone (open).', true);
+      return;
+    }
+    var secret = currentSource === 'admin' || (currentSource === 'new' && access !== 'open' && adminReady());
+    if (currentSource === 'new' && secret && !Access.splitBase(currentBase()).token) {
+      els.fileName.value = currentBase() + '-' + Access.random(8);        // a secret part in the file name
+    }
     var gpxText;
     try { gpxText = buildGpx(); } catch (e) { dlMsg(e.message, true); return; }
     var entry = buildEntry();
     els.publishBtn.disabled = true;
     dlMsg('Publishing…');
+    if (secret) {
+      Access.publishRoute(entry, gpxText, access)
+        .then(function () {
+          currentSource = 'admin'; els.access.disabled = true; updateAccessHint(); saveDraft(); updateWarn();
+          return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
+        })
+        .then(function () {
+          dlMsg('Published as ' + (access === 'invite' ? 'invite only. Give people access on the People page (menu), then send them their links.' : 'a draft that nobody sees yet.') + ' Wayside is updated in a few minutes. Progress: https://github.com/' + gh.repo + '/actions');
+        })
+        .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
+        .then(function () { els.publishBtn.disabled = false; });
+      return;
+    }
     putFile('ture/' + entry.fil, gpxText, 'Studio: ' + entry.fil)
       .then(function () { dlMsg('Route file saved. Updating the route list…'); return updateList(entry); })
       .then(function () {
@@ -1236,7 +1337,7 @@ details.tips li { margin-bottom: 4px; }
     }
     if (!window.confirm('Delete the route "' + (t.navn || fil) + '" from Wayside?\n\nThis removes ' + fil + ', its audio files and its entry in the route list. You can restore it later from the history on GitHub.')) return;
     say('Deleting…');
-    withRetry(function () { return doDelete(base, fil); })
+    withRetry(function () { return t._access ? Access.deleteRoute(fil).then(function (n) { return n; }) : doDelete(base, fil); })
       .then(function (removed) {
         existing = existing.filter(function (x) { return x.fil !== fil; });
         if (rowEl && rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
@@ -1254,35 +1355,6 @@ details.tips li { margin-bottom: 4px; }
     var t = existing.filter(function (x) { return x.fil === f; })[0];
     if (t) deleteRoute(t, null, true);
   });
-
-  /* ---------- show or hide a route in Wayside ---------- */
-  function setVisible(t, cb, badge) {
-    var want = cb.checked;
-    var revert = function () { cb.checked = !want; };
-    if (!gh.token || !gh.repo) {
-      revert();
-      setStart('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true);
-      return;
-    }
-    cb.disabled = true;
-    setStart('Saving…');
-    withRetry(function () {
-      return ghGetFile('ture/ture.json').then(function (f) {
-        if (!f) throw new Error('The route list was not found.');
-        var list = JSON.parse(fromB64(f.content));
-        var e = list.filter(function (x) { return x && x.fil === t.fil; })[0];
-        if (!e) throw new Error('The route is not in the list.');
-        if (want) delete e.vis; else e.vis = false;
-        return ghPut('ture/ture.json', JSON.stringify(list, null, 2), 'Studio: ' + (want ? 'show ' : 'hide ') + t.fil + ' in Wayside', f.sha);
-      });
-    }).then(function () {
-      if (want) delete t.vis; else t.vis = false;
-      badge.textContent = want ? 'Visible' : 'Hidden';
-      badge.className = 'badge' + (want ? '' : ' off');
-      setStart('"' + (t.navn || t.fil) + '" is now ' + (want ? 'visible' : 'hidden') + ' in Wayside. The change shows up after about 3 minutes.');
-    }).catch(function (e) { revert(); setStart('Not saved. ' + e.message, true); })
-      .then(function () { cb.disabled = false; });
-  }
 
   function loadUdtaleCount() {
     if (!window.fetch) return;
