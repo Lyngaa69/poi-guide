@@ -1,25 +1,34 @@
 {
   "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
-    "d0a8f557",
+    "4540459a",
     "08e2f2d5",
-    "d6bd7286",
-    "47d92b3d",
-    "73253288"
+    "13975712",
+    "c676627d",
+    "ee5a1140",
+    "ce579354",
+    "4c9e314c",
+    "fc265a4f"
   ],
   "spoken": [
-    "d3eaba9e",
+    "4b654548",
     "075df820",
-    "ea04785b",
-    "c86ef39d",
-    "ceec2f04"
+    "8295d5e6",
+    "41ee4e98",
+    "",
+    "",
+    "",
+    ""
   ],
   "engines": [
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "gemini:gemini-3.8-flash-tts:Gacrux"
+    "",
+    "",
+    "",
+    ""
   ],
   "failed": []
 }
