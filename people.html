@@ -296,13 +296,58 @@ details.tips li { margin-bottom: 4px; }
     s.onload = draw; s.onerror = function () { box.textContent = 'The QR code could not be loaded. Check the internet connection.'; };
     document.head.appendChild(s);
   }
+  /* Is the person's file on the site yet? (Publishing takes 1 to 3 minutes. A link sent too early gives no routes.) */
+  var live = {}, boxes = {}, tries = {}, timers = {};
+  function checkLive(p, auto) {
+    var code = p.code;
+    if (live[code] !== 'live' && live[code] !== 'forced') live[code] = 'checking';
+    refreshBox(code);
+    return fetch('ture/u-' + code + '.json?x=' + A.random(6), { cache: 'no-store' })
+      .then(function (r) { live[code] = r.ok ? 'live' : 'waiting'; })
+      .catch(function () { live[code] = 'waiting'; })
+      .then(function () {
+        refreshBox(code);
+        clearTimeout(timers[code]);
+        if (live[code] === 'waiting') {
+          tries[code] = (auto ? (tries[code] || 0) : 0) + 1;
+          if (tries[code] < 40) timers[code] = setTimeout(function () { if (live[code] === 'waiting') checkLive(p, true); }, 15000);
+        }
+      });
+  }
+  function startChecks() {
+    model.people.forEach(function (p) { if (!p._new && !live[p.code]) checkLive(p, false); });
+  }
+  function refreshBox(code) {
+    var p = model && model.people.filter(function (x) { return x.code === code; })[0];
+    if (p && boxes[code] && boxes[code].parentNode) fillBox(boxes[code], p);
+  }
   function linkBox(p) {
     var box = el('div', 'linkbox');
-    if (p._new) {
+    boxes[p.code] = box;
+    fillBox(box, p);
+    return box;
+  }
+  function fillBox(box, p) {
+    box.innerHTML = '';
+    var state = p._new ? 'new' : (live[p.code] || 'checking');
+    if (state === 'new') {
       box.appendChild(el('p', 'hint', 'Save first. The link works only after the person has been published.'));
-      return box;
+      return;
+    }
+    if (state === 'checking') {
+      box.appendChild(el('p', 'hint', 'Checking whether the link is live…'));
+      return;
+    }
+    if (state === 'waiting') {
+      box.appendChild(el('p', 'hint', 'The link is not live yet. The site is updating, which usually takes 1 to 3 minutes. Do not send the link before it is live. Studio checks again by itself every 15 seconds.'));
+      var r0 = el('div', 'row');
+      var now = el('button', 'btn small', 'Check now'); now.type = 'button'; now.addEventListener('click', function () { checkLive(p, false); });
+      var force = el('button', 'btn small', 'Show the link anyway'); force.type = 'button'; force.addEventListener('click', function () { live[p.code] = 'forced'; fillBox(box, p); });
+      r0.appendChild(now); r0.appendChild(force); box.appendChild(r0);
+      return;
     }
     var inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = A.linkFor(p.code); inp.setAttribute('aria-label', 'Link for ' + p.name);
+    box.appendChild(el('p', 'hint', state === 'live' ? 'Live. The link is ready to send.' : 'Not confirmed live. The person may see no routes until the site has been updated.'));
     box.appendChild(inp);
     var row = el('div', 'row');
     function b(label, fn) { var x = el('button', 'btn small', label); x.type = 'button'; x.addEventListener('click', fn); row.appendChild(x); return x; }
@@ -311,11 +356,11 @@ details.tips li { margin-bottom: 4px; }
     b('E-mail', function () { location.href = 'mailto:?subject=' + encodeURIComponent('Dit link til Wayside') + '&body=' + encodeURIComponent(message(p)); });
     var qrBox = el('div', 'qrbox');
     b('QR code', function () { if (qrBox.firstChild) { qrBox.innerHTML = ''; } else showQr(qrBox, inp.value); });
+    var codeP = el('p', 'hint'); codeP.style.margin = '8px 0 0';
     b('Code', function () { codeP.textContent = codeP.textContent ? '' : 'Code: ' + A.prettyCode(p.code); });
     box.appendChild(row);
-    var codeP = el('p', 'hint'); codeP.style.margin = '8px 0 0'; box.appendChild(codeP);
+    box.appendChild(codeP);
     box.appendChild(qrBox);
-    return box;
   }
 
   /* ---------- render ---------- */
@@ -393,6 +438,7 @@ details.tips li { margin-bottom: 4px; }
       rbox.appendChild(row);
     });
     if (!model.routes.length) rbox.appendChild(el('p', 'hint', 'No invite-only routes yet. Change a route to "Invite only" on the route list in Studio.'));
+    startChecks();
   }
 
   /* ---------- changes ---------- */
@@ -435,7 +481,7 @@ details.tips li { margin-bottom: 4px; }
       return A.saveAdmin(clean(), adminSha, 'Studio: update people');
     }).then(function (sha) {
       adminSha = sha || adminSha; rotate = {}; dirty = false;
-      model.people.forEach(function (p) { delete p._new; });
+      model.people.forEach(function (p) { if (p._new) delete live[p.code]; delete p._new; });
       render(); say('Saved. The changes are online in about 1 to 2 minutes. Send the links after that.');
     }).catch(function (e) { say('Not saved. ' + e.message, true); })
       .then(function () { saving = false; updateBar(); });

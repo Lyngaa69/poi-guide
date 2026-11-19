@@ -387,6 +387,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside version 13 (19 Nov 2026)</p>
+
   </div>
 </aside>
 
@@ -775,16 +777,27 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function okRoute(t) {
     return t && t.fil && t.navn && String(t.fil).indexOf('..') === -1 && String(t.fil).indexOf('/') === -1;
   }
+  function pendingMap() { try { var m = JSON.parse(load('pending', '{}')); return m && typeof m === 'object' ? m : {}; } catch (e) { return {}; } }
+  function savePending(m) { save('pending', JSON.stringify(m)); }
+  var awaiting = {}, retryTimer = null, retryCount = 0;
   function fetchInvited() {
     var codes = inviteCodes();
     return Promise.all(codes.map(function (c) {
       return fetch('ture/u-' + c + '.json', { cache: 'no-store' })
         .then(function (r) {
-          if (r.status === 404) return { code: c, gone: true };
+          if (r.status === 404) {
+            // Worked before and is gone now: the invitation was withdrawn. Never worked: the site may not be updated yet (or the code is wrong).
+            var pend = pendingMap();
+            if (!pend[c]) { pend[c] = Date.now(); savePending(pend); }
+            var hadAccess = load('access.' + c, null) !== null;
+            if (hadAccess || Date.now() - pend[c] > 60 * 60 * 1000) return { code: c, gone: true };
+            return { code: c, pending: true };
+          }
           if (!r.ok) throw new Error('http ' + r.status);
           return r.json().then(function (j) {
             var routes = Array.isArray(j && j.routes) ? j.routes.filter(okRoute) : [];
             save('access.' + c, JSON.stringify(routes));
+            var pend = pendingMap(); if (pend[c]) { delete pend[c]; savePending(pend); }
             return { code: c, routes: routes };
           });
         })
@@ -812,6 +825,11 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var captured = captureInvite() || fresh || null;
     Promise.all([fetchOpen(), fetchInvited()]).then(function (res) {
       var open = res[0], invited = res[1], seen = {}, list = [], gone = [], total = 0;
+      var pending = invited.filter(function (i) { return i.pending; });
+      invited.forEach(function (i) {                           // an invitation that was waiting and has now arrived
+        if (i.pending) awaiting[i.code] = true;
+        else if (!i.gone && awaiting[i.code]) { captured = captured || i.code; delete awaiting[i.code]; }
+      });
       open.forEach(function (t) { if (!seen[t.fil]) { seen[t.fil] = 1; list.push(t); } });
       invited.forEach(function (inv) {
         if (inv.gone) { gone.push(inv.code); return; }
@@ -824,18 +842,26 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       });
       if (gone.length) {                                        // an invitation that has been withdrawn
         saveInvites(inviteCodes().filter(function (c) { return gone.indexOf(c) === -1; }));
-        gone.forEach(function (c) { try { localStorage.removeItem('wayside:access.' + c); } catch (e) { } });
+        var pm = pendingMap();
+        gone.forEach(function (c) { try { localStorage.removeItem('wayside:access.' + c); } catch (e) { } delete pm[c]; });
+        savePending(pm);
         inviteNotice = gone.length === 1 ? 'An invitation is no longer valid, so its routes have been removed.' : gone.length + ' invitations are no longer valid, so their routes have been removed.';
       }
       tours = list;
       var n = inviteCodes().length;
       els.inviteInfo.textContent = n ? n + (n === 1 ? ' invitation on this phone' : ' invitations on this phone') : 'Use the code from your invitation';
       els.inviteHint.classList.toggle('hidden', !!tours.length);
-      if (captured && !gone.length && invited.some(function (i) { return i.code === captured && !i.gone; })) {
+      if (pending.length) {
+        setLoadStatus('The invitation is not ready yet, or the code is wrong. Wayside tries again for a while. If you have just received the link, wait a minute.');
+        if (!retryTimer && retryCount < 30) {
+          retryTimer = setTimeout(function () { retryTimer = null; retryCount++; loadTours(); }, 20000);
+        }
+      } else { retryCount = 0; }
+      if (captured && !pending.length && !gone.length && invited.some(function (i) { return i.code === captured && !i.gone; })) {
         setLoadStatus(total ? 'Invitation accepted. ' + total + (total === 1 ? ' route was' : ' routes were') + ' added.' : 'Invitation accepted. You have no routes yet. They appear here when they are added.');
-      } else if (captured && invited.some(function (i) { return i.code === captured && i.gone; })) {
+      } else if (captured && !pending.length && invited.some(function (i) { return i.code === captured && i.gone; })) {
         setLoadStatus('That invitation code is not valid (any more). Check the code, or ask for a new link.', true);
-      } else if (inviteNotice) { setLoadStatus(inviteNotice, true); inviteNotice = ''; }
+      } else if (inviteNotice && !pending.length) { setLoadStatus(inviteNotice, true); inviteNotice = ''; }
       if (!tours.length) { showNoRoutes(); return; }
       els.openRoutes.classList.remove('hidden');
       els.menuRoutes.classList.remove('hidden');
@@ -843,6 +869,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       if (!els.routes.classList.contains('hidden')) renderTours();
     });
   }
+  window.addEventListener('hashchange', function () {
+    if (/(^|[#&])u=/.test(location.hash || '')) loadTours();
+  });
   function enterInviteCode() {
     var text = window.prompt('Paste your invitation link or type your invitation code:');
     if (text === null) return;
