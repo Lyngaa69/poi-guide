@@ -118,39 +118,76 @@
     if (a < 165) return 'sharp-' + side;
     return 'uturn';
   }
+  /* Two settings. "normal" finds clear corners. "more" also finds gentle forks (30 degrees and up) and tight bends, and is meant for routes
+     where "normal" misses turns; it gives more false turns on winding roads, which Studio lets you delete. */
+  var SENS = {
+    normal: { minA: 40, nms: 4, spread: 22, tierB: 55, conc: 20 },
+    more:   { minA: 30, nms: 4, spread: 35, tierB: 35, conc: 0 }
+  };
   function detectTurns(prep, opt) {
     opt = opt || {};
-    var minAngle = opt.minAngle || 40;
+    var P = SENS[opt.sensitivity] || SENS.normal;
+    if (opt.minAngle) P = { minA: opt.minAngle, nms: P.nms, spread: P.spread, tierB: P.tierB, conc: P.conc };
     if (!prep || prep.pts.length < 3 || prep.total < 120) return [];
     var R = resample(prep), n = R.x.length;
     if (n < 16) return [];
-    var T = [];                                           // heading change over 50 m around each sample
-    for (var i = 0; i < n; i++) {
-      if (i < 3 || i > n - 4) { T.push(0); continue; }
-      T.push(angDiff(hdg(R, i - 3, i), hdg(R, i, i + 3)));
-    }
-    var cand = [];
-    for (var j = 4; j < n - 4; j++) {
+    var T = [];                                           // heading change over 60 m around each sample
+    for (var i = 0; i < n; i++) T.push(i < 3 || i > n - 4 ? 0 : angDiff(hdg(R, i - 3, i), hdg(R, i, i + 3)));
+    var ev = [];
+    for (var j = 4; j <= n - 5; j++) {
       var v = Math.abs(T[j]);
-      if (v < minAngle) continue;
+      if (v < P.minA) continue;
       var peak = true;
-      for (var k = Math.max(0, j - 6); k <= Math.min(n - 1, j + 6); k++) {
+      for (var k = Math.max(0, j - P.nms); k <= Math.min(n - 1, j + P.nms); k++) {
         if (k !== j && (Math.abs(T[k]) > v || (Math.abs(T[k]) === v && k < j))) { peak = false; break; }
       }
-      if (peak) cand.push(j);
+      if (!peak) continue;
+      // Is the road straight before and after (a junction on a plain road)? Where the track is too short to look 100 m ahead, that side is not judged.
+      var pre = j - 14 >= 0 ? Math.abs(angDiff(hdg(R, j - 14, j - 9), hdg(R, j - 9, j - 4))) : 0;
+      var post = j + 14 <= n - 1 ? Math.abs(angDiff(hdg(R, j + 4, j + 9), hdg(R, j + 9, j + 14))) : 0;
+      var iso = pre <= P.spread && post <= P.spread;
+      var conc = 0;                                       // the sharpest change in a single 10 m step: a corner has one, a bend does not
+      for (var q = Math.max(1, j - 2); q <= Math.min(n - 2, j + 2); q++) conc = Math.max(conc, Math.abs(angDiff(hdg(R, q - 1, q), hdg(R, q, q + 1))));
+      // Not straight around it (town streets, a bend right after a junction): it still counts if it is a clear, sharp corner.
+      if (!(iso || (v >= P.tierB && conc >= P.conc))) continue;
+      var ang = iso ? angDiff(hdg(R, Math.max(0, j - 9), j - 3), hdg(R, j + 3, Math.min(n - 1, j + 9))) : T[j];
+      ev.push({ j: j, ang: ang });
     }
+    // A long, tight curve (a radius under about 60 m for 150 degrees or more, within 300 m) is a roundabout or a ramp loop, even when the track is smooth
+    // and has no sharp corner. It replaces the single turns found inside it.
+    var D = [];
+    for (var m = 0; m < n; m++) D.push(m < 1 || m > n - 2 ? 0 : angDiff(hdg(R, m - 1, m), hdg(R, m, m + 1)));
+    var loops = [];
+    for (var a = 1; a < n - 1;) {
+      if (Math.abs(D[a]) < 6) { a++; continue; }
+      var dirPos = D[a] > 0, b = a, tot = 0, gap = 0, last = a;
+      while (b < n - 1 && gap <= 1 && (D[b] > 0) === dirPos) {
+        if (Math.abs(D[b]) >= 6) { tot += D[b]; last = b; gap = 0; } else { tot += D[b]; gap++; }
+        b++;
+      }
+      if (Math.abs(tot) >= 150 && (last - a) * STEP <= 300 && Math.abs(tot) / Math.max(1, (last - a)) >= 6) loops.push({ from: a, to: last, ang: tot });
+      a = Math.max(b, a + 1);
+    }
+    ev = ev.filter(function (x) { return !loops.some(function (L) { return x.j >= L.from - 5 && x.j <= L.to + 5; }); });
+    loops.forEach(function (L) { ev.push({ j: Math.round((L.from + L.to) / 2), ang: L.ang, loop: true }); });
+    ev.sort(function (x, y) { return x.j - y.j; });
+    // Same-direction turns close together that add up to a loop (a roundabout, a ramp) are one thing, not several.
     var turns = [];
-    cand.forEach(function (j) {
-      if (j < 14 || j > n - 15) return;                    // too close to the start or the end to say anything useful
-      var pre1 = hdg(R, j - 14, j - 9), pre2 = hdg(R, j - 9, j - 4);
-      var post1 = hdg(R, j + 4, j + 9), post2 = hdg(R, j + 9, j + 14);
-      if (Math.abs(angDiff(pre1, pre2)) > 22 || Math.abs(angDiff(post1, post2)) > 22) return;   // a bend in a winding road, not a junction
-      var ang = angDiff(pre2, post1);
-      var type = classify(ang);
-      if (!type) return;
+    function add(j, ang, type, merged) {
+      var s = R.s[j];
+      if (s < 25 || s > prep.total - 60) return;           // nothing useful to say right at the start or at the end
       var lat = R.lat0 + R.y[j] / R.ky, lon = R.lon0 + R.x[j] / R.kx;
-      turns.push({ lat: lat, lon: lon, at: Math.round(R.s[j]), type: type, angle: Math.round(ang), auto: true });
-    });
+      var t = { lat: lat, lon: lon, at: Math.round(s), type: type || classify(ang), angle: Math.round(ang), auto: true };
+      if (merged) t.loop = merged;
+      if (t.type) turns.push(t);
+    }
+    for (var e = 0; e < ev.length;) {
+      if (ev[e].loop) { add(ev[e].j, ev[e].ang, Math.abs(ev[e].ang) >= 200 ? 'roundabout' : null, 1); e++; continue; }
+      var f = e, sum = ev[e].ang;
+      while (f + 1 < ev.length && !ev[f + 1].loop && (R.s[ev[f + 1].j] - R.s[ev[f].j]) <= 130 && (ev[f + 1].ang > 0) === (ev[e].ang > 0)) { f++; sum += ev[f].ang; }
+      if (f > e && Math.abs(sum) >= 250) { add(ev[Math.round((e + f) / 2)].j, sum, 'roundabout', f - e + 1); e = f + 1; }
+      else { add(ev[e].j, ev[e].ang, null, 0); e++; }
+    }
     return turns;
   }
 

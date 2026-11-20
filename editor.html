@@ -289,7 +289,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v18 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v19 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -357,6 +357,12 @@ details.tips li { margin-bottom: 4px; }
       <p class="hint" style="margin-top:0;">With directions switched on, Wayside shows an arrow and says &ldquo;In 300 metres, turn right&rdquo; along the route. The turns below are worked out from the shape of the track, because Wayside has no road map. Check them, and correct what is wrong. Wayside follows the route as planned and does not find another way.</p>
       <p class="status" id="turnSummary" role="status"></p>
       <div id="turnList"></div>
+      <label class="field"><span>How many turns to look for</span>
+        <select id="turnSens">
+          <option value="normal">Normal: clear corners</option>
+          <option value="more">More: also gentle forks and tight bends (use it if turns are missing, then delete the extra ones)</option>
+        </select>
+      </label>
       <div class="row" style="margin-top:12px;">
         <button class="btn small" id="turnAdd" type="button">Add a turn</button>
         <button class="btn small" id="turnReset" type="button">Calculate again</button>
@@ -458,7 +464,7 @@ details.tips li { margin-bottom: 4px; }
   var trackSource = '';       // 'file' = track from the GPX, 'osrm' = calculated preview
   var previewTimer = null, previewToken = 0;
   var Nav = window.WaysideNav || null;
-  var turns = [], turnsEdited = false, selTurn = -1, addingTurn = false, navPrep = null, osrmRoute = null;
+  var turns = [], turnsEdited = false, selTurn = -1, addingTurn = false, navPrep = null, osrmRoute = null, turnSensWas = 'normal';
 
   /* ---------- helpers ---------- */
   function setStart(msg, bad) { els.startStatus.className = 'status' + (bad ? ' bad' : ''); els.startStatus.textContent = msg || ''; }
@@ -637,6 +643,7 @@ details.tips li { margin-bottom: 4px; }
     stops = readStops(doc);
     stops.forEach(function (s) { var i = snapInfo(s.lat, s.lon); s.pos = i ? i.pos : 0; });
     selected = -1;
+    $('turnSens').value = 'normal'; turnSensWas = 'normal';
     initTurns(doc);
     opts = opts || {};
     els.fileName.value = slug(opts.base || 'my-route') || 'my-route';
@@ -831,7 +838,7 @@ details.tips li { margin-bottom: 4px; }
       rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
       radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, access: els.access.value, source: currentSource,
       snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig,
-      turns: turns, turnsEdited: turnsEdited
+      turns: turns, turnsEdited: turnsEdited, turnSens: $('turnSens').value
     }));
   }
   function resumeDraft() {
@@ -845,6 +852,7 @@ details.tips li { margin-bottom: 4px; }
       els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; currentSource = d.source || 'new'; els.access.value = d.access || (d.visible === false ? 'draft' : (adminReady() ? 'invite' : 'open')); els.access.disabled = currentSource !== 'new'; updateAccessHint();
       els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
       initialSig = d.initialSig || signature();
+      $('turnSens').value = d.turnSens === 'more' ? 'more' : 'normal'; turnSensWas = $('turnSens').value;
       rebuildPrep();
       if (navPrep && d.turnsEdited && Array.isArray(d.turns)) { turns = Nav.place(navPrep, d.turns); turnsEdited = true; selTurn = -1; }
       else initTurns(doc);
@@ -991,7 +999,7 @@ details.tips li { margin-bottom: 4px; }
     turnsEdited = false; selTurn = -1;
     if (!navPrep) { turns = []; return; }
     var raw = osrmRoute ? Nav.turnsFromOsrm(osrmRoute) : [];
-    if (!raw.length) raw = Nav.detectTurns(navPrep);
+    if (!raw.length) raw = Nav.detectTurns(navPrep, { sensitivity: $('turnSens').value });
     turns = Nav.place(navPrep, raw);
   }
   function initTurns(doc) {                            // a file that already has turns keeps them
@@ -1075,6 +1083,11 @@ details.tips li { margin-bottom: 4px; }
     addingTurn = !addingTurn;
     $('turnAdd').textContent = addingTurn ? 'Cancel' : 'Add a turn';
     $('turnAddHint').textContent = addingTurn ? 'Tap the map on the route line where the turn is.' : '';
+  });
+  $('turnSens').addEventListener('change', function () {
+    if (turnsEdited && !window.confirm('Calculate the turns again with this setting? Your changes to the turns will be thrown away.')) { $('turnSens').value = turnSensWas; return; }
+    turnSensWas = $('turnSens').value;
+    autoTurns(trackSource === 'osrm' ? osrmRoute : null); saveDraft(); renderTurns(); drawMap(false);
   });
   $('turnReset').addEventListener('click', function () {
     if (turnsEdited && !window.confirm('Throw away your changes to the turns and calculate them again?')) return;
