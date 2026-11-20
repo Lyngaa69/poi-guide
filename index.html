@@ -8,6 +8,11 @@
 <title>Wayside – audio guide for the road</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<!-- Vector map from OpenFreeMap (free, no key). MapLibre draws it inside Leaflet. If these scripts do not load, the page falls back to a plain OpenStreetMap map. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" integrity="sha384-uTttxo/aOKbdE5RlD/SPzSDoDmNvGlUYPjONi2MN/b7c9HPSvW07OIuyP7uL6jxK" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js" integrity="sha384-5+cfbwT0iiub6VsQAdn6yz16nr6sDiQoHx6tm4O8OVYXHYOxcffFmCJBL0dgdvGp" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js" integrity="sha384-tXYNKOHx4T02jMP7YYCtBxPIv1B5gaA5mcVPBzqMp6d7VzWzxJgI2aWF/nJLrQdS" crossorigin="anonymous"></script>
+<script src="nav.js"></script>
 <style>
 :root {
   --bg: #eef4fa;
@@ -267,6 +272,45 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 @media (prefers-reduced-motion: reduce) {
   #drawer, #scrim { transition: none; }
 }
+
+/* ---------- full-screen map (drive view) ---------- */
+body.driving { overflow: hidden; }
+#map.full { position: fixed; inset: 0; z-index: 55; width: 100%; height: 100%; border-radius: 0; border: 0; }
+#map.full .leaflet-bottom { margin-bottom: var(--bar-h, 170px); }
+#drive { position: fixed; inset: 0; z-index: 60; display: none; pointer-events: none; }
+#drive.on { display: block; }
+#drive > * { pointer-events: auto; }
+.navcard {
+  position: absolute; left: 10px; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 10px);
+  display: flex; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 16px;
+  background: var(--sign-grad); color: var(--sign-text); border: 3px solid var(--sign-text);
+  box-shadow: 0 0 0 2px var(--sign), 0 6px 18px rgba(0, 0, 0, .35);
+}
+.navcard.off { background: #b3261e; box-shadow: 0 0 0 2px #b3261e, 0 6px 18px rgba(0, 0, 0, .35); }
+.navcard svg.arrow { width: 58px; height: 58px; flex: none; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.navcard svg.arrow text { fill: currentColor; stroke: none; font: 700 8px -apple-system, Arial, sans-serif; text-anchor: middle; }
+.navcard .nd { font-size: 2.1rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.navcard .nt { font-size: 1.1rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.navcard .nr { font-size: 0.9rem; opacity: .85; overflow-wrap: anywhere; }
+.drivebar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -4px 14px rgba(0, 0, 0, .25);
+}
+.drivebar .dn { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.drivebar .dname { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; min-width: 0; }
+.drivebar .ddist { font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.drivebar .dsub { color: var(--muted); font-size: 0.9rem; min-height: 1.3em; overflow-wrap: anywhere; }
+.drivebar .drow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.drivebar .drow .btn { min-height: 48px; padding: 6px 4px; font-size: 0.95rem; }
+.recenter {
+  position: absolute; left: 12px; bottom: calc(var(--bar-h, 170px) + 12px);
+  width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: var(--surface); border: 2px solid var(--line); color: var(--text); touch-action: manipulation;
+}
+.recenter svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; }
+.carwrap { width: 34px; height: 34px; }
+.carwrap svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
 </style>
 </head>
 <body>
@@ -366,6 +410,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 
     <div class="row">
       <button class="btn start" id="startBtn" type="button" aria-pressed="false">&#9654; Start guide</button>
+      <button class="btn" id="driveBtn" type="button">Full-screen map</button>
       <button class="btn" id="dimBtn" type="button" disabled>Dark screen</button>
     </div>
     <p class="status" id="status" role="status"></p>
@@ -385,6 +430,30 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   </section>
 </main>
 
+
+<div id="drive" aria-label="Map view">
+  <div class="navcard hidden" id="navCard" role="status" aria-live="polite">
+    <svg class="arrow" id="navArrow" viewBox="0 0 24 24" aria-hidden="true"></svg>
+    <div>
+      <div class="nd" id="navDist"></div>
+      <div class="nt" id="navText"></div>
+      <div class="nr" id="navRoad"></div>
+    </div>
+  </div>
+  <button class="recenter" id="recenterBtn" type="button" aria-label="Centre the map on my position">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>
+  </button>
+  <div class="drivebar" id="driveBar">
+    <div class="dn"><span class="dname" id="driveName">–</span><span class="ddist" id="driveDist"></span></div>
+    <div class="dsub" id="driveSub"></div>
+    <div class="drow">
+      <button class="btn" id="driveMenu" type="button">Menu</button>
+      <button class="btn" id="driveDetails" type="button">Details</button>
+      <button class="btn" id="driveDim" type="button">Dark</button>
+      <button class="btn stop" id="driveStop" type="button">Stop</button>
+    </div>
+  </div>
+</div>
 
 <div id="scrim"></div>
 
@@ -414,6 +483,17 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span>Map follows my position</span>
     </label>
 
+    <h3>Driving</h3>
+    <label class="check">
+      <input type="checkbox" id="navOn" checked>
+      <span>Turn-by-turn directions (voice and screen)</span>
+    </label>
+    <p class="hint" id="navInfo"></p>
+    <label class="check">
+      <input type="checkbox" id="fullMap" checked>
+      <span>Full-screen map while the guide runs</span>
+    </label>
+
     <h3>Tools</h3>
     <div class="row">
       <button class="btn small" id="simBtn" type="button" disabled>Simulate drive</button>
@@ -421,7 +501,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v17 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v18 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -456,7 +536,12 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     menuBtn: $('menuBtn'), closeBtn: $('closeBtn'), drawer: $('drawer'), scrim: $('scrim'),
     follow: $('follow'), simBtn: $('simBtn'), resetBtn: $('resetBtn'),
     simBanner: $('simBanner'), simText: $('simText'), simStop: $('simStop'),
-    dim: $('dim'), dimName: $('dimName'), dimDist: $('dimDist')
+    dim: $('dim'), dimName: $('dimName'), dimDist: $('dimDist'),
+    drive: $('drive'), driveBar: $('driveBar'), driveName: $('driveName'), driveDist: $('driveDist'), driveSub: $('driveSub'),
+    driveMenu: $('driveMenu'), driveDetails: $('driveDetails'), driveDim: $('driveDim'), driveStop: $('driveStop'),
+    driveBtn: $('driveBtn'), recenterBtn: $('recenterBtn'),
+    navCard: $('navCard'), navArrow: $('navArrow'), navDist: $('navDist'), navText: $('navText'), navRoad: $('navRoad'),
+    navOn: $('navOn'), navInfo: $('navInfo'), fullMap: $('fullMap')
   };
 
   var pois = [];
@@ -474,6 +559,11 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   var routeRadius = 250, routeAdaptive = true;      // from the route's own entry; nothing to set here
   var simTimer = null;
   var lmap = null, layer = null, fitPending = false;
+  var Nav = window.WaysideNav || null;      // nav.js: turns, position along the route, spoken words (if the file did not load, directions are simply off)
+  var prep = null, turns = [];              // the route as a prepared track, and its turns
+  var nav = null;                           // where the car is along the route (see resetNav)
+  var driveOn = false, mapKind = '', lastZoomAt = 0;
+  var playTok = 0, navPending = 0, currentStop = -1;
 
   /* ---------- audio files (optional per stop) ---------- */
   var SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
@@ -640,6 +730,23 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     }
     return [];
   }
+  function extractFull(doc) {       // the whole track (not thinned), for working out turns and position
+    var tags = ['trkpt', 'rtept'];
+    for (var t = 0; t < tags.length; t++) {
+      var nodes = doc.getElementsByTagName(tags[t]);
+      if (nodes.length > 1) {
+        var step = Math.max(1, Math.ceil(nodes.length / 20000)), pts = [];
+        for (var i = 0; i < nodes.length; i += step) {
+          var la = parseFloat(nodes[i].getAttribute('lat')), lo = parseFloat(nodes[i].getAttribute('lon'));
+          if (!isNaN(la) && !isNaN(lo)) pts.push([la, lo]);
+        }
+        var ln = nodes[nodes.length - 1], ll = parseFloat(ln.getAttribute('lat')), lg = parseFloat(ln.getAttribute('lon'));
+        if (!isNaN(ll) && !isNaN(lg)) pts.push([ll, lg]);
+        return pts;
+      }
+    }
+    return [];
+  }
   function stopRadiusFromFile(w) {
     for (var i = 0; i < w.children.length; i++) {
       if ((w.children[i].localName || '').toLowerCase() !== 'extensions') continue;
@@ -670,7 +777,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         lat: lat, lon: lon, read: false, dist: null
       });
     }
-    return { pois: list, track: extractTrack(doc) };
+    return { pois: list, track: extractTrack(doc), navTrack: extractFull(doc), turns: Nav ? Nav.turnsFromDoc(doc) : null };
   }
 
   function loadRoute(parsed, label, opts) {
@@ -689,6 +796,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     routeNote = '';
     lastPos = null;
     queue = [];
+    setupNav(parsed.navTrack || track, parsed.turns);
     fitPending = true;
     routeRadius = opts && Number(opts.radius) > 0 ? Number(opts.radius) : 250;
     routeAdaptive = !(opts && opts.adaptive === false);
@@ -709,6 +817,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function showHome() {
     stopGuide();
     pois = []; track = []; trackSource = ''; lastPos = null;
+    setupNav([], null);
     releaseAudio();
     show('home');
     els.simBtn.disabled = true;
@@ -737,6 +846,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   }
   function openRoutes() {
     if (!tours.length) return;
+    exitDrive();
     if (els.drawer.classList.contains('open')) closeMenu();
     els.routeSearch.value = '';
     renderTours();
@@ -1042,7 +1152,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     pump();
   }
   function pump() {
-    if (speaking || !queue.length) return;
+    if (speaking || navPending > 0 || !queue.length) return;
     var i = queue.shift();
     var p = pois[i];
     if (!p) return pump();
@@ -1054,13 +1164,16 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     }
     p.force = false;
     speaking = true;
+    currentStop = i;
+    var tok = ++playTok;
     p.read = true; p.skipped = false;
     renderList();
     updateNext();
     setStatus('Reading: ' + p.name + (queue.length ? ' (' + queue.length + ' more waiting)' : ''));
     var text = p.desc ? (p.name + '. ' + p.desc) : p.name;
     var after = function () {
-      speaking = false;
+      if (tok !== playTok) return;                               // this story was cut short by a turn instruction
+      speaking = false; currentStop = -1;
       if (running) setStatus('Guide running. Waiting for the next stop.');
       pump();
     };
@@ -1106,6 +1219,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       });
       prevFix = { lat: cur.lat, lon: cur.lon, t: now };
     }
+    navUpdate(c, good);
     updateNext();
     renderList();
     var parts = ['GPS ±' + Math.round(c.accuracy || 0) + ' m'];
@@ -1219,6 +1333,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.runText.textContent = 'Guide running. Waiting for GPS signal\u2026';
     els.runBanner.classList.remove('hidden');
     els.dimBtn.disabled = false;
+    if (els.fullMap.checked) enterDrive();
     say('Guide started.', 'Guiden er startet.');   // also unlocks speech on iPhone
     var wl = await requestWakeLock();
     setStatus(wl ? 'Guide running. The screen stays on.' :
@@ -1234,9 +1349,13 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     queue = [];
     speaking = false;
+    playTok++;
+    navPending = 0;
     stopAudio();
     running = false;
     prevFix = null;
+    resetNav();
+    exitDrive();
     setStartUi(false);
     els.runBanner.classList.add('hidden');
     els.dimBtn.disabled = true;
@@ -1276,6 +1395,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     els.simBtn.classList.add('active');
     els.simBtn.setAttribute('aria-pressed', 'true');
     closeMenu();
+    if (els.fullMap.checked) enterDrive();
     els.simText.textContent = 'Simulation running';
     els.simStop.textContent = 'Stop';
     els.simBanner.classList.remove('hidden');
@@ -1336,6 +1456,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   function setStatus(msg, bad) {
     els.status.className = 'status' + (bad ? ' bad' : '');
     els.status.textContent = msg || '';
+    els.driveSub.textContent = msg || '';
   }
   function nextIndex() {
     var best = -1;
@@ -1352,12 +1473,14 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       els.nextLbl.textContent = 'Finished';
       els.nextName.textContent = pois.length ? 'All stops have been read out' : '–';
       els.nextDist.textContent = '';
+      renderDrive();
       return;
     }
     var p = pois[i];
     els.nextLbl.textContent = running && p.dist != null ? 'Nearest stop' : 'First stop';
     els.nextName.textContent = p.name;
     els.nextDist.textContent = fmtDist(p.dist);
+    renderDrive();
   }
   function renderList() {
     var ni = nextIndex();
@@ -1379,7 +1502,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         stopAudio();
         unlockAudio();
-        queue = []; speaking = false;
+        queue = []; speaking = false; playTok++;
         p.force = true;
         enqueue(i);
       });
@@ -1389,18 +1512,225 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     drawMap();
   }
 
-  /* ---------- map (Leaflet + OpenStreetMap) ---------- */
+  /* ---------- directions (turn by turn) ----------
+     The route is a track. nav.js works out where on the track the car is, which turn comes next and what to say.
+     The route is followed as it was planned. There is no re-routing: if you leave it, Wayside says so and shows the way back. */
+  function resetNav() {
+    nav = { s: null, idx: 0, lost: true, off: false, offCount: 0, everOn: false, far: {}, near: {}, arrived: false, loc: null, remain: null };
+  }
+  function setupNav(pts, fileTurns) {
+    resetNav(); prep = null; turns = [];
+    if (Nav && pts && pts.length > 1) {
+      var pp = Nav.prepare(pts);
+      if (pp.pts.length > 1 && pp.total >= 100) {
+        prep = pp;
+        turns = Nav.place(prep, fileTurns ? fileTurns : Nav.detectTurns(prep));     // turns saved in the file (Studio) win over the automatic ones
+      }
+    }
+    updateNavInfo();
+    renderDrive();
+  }
+  function updateNavInfo() {
+    var t;
+    if (!pois.length) t = '';
+    else if (!Nav) t = 'Directions are off because the file nav.js did not load.';
+    else if (!prep) t = 'This route has no track, so it has no turn-by-turn directions.';
+    else t = turns.length ? turns.length + (turns.length === 1 ? ' turn' : ' turns') + ' on this route.' : 'No turns found on this route.';
+    els.navInfo.textContent = t;
+  }
+  function navShown() { return !!(Nav && prep && els.navOn.checked && running); }
+  function navSpeak(text, interrupt) {
+    if (!('speechSynthesis' in window)) return;
+    var resume = -1, done = false;
+    navPending++;
+    if (interrupt && speaking) {                    // a story is being read: cut it, say the turn, then read the story again from its start
+      resume = currentStop;
+      playTok++; speaking = false; currentStop = -1;
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+      stopAudio();
+    }
+    function finish() {
+      if (done) return; done = true;
+      navPending = Math.max(0, navPending - 1);
+      if (resume > -1 && pois[resume] && running) { pois[resume].read = false; if (queue.indexOf(resume) === -1) queue.unshift(resume); }
+      pump();
+    }
+    var v = currentVoice(), u = new SpeechSynthesisUtterance(text);
+    u.lang = (v && v.lang) || 'da-DK'; if (v) u.voice = v; u.rate = 1;
+    u.onend = finish; u.onerror = finish;
+    setTimeout(finish, Math.max(6000, text.length * 130));
+    window.speechSynthesis.speak(u);
+  }
+  function navUpdate(c, good) {
+    if (!Nav || !prep || !good || !nav) return;
+    var da = voiceIsDanish();
+    var speed = c.speed != null && c.speed >= 0 ? c.speed : null, acc = c.accuracy || 0;
+    var loc = Nav.locate(prep, c.latitude, c.longitude, nav.lost ? null : nav.s, { ahead: Math.max(2500, (speed || 15) * 60) });
+    if (!loc) return;
+    nav.loc = loc;
+    var limit = Math.max(60, acc * 1.5 + 30);
+    if (loc.off > limit) {
+      nav.offCount++;
+      if (nav.offCount >= 3 && !nav.off) {
+        nav.off = true; nav.lost = true;
+        if (nav.everOn && navShown()) navSpeak(Nav.offRouteText(da), true);
+      }
+    } else {
+      nav.offCount = 0;
+      if (nav.off || nav.s == null) {              // the first time on the route, or back on it
+        var back = nav.off && nav.everOn;
+        nav.s = loc.s; nav.off = false; nav.lost = false; nav.everOn = true;
+        nav.idx = 0; while (nav.idx < turns.length && turns[nav.idx].at < nav.s - 25) nav.idx++;
+        nav.far = {}; nav.near = {};
+        if (back && navShown()) navSpeak(Nav.backOnText(da), false);
+      } else if (loc.s > nav.s) nav.s = loc.s;
+    }
+    if (!nav.off && nav.s != null) {
+      while (nav.idx < turns.length && turns[nav.idx].at < nav.s - 25) nav.idx++;
+      nav.remain = prep.total - nav.s;
+      var t = turns[nav.idx];
+      if (navShown() && t) {
+        var lead = Nav.lead(speed), dd = t.at - nav.s;
+        if (dd <= lead.near && !nav.near[nav.idx]) {                 // the last call: always, even over a story
+          nav.near[nav.idx] = 1; nav.far[nav.idx] = 1;
+          navSpeak(Nav.say(t, 'near', dd, da), true);
+        } else if (dd <= lead.far && dd > lead.near + 40 && !nav.far[nav.idx] && !speaking && navPending === 0) {   // the first call waits for a story to end
+          nav.far[nav.idx] = 1;
+          navSpeak(Nav.say(t, 'far', dd, da), false);
+        }
+      }
+      if (navShown() && nav.remain < 40 && !nav.arrived && prep.total > 300) { nav.arrived = true; navSpeak(Nav.arrivedText(da), false); }
+    }
+    renderDrive();
+  }
+  function navNext() { return navShown() && nav && !nav.off && nav.s != null && turns[nav.idx] ? { turn: turns[nav.idx], d: turns[nav.idx].at - nav.s } : null; }
+  function arrowSvg(type, exit, deg) {
+    var rot = { right: 90, 'slight-right': 45, 'sharp-right': 135, 'fork-right': 30, left: -90, 'slight-left': -45, 'sharp-left': -135, 'fork-left': -30, straight: 0 };
+    if (type === 'uturn') return '<path d="M8 21V10a4 4 0 0 1 8 0v7M13 14l3 3 3-3"/>';
+    if (type === 'roundabout') return '<circle cx="12" cy="15" r="6"/><path d="M12 9V2M8.5 5.5L12 2l3.5 3.5"/>' + (exit ? '<text x="12" y="17.6">' + exit + '</text>' : '');
+    var r = deg != null ? deg : (rot[type] || 0);
+    return '<g transform="rotate(' + r + ' 12 12)"><path d="M12 21V4M5.5 10.5L12 4l6.5 6.5"/></g>';
+  }
+  function renderDrive() {
+    if (!driveOn) return;
+    var i = nextIndex(), p = i > -1 ? pois[i] : null;
+    els.driveName.textContent = p ? p.name : (pois.length ? 'All stops have been read out' : '–');
+    els.driveDist.textContent = p ? fmtDist(p.dist) : '';
+    els.driveStop.textContent = running ? 'Stop' : 'Start';
+    els.driveStop.classList.toggle('stop', running);
+    els.driveStop.classList.toggle('start', !running);
+    els.driveDim.disabled = !running;
+    var card = els.navCard, show = navShown() && nav && (nav.off || nav.s != null || nav.loc);
+    card.classList.toggle('hidden', !show);
+    if (!show) return;
+    card.classList.toggle('off', !!(nav.off || nav.s == null));
+    if (nav.off || nav.s == null) {                                   // away from the route: show the way back
+      var loc = nav.loc, deg = 0;
+      if (loc && lastPos) {
+        deg = Nav.bearing(lastPos.latitude, lastPos.longitude, loc.lat, loc.lon);
+        if (lastPos.heading != null && !isNaN(lastPos.heading) && (lastPos.speed || 0) > 1.5) deg -= lastPos.heading;
+      }
+      els.navArrow.innerHTML = arrowSvg('straight', null, deg);
+      els.navDist.textContent = loc ? fmtDist(loc.off) : '';
+      els.navText.textContent = nav.everOn ? 'You are off the route' : 'Head for the route';
+      els.navRoad.textContent = lastPos && lastPos.heading != null && (lastPos.speed || 0) > 1.5 ? 'The arrow points to the nearest part of the route' : 'The arrow points to the nearest part of the route (north is up)';
+      return;
+    }
+    var t = turns[nav.idx];
+    if (t) {
+      els.navArrow.innerHTML = arrowSvg(t.type, t.exit);
+      els.navDist.textContent = fmtDist(t.at - nav.s);
+      els.navText.textContent = (Nav.LABEL[t.type] || 'Continue') + (t.type === 'roundabout' && t.exit ? ', exit ' + t.exit : '');
+      els.navRoad.textContent = (t.name ? t.name + ' · ' : '') + fmtDist(nav.remain) + ' to the end';
+    } else {
+      els.navArrow.innerHTML = arrowSvg('straight');
+      els.navDist.textContent = fmtDist(nav.remain);
+      els.navText.textContent = 'Follow the route to the end';
+      els.navRoad.textContent = '';
+    }
+  }
+
+  /* ---------- full-screen map ---------- */
+  function refit() {
+    setTimeout(function () { if (lmap) { try { lmap.invalidateSize(); } catch (e) { } } drawMap(); }, 60);
+  }
+  function enterDrive() {
+    if (driveOn || !pois.length) return;
+    driveOn = true; lastZoomAt = 0;
+    els.drive.classList.add('on'); els.map.classList.add('full'); document.body.classList.add('driving');
+    var h = els.driveBar.offsetHeight;
+    if (h > 0) document.documentElement.style.setProperty('--bar-h', h + 'px');
+    renderDrive();
+    refit();
+  }
+  function exitDrive() {
+    if (!driveOn) return;
+    driveOn = false;
+    els.drive.classList.remove('on'); els.map.classList.remove('full'); document.body.classList.remove('driving');
+    refit();
+  }
+  els.driveBtn.addEventListener('click', function () { if (driveOn) exitDrive(); else enterDrive(); });
+  els.driveDetails.addEventListener('click', exitDrive);
+  els.driveMenu.addEventListener('click', openMenu);
+  els.driveDim.addEventListener('click', function () { if (running) showDim(); });
+  els.driveStop.addEventListener('click', function () {
+    if (running) { stopGuide(); setStatus('Guide stopped.'); } else startGuide();
+  });
+  els.recenterBtn.addEventListener('click', function () {
+    els.follow.checked = true; save('follow', true); lastZoomAt = 0;
+    if (lastPos && lmap) followCar(); else drawMap();
+  });
+
+  /* ---------- map (Leaflet; OpenFreeMap vector map, OpenStreetMap as backup) ---------- */
+  var MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+  var MAP_CREDIT = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+  function webglOk() {
+    try {
+      if (!(window.maplibregl && window.L && L.maplibreGL)) return false;
+      var c = document.createElement('canvas');
+      return !!(c.getContext && (c.getContext('webgl2') || c.getContext('webgl')));
+    } catch (e) { return false; }
+  }
+  function addRasterMap() {                                    // the backup map: used only if the vector map cannot start or does not load
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(lmap);
+    mapKind = 'osm';
+  }
+  function watchVectorMap(vec) {
+    var gl = vec.getMaplibreMap ? vec.getMaplibreMap() : null, loaded = false;
+    if (gl && gl.on) gl.on('load', function () { loaded = true; });
+    setTimeout(function () {
+      if (loaded || mapKind !== 'openfreemap' || !lmap) return;
+      try { lmap.removeLayer(vec); } catch (e) { }
+      addRasterMap();
+      drawMap();
+    }, 15000);
+  }
   function ensureMap() {
     if (lmap) return true;
     if (!window.L) return false;
-    lmap = L.map('map', { zoomControl: true });
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(lmap);
+    lmap = L.map('map', { zoomControl: false, maxZoom: 19 });
+    if (L.control && L.control.zoom) L.control.zoom({ position: 'bottomright' }).addTo(lmap);
+    var vec = null;
+    if (webglOk()) {
+      try {
+        vec = L.maplibreGL({ style: MAP_STYLE, attributionControl: { customAttribution: MAP_CREDIT } });
+        vec.addTo(lmap);
+        mapKind = 'openfreemap';
+        watchVectorMap(vec);
+      } catch (e) { try { if (vec) lmap.removeLayer(vec); } catch (e2) { } vec = null; }
+    }
+    if (!vec) addRasterMap();
     layer = L.layerGroup().addTo(lmap);
     lmap.setView([56, 10], 7);
     return true;
+  }
+  function followCar() {
+    var ll = [lastPos.latitude, lastPos.longitude];
+    if (driveOn) {                                             // zoom in when slow, out when fast
+      var v = lastPos.speed, want = v != null && v > 22 ? 14 : v != null && v > 12 ? 15 : 16, now = Date.now(), z = lmap.getZoom();
+      if (typeof z === 'number' && Math.abs(z - want) >= 1 && now - lastZoomAt > 20000) { lastZoomAt = now; lmap.setView(ll, want, { animate: true }); return; }
+    }
+    lmap.panTo(ll, { animate: true });
   }
   function drawMap() {
     if (!els.map || !pois.length) return;
@@ -1425,10 +1755,22 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         icon: L.divIcon({ className: '', html: '<div class="pin ' + cls + '">' + (i + 1) + '</div>', iconSize: [26, 26], iconAnchor: [13, 13] })
       }).addTo(layer);
     });
+    var nx = navNext();
+    if (nx) {
+      L.circleMarker([nx.turn.lat, nx.turn.lon], { radius: 9, color: '#fff', weight: 3, fillColor: '#d9480f', fillOpacity: 1 }).addTo(layer);
+    }
     if (lastPos) {
-      L.circleMarker([lastPos.latitude, lastPos.longitude], {
-        radius: 8, color: '#fff', weight: 3, fillColor: '#1b6fe0', fillOpacity: 1
-      }).addTo(layer);
+      if (lastPos.heading != null && !isNaN(lastPos.heading) && (lastPos.speed || 0) > 1.5) {       // moving: an arrow that points the way
+        L.marker([lastPos.latitude, lastPos.longitude], {
+          interactive: false, keyboard: false,
+          icon: L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17],
+            html: '<div class="carwrap" style="transform:rotate(' + Math.round(lastPos.heading) + 'deg)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 19-8-5-8 5z" fill="#1b6fe0" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div>' })
+        }).addTo(layer);
+      } else {
+        L.circleMarker([lastPos.latitude, lastPos.longitude], {
+          radius: 8, color: '#fff', weight: 3, fillColor: '#1b6fe0', fillOpacity: 1
+        }).addTo(layer);
+      }
     }
     lmap.invalidateSize();
     if (fitPending) {
@@ -1436,14 +1778,15 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       lmap.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
       fitPending = false;
     } else if (lastPos && running && els.follow.checked) {
-      lmap.panTo([lastPos.latitude, lastPos.longitude], { animate: true });
+      followCar();
     }
     els.routeBtn.classList.toggle('hidden', trackSource === 'file' || trackSource === 'osrm');
     var lineTxt = trackSource === 'file' ? 'The purple line follows the track in the GPX file. ' :
       trackSource === 'osrm' ? 'The purple line is a calculated driving route between the stops (OpenStreetMap data via OSRM), not necessarily the road you take. ' :
       'The dashed purple line is a straight line between the stops in file order, not the road. ';
     els.mapHint.textContent = lineTxt + routeNote +
-      ' The blue dot is your position and the dashed circle is the trigger radius around the next stop. Map: OpenStreetMap.';
+      ' The blue dot is your position and the dashed circle is the trigger radius around the next stop. ' +
+      (mapKind === 'openfreemap' ? 'Map: OpenFreeMap, with data from OpenStreetMap.' : 'Map: OpenStreetMap (backup map).');
   }
 
   /* ---------- driving route along roads (OSRM) ---------- */
@@ -1466,6 +1809,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
         track = pts;
         trackSource = 'osrm';
         routeNote = '';
+        setupNav(track, null);
         fitPending = true;
         els.routeBtn.disabled = false;
         els.routeBtn.textContent = 'Draw driving route along roads';
@@ -1494,6 +1838,10 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
 
   /* ---------- settings ---------- */
   els.follow.checked = load('follow', 'true') === 'true';
+  els.navOn.checked = load('nav', 'true') === 'true';
+  els.fullMap.checked = load('fullmap', 'true') === 'true';
+  els.navOn.addEventListener('change', function () { save('nav', els.navOn.checked); renderDrive(); drawMap(); });
+  els.fullMap.addEventListener('change', function () { save('fullmap', els.fullMap.checked); });
   els.prep.open = load('prepOpen', 'true') === 'true';
   els.prep.addEventListener('toggle', function () { save('prepOpen', els.prep.open); });
   els.follow.addEventListener('change', function () { save('follow', els.follow.checked); });
