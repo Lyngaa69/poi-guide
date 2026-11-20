@@ -74,7 +74,16 @@
 
 
 
-<wpt lat="56.177986" lon="9.513215"><name>Home</name><desc>Hjem kære hjem &lt;chuckle&gt; Ladelundsvej 5. Super sted</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+
+
+
+
+
+
+
+
+
+<wpt lat="56.177986" lon="9.513215"><name>Hjem</name><desc>Hjem kære hjem &lt;chuckle&gt; Ladelundsvej 5. Super sted</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.176193" lon="9.523652"><name>Nyt lyskryds</name><desc>Nyt lyskryds mellem Eidervej og Kjærsgårdsvej</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.181698" lon="9.586138"><name>Tunnelen</name><desc>&lt;scream&gt; Er det ikke bare totalt fedt at køre i tunnelen. Lyden og lyset er mega nice</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.145964" lon="9.807660"><name>Krejleren</name><desc>Den berømte hestehandler Låsby-Svendsen boede i Låsby som vi passerer syd om lige nu</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
