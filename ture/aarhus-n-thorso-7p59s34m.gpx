@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Kurviger" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:trp="http://www.garmin.com/xmlschemas/TripExtensions/v1">
+<?xml version="1.0" encoding="UTF-8"?><gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:trp="http://www.garmin.com/xmlschemas/TripExtensions/v1" version="1.1" creator="Kurviger" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd">
 	<metadata>
 		<name>Aarhus N - Thorsø</name>
 		<copyright author="OpenStreetMap contributors"/>
@@ -8,35 +7,21 @@
 		</link>
 		<time>2026-09-25T07:01:30.899Z</time>
 	</metadata>
-	<wpt lat="56.19405" lon="10.17875">
-		<name>Start: Aarhus Nord</name>
-		<desc>Turen går cirka 82 kilometer fra Aarhus Nord mod vest til Thorsø. Ruten er lagt i Kurviger til motorcykel.</desc>
-	</wpt>
-	<wpt lat="56.21552" lon="10.02387">
-		<name>Borum Eshøj</name>
-		<desc>Cirka 2,5 kilometer mod sydvest ligger Borum Eshøj, en stor gravhøj fra ældre bronzealder. I 1875 fandt man her tre egekister med velbevarede dragter. De er i dag udstillet på Moesgaard Museum.</desc>
-	</wpt>
-	<wpt lat="56.35585" lon="9.82706">
-		<name>Halvvejs</name>
-		<desc>Du har kørt cirka 41 kilometer og er omkring halvvejs.</desc>
-	</wpt>
-	<wpt lat="56.36912" lon="9.79096">
-		<name>Ulstrup Slot</name>
-		<desc>Cirka 3 kilometer mod nord ligger Ulstrup Slot ved Gudenåen. Det er en renæssanceborg, hvor byggeriet begyndte i 1581. Slottet er privat, men der er adgang til slotsgården, når der holdes arrangementer.</desc>
-	</wpt>
-	<wpt lat="56.37428" lon="9.65525">
-		<name>Bjerringbro</name>
-		<desc>Du kører forbi Bjerringbro ved Gudenåen. Gudenåen er Danmarks længste å, cirka 160 kilometer fra Tinnet til Randers Fjord. Byen er kendt som hjemsted for pumpeproducenten Grundfos.</desc>
-	</wpt>
-	<wpt lat="56.35656" lon="9.59476">
-		<name>Tangeværket og Tange Sø</name>
-		<desc>Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmuseum.</desc>
-	</wpt>
-	<wpt lat="56.29669" lon="9.78932">
-		<name>Slut: Thorsø</name>
-		<desc>Du er fremme ved Thorsø efter cirka 82 kilometer. Thorsø Kirke ligger cirka 500 meter mod nordøst.</desc>
-	</wpt>
-	<rte>
+	
+	
+	
+	
+	
+	
+	
+	<wpt lat="56.194050" lon="10.178750"><name>Start: Aarhus Nord</name><desc>Turen går cirka 82 kilometer fra Aarhus Nord mod vest til Thorsø. Ruten er lagt i Kurviger til motorcykel.</desc></wpt>
+<wpt lat="56.215520" lon="10.023870"><name>Borum Eshøj</name><desc>Cirka 2,5 kilometer mod sydvest ligger Borum Eshøj, en stor gravhøj fra ældre bronzealder. I 1875 fandt man her tre egekister med velbevarede dragter. De er i dag udstillet på Moesgaard Museum.</desc></wpt>
+<wpt lat="56.355850" lon="9.827060"><name>Halvvejs</name><desc>Du har kørt cirka 41 kilometer og er omkring halvvejs.</desc></wpt>
+<wpt lat="56.369120" lon="9.790960"><name>Ulstrup Slot</name><desc>Cirka 3 kilometer mod nord ligger Ulstrup Slot ved Gudenåen. Det er en renæssanceborg, hvor byggeriet begyndte i 1581. Slottet er privat, men der er adgang til slotsgården, når der holdes arrangementer.</desc></wpt>
+<wpt lat="56.374280" lon="9.655250"><name>Bjerringbro</name><desc>Du kører forbi Bjerringbro ved Gudenåen. Gudenåen er Danmarks længste å, cirka 160 kilometer fra Tinnet til Randers Fjord. Byen er kendt som hjemsted for pumpeproducenten Grundfos.</desc></wpt>
+<wpt lat="56.356560" lon="9.594760"><name>Tangeværket og Tange Sø</name><desc>Cirka 550 meter mod sydøst ligger Tangeværket, Danmarks største vandkraftværk, bygget i årene 1918 til 1921. Dæmningen er cirka 800 meter lang og skabte Tange Sø, Danmarks største kunstige sø. Ved værket ligger også Danmarks Elmuseum.</desc></wpt>
+<wpt lat="56.296690" lon="9.789320"><name>Slut: Thorsø</name><desc>Du er fremme ved Thorsø efter cirka 82 kilometer. Thorsø Kirke ligger cirka 500 meter mod nordøst.</desc></wpt>
+<rte>
 		<name>Aarhus N - Thorsø</name>
 		<extensions>
 			<trp:Trip>
@@ -4111,4 +4096,4 @@
 			</trkpt>
 		</trkseg>
 	</trk>
-</gpx>
+<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.198534" lon="10.176536" at="517" type="left"/><turn lat="56.199451" lon="10.165606" at="1290" type="left"/><turn lat="56.201441" lon="10.155298" at="2981" type="right"/><turn lat="56.207530" lon="10.154193" at="3689" type="left"/><turn lat="56.207892" lon="10.127202" at="5450" type="left"/><turn lat="56.193428" lon="10.116222" at="7255" type="right"/><turn lat="56.216379" lon="10.081971" at="10934" type="slight-left"/><turn lat="56.211817" lon="10.066027" at="12085" type="right"/><turn lat="56.215745" lon="10.036555" at="14760" type="slight-right"/><turn lat="56.215532" lon="10.023876" at="15548" type="right"/><turn lat="56.223965" lon="10.029388" at="16548" type="left"/><turn lat="56.231688" lon="10.006889" at="18320" type="right"/><turn lat="56.234070" lon="10.007049" at="18576" type="left"/><turn lat="56.254435" lon="9.967309" at="22045" type="slight-left"/><turn lat="56.263388" lon="9.911196" at="25819" type="left"/><turn lat="56.262189" lon="9.897949" at="26649" type="right"/><turn lat="56.283200" lon="9.903449" at="29148" type="left"/><turn lat="56.285302" lon="9.896754" at="29620" type="left"/><turn lat="56.284620" lon="9.895054" at="29748" type="right"/><turn lat="56.290318" lon="9.882090" at="30936" type="right"/><turn lat="56.299055" lon="9.870392" at="32167" type="slight-right"/><turn lat="56.337383" lon="9.870320" at="36456" type="left"/><turn lat="56.334772" lon="9.837250" at="38600" type="right"/><turn lat="56.369030" lon="9.817350" at="42918" type="right"/><turn lat="56.370538" lon="9.817353" at="43090" type="left"/><turn lat="56.367119" lon="9.729531" at="48999" type="right"/><turn lat="56.366834" lon="9.718301" at="49708" type="right"/><turn lat="56.371279" lon="9.659435" at="53934" type="right"/><turn lat="56.374268" lon="9.655180" at="54375" type="left"/><turn lat="56.360585" lon="9.595467" at="58487" type="slight-left"/><turn lat="56.351837" lon="9.587332" at="59652" type="slight-right"/><turn lat="56.321101" lon="9.570852" at="63377" type="slight-left"/><turn lat="56.313155" lon="9.585833" at="64698" type="right"/><turn lat="56.312202" lon="9.583776" at="64870" type="left"/><turn lat="56.308169" lon="9.591890" at="65549" type="left"/><turn lat="56.336941" lon="9.638659" at="70020" type="right"/><turn lat="56.325995" lon="9.660915" at="72530" type="right"/><turn lat="56.321248" lon="9.678224" at="73810" type="slight-right"/><turn lat="56.313923" lon="9.688725" at="74900" type="slight-left"/><turn lat="56.306091" lon="9.717088" at="76928" type="right"/><turn lat="56.304761" lon="9.716271" at="77072" type="left"/><turn lat="56.305546" lon="9.765155" at="80170" type="right"/></turns></extensions></gpx>
