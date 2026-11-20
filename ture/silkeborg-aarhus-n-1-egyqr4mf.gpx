@@ -56,6 +56,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 <wpt lat="56.177986" lon="9.513215"><name>Home</name><desc>Hjem kære hjem &lt;chuckle&gt; Ladelundsvej 5. Super sted</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.176193" lon="9.523652"><name>Nyt lyskryds</name><desc>Nyt lyskryds mellem Eidervej og Kjærsgårdsvej</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.181698" lon="9.586138"><name>Tunnelen</name><desc>&lt;scream&gt; Er det ikke bare totalt fedt at køre i tunnelen. Lyden og lyset er mega nice</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
@@ -1842,4 +1851,4 @@
 			</trkpt>
 		</trkseg>
 	</trk>
-</gpx>
+<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.175258" lon="9.517092" at="439" type="left"/><turn lat="56.176173" lon="9.523630" at="900" type="right"/><turn lat="56.174297" lon="9.526647" at="1190" type="left"/><turn lat="56.193025" lon="10.187048" at="51440" type="right"/><turn lat="56.191497" lon="10.181049" at="51835" type="right"/></turns></extensions></gpx>
