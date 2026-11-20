@@ -186,6 +186,13 @@ main {
 .lochelp p { margin: 8px 0 0; }
 .lochelp ol { margin: 8px 0 0; padding-left: 20px; }
 .lochelp li { margin: 6px 0; }
+.invitebox { margin: 12px 0; padding: 12px 14px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); line-height: 1.4; }
+.invitebox strong { display: block; font-size: 1.05rem; }
+.invitebox p { margin: 8px 0 0; }
+.invitebox input[type=text], .invrow input[type=text] { width: 100%; min-height: 46px; font-size: 16px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.invitebox .row { margin-top: 10px; }
+.invrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.invrow code { flex: 1 1 120px; font-size: 1rem; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
 #map {
@@ -284,7 +291,14 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Ready-made routes</span><span class="t-desc" id="routeCount"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
-    <p class="hint hidden" id="inviteHint">You do not have any routes yet. Open the invitation link you were sent, or enter your invitation code from the menu.</p>
+    <p class="hint hidden" id="inviteHint">Du har ingen ruter endnu. Åbn det invitationslink, du har fået, eller skriv din kode herunder.</p>
+    <div id="inviteBox" class="invitebox hidden">
+      <strong>Har du fået en invitation?</strong>
+      <p id="inviteStandalone" class="hidden">Du har åbnet Wayside fra hjemmeskærmen. Den har sit eget lager, så invitationen fra Safari følger ikke med. Skriv din kode her i stedet.</p>
+      <p>Indsæt dit invitationslink eller din kode:</p>
+      <input type="text" id="inviteInput" placeholder="Link eller kode" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Invitationslink eller kode">
+      <div class="row"><button class="btn sign" id="inviteAdd" type="button">Tilføj</button></div>
+    </div>
     <p class="status" id="loadStatus" role="status"></p>
   </section>
 
@@ -391,6 +405,8 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       <span><span class="t-title">Enter invitation code</span><span class="t-desc" id="inviteInfo"></span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
+    <div id="inviteList"></div>
+    <p class="hint hidden" id="inviteHome">Lægger du Wayside på hjemmeskærmen, har den sit eget lager, og invitationen følger ikke med. Kopiér din kode her, åbn Wayside fra hjemmeskærmen, og vælg Enter invitation code.</p>
 
     <h3>Map</h3>
     <label class="check">
@@ -405,7 +421,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside version 14 (19 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside version 15 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -430,6 +446,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     routeSearch: $('routeSearch'), noRoutes: $('noRoutes'), routesStatus: $('routesStatus'),
     menuRoutes: $('menuRoutes'), audioInfo: $('audioInfo'),
     menuInvite: $('menuInvite'), inviteInfo: $('inviteInfo'), inviteHint: $('inviteHint'),
+    inviteBox: $('inviteBox'), inviteStandalone: $('inviteStandalone'), inviteInput: $('inviteInput'), inviteAdd: $('inviteAdd'), inviteList: $('inviteList'), inviteHome: $('inviteHome'),
     backBtn: $('backBtn'), routeName: $('routeName'),
     nextLbl: $('nextLbl'), nextName: $('nextName'), nextDist: $('nextDist'), nextSub: $('nextSub'),
     startBtn: $('startBtn'), dimBtn: $('dimBtn'), status: $('status'),
@@ -765,7 +782,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     });
     els.noRoutes.classList.toggle('hidden', shown > 0);
   }
-  function showNoRoutes() { els.inviteHint.classList.remove('hidden'); }
+  function showNoRoutes() { els.inviteHint.classList.remove('hidden'); els.inviteBox.classList.remove('hidden'); }
 
   /* ---------- invitations: a personal file ture/u-<code>.json lists the routes a person may open ---------- */
   function normCode(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -789,7 +806,7 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
     var m = /(?:^|[#&])u=([^&]+)/.exec(location.hash || '');
     if (!m) return null;
     var code = normCode(decodeURIComponent(m[1]));
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }   // keep the code out of the address bar
+    // The code stays in the address bar on purpose: "Add to Home Screen" saves the address, so the home-screen app gets the code too.
     if (!isCode(code)) return null;
     addInvite(code);
     return code;
@@ -871,6 +888,9 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
       var n = inviteCodes().length;
       els.inviteInfo.textContent = n ? n + (n === 1 ? ' invitation on this phone' : ' invitations on this phone') : 'Use the code from your invitation';
       els.inviteHint.classList.toggle('hidden', !!tours.length);
+      els.inviteBox.classList.toggle('hidden', !!tours.length);
+      els.inviteStandalone.classList.toggle('hidden', !navigator.standalone);
+      renderInviteList();
       if (pending.length) {
         setLoadStatus('The invitation is not ready yet, or the code is wrong. Wayside tries again for a while. If you have just received the link, wait a minute.');
         if (!retryTimer && retryCount < 30) {
@@ -892,6 +912,36 @@ details.tips p { font-size: 0.92rem; color: var(--muted); margin: 8px 0 0; }
   window.addEventListener('hashchange', function () {
     if (/(^|[#&])u=/.test(location.hash || '')) loadTours();
   });
+  function copyToClipboard(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    else { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { } document.body.removeChild(t); done(ok); }
+  }
+  function prettyCode(c) { return c.length === 10 ? c.slice(0, 5) + '-' + c.slice(5) : c; }
+  function renderInviteList() {
+    var codes = inviteCodes(); els.inviteList.innerHTML = '';
+    els.inviteHome.classList.toggle('hidden', !codes.length || !!navigator.standalone);
+    codes.forEach(function (c) {
+      var row = document.createElement('div'); row.className = 'invrow';
+      var code = document.createElement('code'); code.textContent = prettyCode(c); row.appendChild(code);
+      function btn(label, text) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = label;
+        b.addEventListener('click', function () { copyToClipboard(text, function (ok) { b.textContent = ok ? 'Kopieret' : 'Kunne ikke kopiere'; setTimeout(function () { b.textContent = label; }, 1800); }); });
+        row.appendChild(b);
+      }
+      btn('Kopiér kode', prettyCode(c));
+      btn('Kopiér link', location.href.replace(/#.*$/, '') + '#u=' + c);
+      els.inviteList.appendChild(row);
+    });
+  }
+  function addFromInput() {
+    var code = codeFromText(els.inviteInput.value);
+    if (!isCode(code)) { setLoadStatus('Det ligner ikke en invitationskode. Tjek koden, eller indsæt hele linket.', true); return; }
+    els.inviteInput.value = '';
+    addInvite(code);
+    loadTours(code);
+  }
+  els.inviteAdd.addEventListener('click', addFromInput);
+  els.inviteInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') addFromInput(); });
   function enterInviteCode() {
     var text = window.prompt('Paste your invitation link or type your invitation code:');
     if (text === null) return;

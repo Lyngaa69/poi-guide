@@ -79,6 +79,10 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(60px + env(safe
 .dropzone strong { display: block; font-size: 1.05rem; }
 .dropzone span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
 a.tour { text-decoration: none; }
+.connline { margin: 6px 0; line-height: 1.35; }
+.connline::before { content: "\2022  "; color: var(--muted); }
+.connline.ok::before { content: "\2713  "; color: #12805c; font-weight: 700; }
+.connline.warn::before { content: "!  "; color: var(--warn); font-weight: 700; }
 .rdrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .rdrow > span { font-weight: 600; }
 .rdrow select { width: auto; min-height: 40px; flex: 1 1 170px; max-width: 280px; }
@@ -263,6 +267,23 @@ details.tips li { margin-bottom: 4px; }
 <main>
   <!-- Start -->
   <section id="start">
+    <div class="card" id="connCard">
+      <h2>Connection</h2>
+      <p class="connline" id="connGh"></p>
+      <p class="connline" id="connAdmin"></p>
+      <p class="connline" id="connRoutes"></p>
+      <details class="tips" id="connForm">
+        <summary>Connect this device</summary>
+        <p class="hint" style="margin-top:8px;">Do this once on every device or browser where you use Studio. The token is kept only in this browser. Do not send the token by mail or message.</p>
+        <label class="field"><span>Repository (owner/name)</span><input type="text" id="cRepo" autocomplete="off" autocapitalize="none" placeholder="owner/repository"></label>
+        <label class="field"><span>Token</span><input type="password" id="cToken" autocomplete="off" autocapitalize="none" placeholder="github_pat_…"></label>
+        <label class="field"><span>Private list of people (owner/name), if you use invitations</span><input type="text" id="cAdmin" autocomplete="off" autocapitalize="none" placeholder="owner/poi-guide-admin"></label>
+        <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
+        <p class="status" id="cMsg" role="status"></p>
+      </details>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio version 15 (20 Nov 2026)</p>
+    </div>
+
     <h1>Add stops to a route</h1>
     <p class="lede">Open a route, tap the map where a stop should be, write the text, and download the result. Plan the route itself in Kurviger or any other planner and export it as GPX.</p>
 
@@ -401,7 +422,9 @@ details.tips li { margin-bottom: 4px; }
     dlGpx: $('dlGpx'), dlJson: $('dlJson'), dlStatus: $('dlStatus'),
     deleteBox: $('deleteBox'), deleteBtn: $('deleteBtn'),
     publishBtn: $('publishBtn'), ghBox: $('ghBox'), ghState: $('ghState'), ghRepo: $('ghRepo'),
-    ghToken: $('ghToken'), ghSave: $('ghSave'), ghForget: $('ghForget'), ghMsg: $('ghMsg')
+    ghToken: $('ghToken'), ghSave: $('ghSave'), ghForget: $('ghForget'), ghMsg: $('ghMsg'),
+    connGh: $('connGh'), connAdmin: $('connAdmin'), connRoutes: $('connRoutes'), connForm: $('connForm'),
+    cRepo: $('cRepo'), cToken: $('cToken'), cAdmin: $('cAdmin'), cSave: $('cSave'), cMsg: $('cMsg')
   };
 
   var rawXml = '';
@@ -721,13 +744,14 @@ details.tips li { margin-bottom: 4px; }
       .then(function (list) {
         if (!Array.isArray(list)) return;
         listLoaded = true;
+        hiddenInfo = { state: adminReady() ? 'loading' : 'idle', msg: '' };
         existing = list.filter(function (t) { return t && t.fil && String(t.fil).indexOf('/') === -1 && String(t.fil).indexOf('..') === -1; });
-        renderExisting();
+        renderExisting(); renderConn();
         if (!adminReady()) return;
         return Access.hiddenRoutes().then(function (hidden) {                // invite-only routes and drafts, from the private list
           existing = existing.concat(hidden.filter(function (h) { return !existing.some(function (t) { return t.fil === h.fil; }); }));
-          renderExisting();
-        }).catch(function (e) { setStart('The invite-only routes could not be loaded: ' + e.message, true); });
+          hiddenInfo = { state: 'ok', msg: '' }; renderExisting(); renderConn();
+        }).catch(function (e) { hiddenInfo = { state: 'error', msg: e.message }; renderConn(); setStart('The invite-only routes could not be loaded: ' + e.message, true); });
       })
       .catch(function () {});
   }
@@ -1461,7 +1485,53 @@ details.tips li { margin-bottom: 4px; }
       .then(function () { $('vSave').disabled = false; });
   });
 
+  /* ---------- connection card: what is connected on this device ---------- */
+  var hiddenInfo = { state: 'idle', msg: '' };
+  function connLine(el, cls, text) { el.className = 'connline ' + cls; el.textContent = text; }
+  function renderConn() {
+    var connected = !!(gh.token && gh.repo), adminRepo = Access.cfg.adminRepo();
+    connLine(els.connGh, connected ? 'ok' : 'warn', connected ? 'GitHub: connected to ' + gh.repo + ' on this device.' : 'GitHub: not connected on this device. Connect it below to publish and to see all your routes.');
+    if (!adminRepo) connLine(els.connAdmin, 'warn', 'List of people: not set up on this device. Routes set to "Invited people only" or draft are not listed until it is (fill it in below, or open People).');
+    else if (!connected) connLine(els.connAdmin, 'warn', 'List of people (' + adminRepo + '): needs the token on this device.');
+    else if (hiddenInfo.state === 'loading') connLine(els.connAdmin, '', 'List of people (' + adminRepo + '): checking…');
+    else if (hiddenInfo.state === 'error') connLine(els.connAdmin, 'warn', 'List of people (' + adminRepo + '): ' + hiddenInfo.msg);
+    else connLine(els.connAdmin, 'ok', 'List of people: connected (' + adminRepo + ').');
+    var open = 0, invite = 0, draft = 0;
+    existing.forEach(function (t) { var a = accessOf(t); if (a === 'invite') invite++; else if (a === 'draft') draft++; else open++; });
+    var txt = 'Routes: ' + open + ' open, ' + invite + ' invite only, ' + draft + ' draft.';
+    if (!adminReady()) txt += ' Invite-only routes and drafts that are kept in the private list cannot be listed on this device.';
+    if (listLoaded && !existing.length) txt = 'No routes are shown. If all your routes are set to "Invited people only", connect this device to see them.';
+    connLine(els.connRoutes, (!adminReady() && !existing.length) ? 'warn' : '', txt);
+    els.connForm.open = els.connForm.open || !connected || !adminRepo;
+  }
+  els.cSave.addEventListener('click', function () {
+    var repo = els.cRepo.value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+    var admin = els.cAdmin.value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+    var token = els.cToken.value.trim() || gh.token;
+    var m = function (t, bad) { els.cMsg.className = 'status' + (bad ? ' bad' : ''); els.cMsg.textContent = t; };
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { m('Write the repository as owner/name, for example myname/poi-guide.', true); return; }
+    if (admin && !/^[\w.-]+\/[\w.-]+$/.test(admin)) { m('Write the private list as owner/name, or leave it empty.', true); return; }
+    if (!token) { m('Paste the token.', true); return; }
+    m('Checking…');
+    var oldRepo = gh.repo, oldToken = gh.token;
+    gh.repo = repo; gh.token = token;
+    ghJson('/repos/' + repo).then(function () {
+      save('ghRepo', repo); save('ghToken', token);
+      els.cToken.value = '';
+      Access.cfg.setAdminRepo(admin);
+      updateGhState();
+      if (!admin) return null;
+      return Access.checkAdmin(admin).then(function () { return null; }, function (e) { return e; });
+    }).then(function (adminErr) {
+      m(adminErr ? 'GitHub is connected, but the private list does not work yet: ' + adminErr.message : 'Connected.', !!adminErr);
+      loadExisting(); renderConn();
+    }).catch(function (e) { gh.repo = oldRepo; gh.token = oldToken; m(e.message, true); });
+  });
+
   loadGh();
+  els.cRepo.value = gh.repo || '';
+  els.cAdmin.value = Access.cfg.adminRepo() || (gh.repo ? gh.repo.split('/')[0] + '/poi-guide-admin' : '');
+  renderConn();
 
   loadExisting();
   loadUdtaleCount();
