@@ -309,6 +309,21 @@ body.driving { overflow: hidden; }
   background: var(--surface); border: 2px solid var(--line); color: var(--text); touch-action: manipulation;
 }
 .recenter svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; }
+.mutes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.mutebtn {
+  display: flex; align-items: center; gap: 8px; min-height: 54px; padding: 6px 10px; border-radius: 12px;
+  border: 2px solid var(--line); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; touch-action: manipulation;
+}
+.mutebtn[data-mute="nav"] { border-left: 8px solid var(--sign); }
+.mutebtn[data-mute="story"] { border-left: 8px solid #12805c; }
+.mutebtn svg { width: 28px; height: 28px; flex: none; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.mutebtn .slash { display: none; stroke: var(--warn); stroke-width: 2.8; }
+.mutebtn .mt b { display: block; font-size: 1rem; line-height: 1.15; }
+.mutebtn .mt i { display: block; font-style: normal; font-size: 0.82rem; color: var(--muted); }
+.mutebtn.muted { background: var(--bg); border-color: var(--warn); }
+.mutebtn.muted .slash { display: block; }
+.mutebtn.muted .mt b { text-decoration: line-through; }
+.mutebtn.muted .mt i { color: var(--warn); font-weight: 700; }
 .carwrap { width: 34px; height: 34px; }
 .carwrap svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
 </style>
@@ -413,6 +428,16 @@ body.driving { overflow: hidden; }
       <button class="btn" id="driveBtn" type="button">Full-screen map</button>
       <button class="btn" id="dimBtn" type="button" disabled>Dark screen</button>
     </div>
+    <div class="mutes" role="group" aria-label="Sound">
+      <button type="button" class="mutebtn" data-mute="nav">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20V10a4 4 0 0 1 4-4h8M15 2l4 4-4 4"/><path class="slash" d="M3 21L21 3"/></svg>
+        <span class="mt"><b>Directions</b><i>Voice on</i></span>
+      </button>
+      <button type="button" class="mutebtn" data-mute="story">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5C5 4 8.5 4 12 6c3.5-2 7-2 9-.5v13c-2-1.5-5.500-1.500-9 .5-3.500-2-7-2-9-.5z"/><path d="M12 6v13"/><path class="slash" d="M3 21L21 3"/></svg>
+        <span class="mt"><b>Stories</b><i>Voice on</i></span>
+      </button>
+    </div>
     <p class="status" id="status" role="status"></p>
 
     <section class="card">
@@ -446,6 +471,16 @@ body.driving { overflow: hidden; }
   <div class="drivebar" id="driveBar">
     <div class="dn"><span class="dname" id="driveName">–</span><span class="ddist" id="driveDist"></span></div>
     <div class="dsub" id="driveSub"></div>
+    <div class="mutes" role="group" aria-label="Sound">
+      <button type="button" class="mutebtn" data-mute="nav">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20V10a4 4 0 0 1 4-4h8M15 2l4 4-4 4"/><path class="slash" d="M3 21L21 3"/></svg>
+        <span class="mt"><b>Directions</b><i>Voice on</i></span>
+      </button>
+      <button type="button" class="mutebtn" data-mute="story">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5C5 4 8.5 4 12 6c3.5-2 7-2 9-.5v13c-2-1.5-5.500-1.500-9 .5-3.500-2-7-2-9-.5z"/><path d="M12 6v13"/><path class="slash" d="M3 21L21 3"/></svg>
+        <span class="mt"><b>Stories</b><i>Voice on</i></span>
+      </button>
+    </div>
     <div class="drow">
       <button class="btn" id="driveMenu" type="button">Menu</button>
       <button class="btn" id="driveDetails" type="button">Details</button>
@@ -501,7 +536,7 @@ body.driving { overflow: hidden; }
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v20 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v21 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -564,6 +599,7 @@ body.driving { overflow: hidden; }
   var nav = null;                           // where the car is along the route (see resetNav)
   var driveOn = false, mapKind = '', lastZoomAt = 0;
   var playTok = 0, navPending = 0, currentStop = -1;
+  var muteNav = false, muteStory = false;   // sound switches for this visit only (not remembered): directions voice, story voice
 
   /* ---------- audio files (optional per stop) ---------- */
   var SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
@@ -1120,7 +1156,7 @@ body.driving { overflow: hidden; }
     var v = currentVoice();
     return !v || /^da/i.test(v.lang);
   }
-  function say(en, da) { speak(voiceIsDanish() ? da : en, null); }
+  function say(en, da) { if (muteNav && muteStory) return; speak(voiceIsDanish() ? da : en, null); }
 
   function chunkText(text) {
     var parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
@@ -1156,6 +1192,11 @@ body.driving { overflow: hidden; }
     var i = queue.shift();
     var p = pois[i];
     if (!p) return pump();
+    if (muteStory && !p.force) {                                  // stories are muted: the stop is passed, not read (it can still be played from the list)
+      p.read = true; p.skipped = false; p.muted = true;
+      renderList(); updateNext();
+      return pump();
+    }
     if (!simTimer && !p.force && lastPos && p.dist != null && p.dist > Math.max(1000, stopRadius(p, lastPos.speed) * 4)) {
       p.read = true; p.skipped = true;                           // waited in the queue and is now far behind: skip it
       renderList(); updateNext();
@@ -1166,7 +1207,7 @@ body.driving { overflow: hidden; }
     speaking = true;
     currentStop = i;
     var tok = ++playTok;
-    p.read = true; p.skipped = false;
+    p.read = true; p.skipped = false; p.muted = false;
     renderList();
     updateNext();
     setStatus('Reading: ' + p.name + (queue.length ? ' (' + queue.length + ' more waiting)' : ''));
@@ -1382,7 +1423,7 @@ body.driving { overflow: hidden; }
     if (!pois.length) return;
     var path = track.length > 1 ? track.map(function (t) { return { lat: t[0], lon: t[1] }; }) : pois;
     if (running) stopGuide();
-    pois.forEach(function (p) { p.read = false; p.skipped = false; p.dist = null; });
+    pois.forEach(function (p) { p.read = false; p.skipped = false; p.muted = false; p.dist = null; });
     queue = [];
     renderList();
     running = true;
@@ -1493,7 +1534,7 @@ body.driving { overflow: hidden; }
       var mid = document.createElement('div');
       var nm = document.createElement('div'); nm.className = 'poi-name'; nm.textContent = (i + 1) + '. ' + p.name;
       var meta = document.createElement('div'); meta.className = 'poi-meta';
-      meta.textContent = (p.read ? (p.skipped ? 'Skipped (passed)' : 'Read out') : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '') + (p.radius ? ' · radius ' + Math.round(p.radius) + ' m' : '') + (p.audioBlob ? ' · audio file' : '');
+      meta.textContent = (p.read ? (p.skipped ? 'Skipped (passed)' : p.muted ? 'Muted (not read out)' : 'Read out') : 'Not read yet') + (p.dist != null ? ' · ' + fmtDist(p.dist) : '') + (p.radius ? ' · radius ' + Math.round(p.radius) + ' m' : '') + (p.audioBlob ? ' · audio file' : '');
       mid.appendChild(nm); mid.appendChild(meta);
       var b = document.createElement('button');
       b.className = 'btn small'; b.type = 'button'; b.textContent = 'Play';
@@ -1540,7 +1581,7 @@ body.driving { overflow: hidden; }
   }
   function navShown() { return !!(Nav && prep && els.navOn.checked && running); }
   function navSpeak(text, interrupt) {
-    if (!('speechSynthesis' in window)) return;
+    if (muteNav || !('speechSynthesis' in window)) return;
     var resume = -1, done = false;
     navPending++;
     if (interrupt && speaking) {                    // a story is being read: cut it, say the turn, then read the story again from its start
@@ -1650,6 +1691,52 @@ body.driving { overflow: hidden; }
       els.navRoad.textContent = '';
     }
   }
+
+  /* ---------- sound switches: directions voice and story voice, each on its own ---------- */
+  function unlockSpeech() {                     // a tap is the only time iPhone allows speech to start, so use the tap
+    unlockAudio();
+    try { if ('speechSynthesis' in window) { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; window.speechSynthesis.speak(u); } } catch (e) { }
+  }
+  function updateMuteUi() {
+    Array.prototype.forEach.call(document.querySelectorAll('.mutebtn'), function (b) {
+      var kind = b.getAttribute('data-mute'), muted = kind === 'nav' ? muteNav : muteStory;
+      var name = kind === 'nav' ? 'Directions' : 'Stories';
+      b.classList.toggle('muted', muted);
+      b.querySelector('i').textContent = muted ? 'MUTED' : 'Voice on';
+      b.setAttribute('aria-label', name + ' voice is ' + (muted ? 'muted. Tap to turn it on.' : 'on. Tap to mute it.'));
+    });
+  }
+  function setMute(kind, on) {
+    if (kind === 'nav') {
+      muteNav = on;
+      if (on && navPending > 0 && !speaking) { try { window.speechSynthesis.cancel(); } catch (e) { } }
+      setStatus(on ? 'Directions voice is muted. The arrow and distance are still shown.' : 'Directions voice is on again.');
+    } else {
+      muteStory = on;
+      if (on) {
+        if (speaking) {                                       // stop the story that is being read, now
+          var p = pois[currentStop];
+          playTok++; speaking = false; currentStop = -1;
+          if (p) { p.muted = true; }
+          try { window.speechSynthesis.cancel(); } catch (e) { }
+          stopAudio();
+          renderList();
+        }
+        pump();                                               // stops that were waiting are passed, not read
+      }
+      setStatus(on ? 'Story voice is muted. Stops are passed without being read out. Press Play in the list to hear one.' : 'Story voice is on again. The next stop will be read out.');
+    }
+    if (!on) unlockSpeech();
+    updateMuteUi();
+    renderDrive();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.mutebtn'), function (b) {
+    b.addEventListener('click', function () {
+      var kind = b.getAttribute('data-mute');
+      setMute(kind, !(kind === 'nav' ? muteNav : muteStory));
+    });
+  });
+  updateMuteUi();
 
   /* ---------- full-screen map ---------- */
   function refit() {
@@ -1847,7 +1934,7 @@ body.driving { overflow: hidden; }
   els.prep.addEventListener('toggle', function () { save('prepOpen', els.prep.open); });
   els.follow.addEventListener('change', function () { save('follow', els.follow.checked); });
   els.resetBtn.addEventListener('click', function () {
-    pois.forEach(function (p) { p.read = false; p.skipped = false; });
+    pois.forEach(function (p) { p.read = false; p.skipped = false; p.muted = false; });
     queue = [];
     renderList(); updateNext();
     setStatus('All stops have been reset.');
