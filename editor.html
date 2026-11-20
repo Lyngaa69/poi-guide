@@ -120,7 +120,7 @@ a.tour { text-decoration: none; }
 .sectionlabel { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 14px; }
-input[type=text], input[type=search], textarea, select {
+input[type=text], input[type=search], input[type=password], textarea, select {
   width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg); color: var(--text); min-height: 46px;
 }
@@ -281,7 +281,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio version 15 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio version 16 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -690,6 +690,16 @@ details.tips li { margin-bottom: 4px; }
     els.accessHint.textContent = h;
   }
   var listLoaded = false;
+  /* A route that was just published on another device is not on the site for a minute or two. Opening the old copy and publishing it would overwrite the newer one.
+     So with GitHub connected, read from the repository itself. */
+  function latestText(path) {
+    var site = function () { return fetch(path, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('The file was not found.'); return r.text(); }); };
+    if (!gh.token || !gh.repo) return site();
+    return ghFetch('/repos/' + gh.repo + '/contents/' + path.split('/').map(encodeURIComponent).join('/'), { headers: { 'Accept': 'application/vnd.github.raw+json' } })
+      .then(function (r) { if (!r.ok) throw new Error('api'); return r.text(); })
+      .then(function (t) { if (!t) throw new Error('empty'); return t; })
+      .catch(function () { return site(); });
+  }
   function renderExisting() {
     els.existingList.innerHTML = '';
     existing.forEach(function (t) {
@@ -702,8 +712,7 @@ details.tips li { margin-bottom: 4px; }
       b.appendChild(left);
       b.addEventListener('click', function () {
         busy('Opening ' + (t.navn || t.fil) + '…');
-        fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-store' })
-          .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
+        latestText('ture/' + t.fil)
           .then(function (txt) {
             busy('Preparing the route on the map…');
             return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
@@ -739,8 +748,8 @@ details.tips li { margin-bottom: 4px; }
   }
   function loadExisting() {
     if (!window.fetch) return;
-    fetch('ture/ture.json', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
+    latestText('ture/ture.json')
+      .then(function (txt) { return JSON.parse(txt); })
       .then(function (list) {
         if (!Array.isArray(list)) return;
         listLoaded = true;
