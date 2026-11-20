@@ -6,6 +6,7 @@
     "13975712",
     "c676627d",
     "ee5a1140",
+    "88f2c9a2",
     "ce579354",
     "4c9e314c",
     "fc265a4f"
@@ -16,11 +17,13 @@
     "8295d5e6",
     "41ee4e98",
     "d7f87089",
+    "b3d9511c",
     "930d7a34",
     "e3cc8951",
     "d3094422"
   ],
   "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
