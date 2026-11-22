@@ -22,7 +22,7 @@ Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it shoul
   ~aa = å                   (starts with ~: replaces these letters inside every word)
 Lines starting with # are ignored. Words match whole words, in any capitalisation.
 """
-import base64, json, os, re, shutil, subprocess, sys, time, wave
+import array, base64, io, json, math, os, re, shutil, subprocess, sys, time, wave
 import urllib.error, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -235,6 +235,7 @@ DEFAULT_SETTINGS = {
     'stylePreset': 'podcast',
     'style': 'relaxed podcast host, warm and conversational, natural pacing',
     'numbers': 'model',                        # 'model' = the voice reads numbers itself, 'program' = written out as words first
+    'batch': True,                             # several stops in one request (the free level only allows about 10 requests a day)
 }
 
 def load_settings():
@@ -492,6 +493,11 @@ def gemini_wav(text, settings, deadline=None):
             print('Gemini asked us to wait (%s). Trying again in %d s.' % (_redact(str(e))[:80], wait))
             time.sleep(wait)
 
+def wav_to_mp3(wav_path, out_mp3):
+    subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', wav_path,
+                    '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
+                    '-ac', '1', '-ar', '24000', '-b:a', '64k', str(out_mp3)], check=True)
+
 def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
     data = gemini_wav(gemini_text(raw), settings, deadline)
     wav_path = str(out_mp3) + '.wav'
@@ -500,17 +506,217 @@ def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
     else:                                                       # headerless 16-bit, 24 kHz, mono
         with wave.open(wav_path, 'wb') as w:
             w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(data)
-    subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', wav_path,
-                    '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
-                    '-ac', '1', '-ar', '24000', '-b:a', '64k', str(out_mp3)], check=True)
+    wav_to_mp3(wav_path, out_mp3)
     os.remove(wav_path)
+
+# ---------- several stops in one request ----------
+# The free level counts requests, not words. So several stops are read in one request, with a clear pause between them,
+# and the audio is cut at those pauses afterwards. The cut is only trusted when it is clear: enough long pauses, one clear pause
+# where a stop should end, and stops of a length that fits their text. If not, the stops are made one by one, as before.
+BATCH_MAX_STOPS = int(os.environ.get('AUDIO_BATCH_STOPS', '6'))        # at most this many stops in one request (1 = never)
+BATCH_MAX_CHARS = int(os.environ.get('AUDIO_BATCH_CHARS', '2400'))     # and at most this many letters (about 3 minutes of speech)
+BATCH_NOTE = 'Read the sections one after the other as separate pieces. Leave a clear, silent pause of about two seconds between the sections.'
+GAP_MIN = 0.5            # a pause shorter than this (seconds) is part of the speech
+BOUNDARY_MIN = 0.9       # a pause between two stops must be at least this long
+FRAME = 0.02
+
+class SplitError(Exception):
+    pass
+
+def plain_len(raw):
+    return max(1, len(re.sub(r'<[^>]*>', '', gemini_text(raw))))
+
+def pcm_of(data):
+    if data[:4] == b'RIFF':
+        with wave.open(io.BytesIO(data), 'rb') as w:
+            rate, ch, sw = w.getframerate(), w.getnchannels(), w.getsampwidth()
+            frames = w.readframes(w.getnframes())
+        if ch != 1 or sw != 2:
+            raise SplitError('the audio was not mono 16-bit, so it cannot be cut')
+    else:
+        rate, frames = 24000, data
+    a = array.array('h'); a.frombytes(frames[:len(frames) // 2 * 2])
+    if sys.byteorder == 'big': a.byteswap()
+    return a, rate
+
+def find_gaps(samples, rate):
+    n = int(rate * FRAME); rms = []
+    for i in range(0, len(samples) - n + 1, n):
+        c = samples[i:i + n]
+        rms.append(math.sqrt(sum(x * x for x in c) / n))
+    if not rms: raise SplitError('the audio was empty')
+    ref = sorted(rms)[int(len(rms) * 0.9)]
+    thr = max(ref * 0.04, 25.0)
+    gaps, i, m = [], 0, len(rms)
+    while i < m:
+        if rms[i] < thr:
+            j = i
+            while j < m and rms[j] < thr: j += 1
+            if j - i >= int(GAP_MIN / FRAME) and i > 0 and j < m:      # a pause inside the audio, not the silence at the ends
+                gaps.append((i * FRAME, j * FRAME))
+            i = j
+        else:
+            i += 1
+    return gaps, len(rms) * FRAME
+
+def split_batch(samples, rate, chars):
+    """[(start, end) in seconds, one per stop], or SplitError. chars = the length of each stop's text."""
+    k = len(chars)
+    gaps, dur = find_gaps(samples, rate)
+    if len(gaps) < k - 1:
+        raise SplitError('found %d pauses of %.1f s or more, but %d are needed between %d stops' % (len(gaps), GAP_MIN, k - 1, k))
+    glen = [b - a for a, b in gaps]
+    active = max(0.5, dur - sum(glen))
+    before, acc = [], 0.0
+    for a, b in gaps:
+        before.append(a - acc); acc += b - a
+    total = float(sum(chars)); cum = 0; picks = []
+    for j in range(1, k):
+        cum += chars[j - 1]; want = active * cum / total
+        best = None
+        for gi, (a, b) in enumerate(gaps):
+            err = abs(before[gi] - want)
+            sc = err - 0.25 * min(b - a, 3.0)
+            if best is None or sc < best[0]: best = (sc, gi, err)
+        gi, err = best[1], best[2]
+        a, b = gaps[gi]
+        if b - a < BOUNDARY_MIN:
+            raise SplitError('the pause near %.0f s is only %.1f s long, too short to tell where a stop ends' % (a, b - a))
+        win = 0.5 * min(chars[j - 1], chars[j]) / total * active
+        if err > win:
+            raise SplitError('the clearest pause (%.0f s) is not where stop %d should end' % (a, j))
+        rivals = [b2 - a2 for g2, (a2, b2) in enumerate(gaps) if g2 != gi and abs(before[g2] - want) <= win]
+        if rivals and (b - a) < 1.4 * max(rivals):
+            raise SplitError('there is no one clear pause where stop %d should end (%.1f s against %.1f s)' % (j, b - a, max(rivals)))
+        picks.append(gi)
+    if any(picks[i] >= picks[i + 1] for i in range(len(picks) - 1)):
+        raise SplitError('the pauses came in a different order than the stops')
+    segs, start = [], 0.0
+    for gi in picks:
+        end = min(gaps[gi][0] + 0.35, (gaps[gi][0] + gaps[gi][1]) / 2)
+        segs.append((start, end))
+        start = max(gaps[gi][1] - 0.15, (gaps[gi][0] + gaps[gi][1]) / 2)
+    segs.append((start, dur))
+    rates = [max(0.01, (e - b)) / chars[i] for i, (b, e) in enumerate(segs)]
+    med = sorted(rates)[len(rates) // 2]
+    for i, r in enumerate(rates):
+        if segs[i][1] - segs[i][0] < 0.8 or r < 0.55 * med or r > 1.8 * med:
+            raise SplitError('stop %d got %.1f s of audio for %d letters, which does not fit the other stops' % (i + 1, segs[i][1] - segs[i][0], chars[i]))
+    return segs, gaps
+
+def make_batch_gemini(raws, outs, settings, deadline=None):
+    text = '\n\n'.join(gemini_text(r) for r in raws)
+    bs = dict(settings)
+    st = settings['style'].strip()
+    bs['style'] = (st + ' ' if st else '') + BATCH_NOTE
+    data = gemini_wav(text, bs, deadline)
+    samples, rate = pcm_of(data)
+    segs, gaps = split_batch(samples, rate, [plain_len(r) for r in raws])
+    parts = []
+    try:
+        for out, (b, e) in zip(outs, segs):
+            wav_path = str(out) + '.wav'; tmp = str(out) + '.part.mp3'
+            piece = array.array('h', samples[int(b * rate):int(e * rate)])
+            if sys.byteorder == 'big': piece.byteswap()
+            with wave.open(wav_path, 'wb') as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate)
+                w.writeframes(piece.tobytes())
+            wav_to_mp3(wav_path, tmp); os.remove(wav_path); parts.append((tmp, out))
+        for tmp, out in parts:
+            os.replace(tmp, out)
+    finally:
+        for tmp, out in parts:
+            if os.path.exists(tmp): os.remove(tmp)
+    return '%.0f s of audio, %d pauses, cut at %s' % (len(samples) / rate, len(gaps), ', '.join('%.1f s' % e for b, e in segs[:-1]))
+
+# ---------- how many requests are used, and where ----------
+BATCH_STATE = TURE / 'audio-batch.json'
+
+def batch_key(settings):
+    return fnv1a(json.dumps([settings['model'], settings['voice'], settings['style']], ensure_ascii=False))
+
+def load_batch_state(settings):
+    fresh = {'key': batch_key(settings), 'ok': 0, 'bad': 0, 'since': time.strftime('%Y-%m-%d'), 'last': ''}
+    try:
+        st = json.loads(BATCH_STATE.read_text(encoding='utf-8'))
+        age = (time.time() - time.mktime(time.strptime(st.get('since', ''), '%Y-%m-%d'))) / 86400
+        if st.get('key') == fresh['key'] and age < 14:           # new voice settings, or two weeks old: try again from scratch
+            fresh.update({k: st[k] for k in ('ok', 'bad', 'since', 'last') if k in st})
+    except Exception:
+        pass
+    return fresh
+
+def batch_allowed(settings, st):
+    return bool(settings.get('batch', True)) and BATCH_MAX_STOPS > 1 and not (st['bad'] >= 3 and st['bad'] > st['ok'])
+
+def make_groups(p, allow):
+    todo = list(p['todo'])
+    if not allow:
+        return [[i] for i in todo]
+    groups, cur, cur_chars = [], [], 0
+    for i in todo:
+        c = plain_len(p['raws'][i - 1])
+        if cur and (len(cur) >= BATCH_MAX_STOPS or cur_chars + c > BATCH_MAX_CHARS):
+            groups.append(cur); cur, cur_chars = [], 0
+        cur.append(i); cur_chars += c
+    if cur: groups.append(cur)
+    return groups
+
+def listed_routes():
+    out = set()
+    for f in TURE.glob('u-*.json'):
+        try:
+            for r in json.loads(f.read_text(encoding='utf-8')).get('routes', []):
+                if isinstance(r, dict) and r.get('fil'): out.add(r['fil'])
+        except Exception:
+            pass
+    return out
+
+def prioritise(plans):
+    """Routes that people can open come first, drafts last. Within each: the route that needs the fewest stops first (so it is finished)."""
+    only = open_route_files(); listed = listed_routes()
+    def tier(p):
+        if only is None: return 0
+        f = p['base'] + '.gpx'
+        return 0 if (f in only or f in listed) else 1
+    return sorted(plans, key=lambda p: (tier(p), len(p['todo']), p['base'])), tier
 
 def generate_gemini(plans):
     settings = load_settings()
-    pace = float(os.environ.get('GEMINI_PACE', '21'))          # seconds between the start of two calls (3 per minute = 20 s)
     deadline = time.time() + float(os.environ.get('AUDIO_TIME_BUDGET', '840'))
-    last = 0.0; stop_all = False; trouble = 0; total_made = 0; hits_seen = RATE_HITS; daily_hit = False
+    S = dict(pace=float(os.environ.get('GEMINI_PACE', '21')), last=0.0, stop_all=False, trouble=0, total_made=0, hits_seen=RATE_HITS, daily_hit=False)
+    bstate = load_batch_state(settings); old_state = dict(bstate)
+    batch_on = batch_allowed(settings, bstate)
     print('Voice: Gemini %s, %s. Style: %s' % (settings['model'], settings['voice'], settings['style'] or '(none)'))
+    if batch_on:
+        print('Several stops per request: on (up to %d stops or %d letters per request). Earlier cuts: %d good, %d refused.' % (BATCH_MAX_STOPS, BATCH_MAX_CHARS, bstate['ok'], bstate['bad']))
+    elif settings.get('batch', True) and BATCH_MAX_STOPS > 1:
+        print('::warning::Several stops per request is switched off for now: %d of the cuts were refused and %d were good (%s). One request per stop is used. It is tried again after two weeks or when the voice settings change.' % (bstate['bad'], bstate['ok'], bstate['last'][:100]))
+    else:
+        print('Several stops per request: off. One request per stop.')
+    plans, tier = prioritise(plans)
+    late = [p['base'] for p in plans if tier(p) == 1 and p['todo']]
+    if late:
+        print('Drafts and routes nobody has been given are made last: %s' % ', '.join(late))
+
+    def wait_turn():
+        if RATE_HITS > S['hits_seen']:
+            S['hits_seen'] = RATE_HITS
+            S['pace'] = min(60.0, max(S['pace'], 3.0) * 1.3)
+            print('Google said "too fast". Pace is now %d s between calls.' % S['pace'])
+        if S['last'] and time.time() - S['last'] < S['pace']:
+            time.sleep(S['pace'] - (time.time() - S['last']))
+        S['last'] = time.time()                                       # a call starts now
+
+    def time_up(grp, p):                                              # True if nothing more should be tried; the stops are left for the next run
+        if S['stop_all'] or time.time() > deadline:
+            if not S['stop_all']:
+                print('::warning::Time budget used up. The stops that are missing are made the next time the job runs.')
+                S['stop_all'] = True
+            for i in grp: drop_if_stale(p, i)
+            return True
+        return False
+
     for p in plans:
         if p.get('external'):
             continue
@@ -518,46 +724,74 @@ def generate_gemini(plans):
             path.unlink(); print('removed', path.name)
         failed = set(p['failed']) - set(p['todo'])
         made = {}
-        for i in p['todo']:
-            if stop_all or time.time() > deadline:
-                if not stop_all:
-                    print('::warning::Time budget used up. The stops that are missing are made the next time the job runs.')
-                stop_all = True
-                drop_if_stale(p, i)
+        def out_of(i): return TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
+        for grp in make_groups(p, batch_on):
+            if time_up(grp, p):
                 continue
-            if RATE_HITS > hits_seen:
-                hits_seen = RATE_HITS
-                pace = min(60.0, max(pace, 3.0) * 1.3)
-                print('Google said "too fast". Pace is now %d s between calls.' % pace)
-            if last and time.time() - last < pace:
-                time.sleep(pace - (time.time() - last))
-            last = time.time()                                       # a call starts now
-            out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
-            try:
-                make_mp3_gemini(p['raws'][i - 1], out, settings, deadline)
-                trouble = 0
-                made[i] = p['voice_id']; total_made += 1
-                failed.discard(i); print('made %s (%d of %d in %s)' % (out.name, i, len(p['stops']), p['base']))
-            except DailyLimit as e:
-                drop_if_stale(p, i)
-                print('::warning::Google\'s daily limit for %s is used up (%s). The rest is made after the limit resets, around 09:00 Danish time.' % (settings['model'], _redact(str(e))[:140]))
-                daily_hit = True; stop_all = True
-            except BadKey as e:
-                print('::error::Gemini did not accept the key (GEMINI_API_KEY). Check the secret in GitHub. %s' % _redact(str(e)))
-                sys.exit(1)
-            except Transient as e:
-                trouble += 1
-                drop_if_stale(p, i)
-                print('::warning::Gemini was busy for stop %d in %s (%s). It is tried again at the next run.' % (i, p['base'], _redact(str(e))[:120]))
-                if trouble >= 3:
-                    print('::warning::Gemini keeps saying no. Stopping for now.')
-                    stop_all = True
-            except Exception as e:
-                failed.add(i)
-                if out.exists(): out.unlink()
-                print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, _redact(str(e))[:200]))
+            if len(grp) > 1 and batch_on:
+                wait_turn()
+                try:
+                    info = make_batch_gemini([p['raws'][i - 1] for i in grp], [out_of(i) for i in grp], settings, deadline)
+                    S['trouble'] = 0; bstate['ok'] += 1
+                    for i in grp:
+                        made[i] = p['voice_id']; S['total_made'] += 1; failed.discard(i)
+                        print('made %s (%d of %d in %s, together with %d other stops)' % (out_of(i).name, i, len(p['stops']), p['base'], len(grp) - 1))
+                    print('Cut OK: %s' % info)
+                    continue
+                except DailyLimit as e:
+                    for i in grp: drop_if_stale(p, i)
+                    print('::warning::Google\'s daily limit for %s is used up (%s). The rest is made after the limit resets, around 09:00 Danish time.' % (settings['model'], _redact(str(e))[:140]))
+                    S['daily_hit'] = True; S['stop_all'] = True
+                    continue
+                except BadKey as e:
+                    print('::error::Gemini did not accept the key (GEMINI_API_KEY). Check the secret in GitHub. %s' % _redact(str(e)))
+                    sys.exit(1)
+                except Transient as e:
+                    S['trouble'] += 1
+                    for i in grp: drop_if_stale(p, i)
+                    print('::warning::Gemini was busy for stops %s in %s (%s). It is tried again at the next run.' % (','.join(map(str, grp)), p['base'], _redact(str(e))[:120]))
+                    if S['trouble'] >= 3:
+                        print('::warning::Gemini keeps saying no. Stopping for now.')
+                        S['stop_all'] = True
+                    continue
+                except Exception as e:                                # the audio could not be cut with confidence: make these stops one by one
+                    bstate['bad'] += 1; bstate['last'] = '%s: %s' % (type(e).__name__, _redact(str(e))[:140])
+                    print('::warning::Stops %s in %s could not be cut apart (%s). They are made one by one instead.' % (','.join(map(str, grp)), p['base'], _redact(str(e))[:160]))
+                    if not batch_allowed(settings, bstate):
+                        batch_on = False
+                        print('::warning::Several stops per request is now switched off (%d refused, %d good). One request per stop from here on.' % (bstate['bad'], bstate['ok']))
+            for i in grp:
+                if time_up([i], p):
+                    continue
+                wait_turn()
+                out = out_of(i)
+                try:
+                    make_mp3_gemini(p['raws'][i - 1], out, settings, deadline)
+                    S['trouble'] = 0
+                    made[i] = p['voice_id']; S['total_made'] += 1
+                    failed.discard(i); print('made %s (%d of %d in %s)' % (out.name, i, len(p['stops']), p['base']))
+                except DailyLimit as e:
+                    drop_if_stale(p, i)
+                    print('::warning::Google\'s daily limit for %s is used up (%s). The rest is made after the limit resets, around 09:00 Danish time.' % (settings['model'], _redact(str(e))[:140]))
+                    S['daily_hit'] = True; S['stop_all'] = True
+                except BadKey as e:
+                    print('::error::Gemini did not accept the key (GEMINI_API_KEY). Check the secret in GitHub. %s' % _redact(str(e)))
+                    sys.exit(1)
+                except Transient as e:
+                    S['trouble'] += 1
+                    drop_if_stale(p, i)
+                    print('::warning::Gemini was busy for stop %d in %s (%s). It is tried again at the next run.' % (i, p['base'], _redact(str(e))[:120]))
+                    if S['trouble'] >= 3:
+                        print('::warning::Gemini keeps saying no. Stopping for now.')
+                        S['stop_all'] = True
+                except Exception as e:
+                    failed.add(i)
+                    if out.exists(): out.unlink()
+                    print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, _redact(str(e))[:200]))
         write_manifest(p, made, failed)
-    return total_made, daily_hit
+    if bstate != old_state:
+        BATCH_STATE.write_text(json.dumps(bstate, indent=1) + '\n', encoding='utf-8')
+    return S['total_made'], S['daily_hit']
 
 # ---------- word previews (the pronunciation page in Studio) ----------
 UD_DIR = TURE / 'udtale'          # inside ture/, so the existing commit step saves it
@@ -689,6 +923,13 @@ def main():
             print('%s: %d stops, %d need audio, %d old files to remove%s' % (
                 p['base'], len(p['stops']), len(p['todo']), len(p['orphans']),
                 '' if p['manifest_ok'] else ', fingerprint file to update'))
+        if provider == 'gemini':
+            st0 = load_batch_state(s); allow0 = batch_allowed(s, st0)
+            mine = [q for q in plans if not q.get('external')]
+            stops0 = sum(len(q['todo']) for q in mine)
+            reqs0 = sum(len(make_groups(q, allow0)) for q in mine)
+            if stops0:
+                print('requests needed (estimate): %d for %d stops%s. The free level allows about 10 a day.' % (reqs0, stops0, ', several stops per request' if allow0 and reqs0 < stops0 else ''))
         pneeded = False
         if provider == 'piper':
             pplan = preview_plan()
