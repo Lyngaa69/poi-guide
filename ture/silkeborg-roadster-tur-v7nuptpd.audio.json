@@ -6,7 +6,11 @@
     "5b3d11de",
     "aadbbc34",
     "d23c6ad7",
-    "3c7b2072"
+    "3c7b2072",
+    "ed9cbd82",
+    "45f35533",
+    "809959be",
+    "032c16f0"
   ],
   "spoken": [
     "d1667e3e",
@@ -14,9 +18,17 @@
     "477121d3",
     "93cf2065",
     "f2a3a4d3",
-    "9f586018"
+    "9f586018",
+    "5493be4f",
+    "6fc001cd",
+    "06ae25b3",
+    "e45a8bc9"
   ],
   "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
