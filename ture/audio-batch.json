@@ -1,7 +1,7 @@
 {
  "key": "eb61401f",
  "ok": 6,
- "bad": 6,
+ "bad": 7,
  "since": "2026-11-22",
- "last": "SplitError: there is no one clear pause where stop 1 should end (2.0 s against 1.9 s)"
+ "last": "SplitError: there is no one clear pause where stop 1 should end (1.0 s against 1.4 s)"
 }
