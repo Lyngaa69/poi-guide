@@ -324,6 +324,11 @@ body.driving { overflow: hidden; }
 .mutebtn.muted .slash { display: block; }
 .mutebtn.muted .mt b { text-decoration: line-through; }
 .mutebtn.muted .mt i { color: var(--warn); font-weight: 700; }
+.updatebar {
+  position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 90;
+  display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 2px solid var(--sign); box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
 .carwrap { width: 34px; height: 34px; }
 .carwrap svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
 </style>
@@ -456,6 +461,8 @@ body.driving { overflow: hidden; }
 </main>
 
 
+<div class="updatebar hidden" id="updateBar" role="status"><span id="updateText"></span><button class="btn small" id="updateBtn" type="button">Reload</button></div>
+
 <div id="drive" aria-label="Map view">
   <div class="navcard hidden" id="navCard" role="status" aria-live="polite">
     <svg class="arrow" id="navArrow" viewBox="0 0 24 24" aria-hidden="true"></svg>
@@ -535,8 +542,12 @@ body.driving { overflow: hidden; }
       <button class="btn small" id="resetBtn" type="button" disabled>Reset visited stops</button>
     </div>
     <p class="hint">Simulate drive moves a virtual car along the route so you can test the voice without leaving home.</p>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn small" id="refreshBtn" type="button">Check for updates</button>
+    </div>
+    <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. A change made in Studio can take a few minutes to reach this page.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v21 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v24 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -576,7 +587,8 @@ body.driving { overflow: hidden; }
     driveMenu: $('driveMenu'), driveDetails: $('driveDetails'), driveDim: $('driveDim'), driveStop: $('driveStop'),
     driveBtn: $('driveBtn'), recenterBtn: $('recenterBtn'),
     navCard: $('navCard'), navArrow: $('navArrow'), navDist: $('navDist'), navText: $('navText'), navRoad: $('navRoad'),
-    navOn: $('navOn'), navInfo: $('navInfo'), fullMap: $('fullMap')
+    navOn: $('navOn'), navInfo: $('navInfo'), fullMap: $('fullMap'),
+    refreshBtn: $('refreshBtn'), refreshInfo: $('refreshInfo'), updateBar: $('updateBar'), updateText: $('updateText'), updateBtn: $('updateBtn')
   };
 
   var pois = [];
@@ -635,13 +647,13 @@ body.driving { overflow: hidden; }
   }
   function prepareAudio(base) {
     var token = audioToken;
-    if (!base || !window.fetch) return;
+    if (!base || !window.fetch) return Promise.resolve(0);
     var w = Math.max(2, String(pois.length).length);
-    fetch('ture/' + encodeURIComponent(base) + '.audio.json', { cache: 'no-cache' })
+    return fetch('ture/' + encodeURIComponent(base) + '.audio.json', { cache: 'no-cache' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
       .then(function (man) {
-        if (token !== audioToken) return;
+        if (token !== audioToken) return 0;
         var hashes = man && Array.isArray(man.stops) ? man.stops : null;
         var jobs = [];
         pois.forEach(function (p, i) {
@@ -649,7 +661,7 @@ body.driving { overflow: hidden; }
           if (hashes && hashes[i] !== h) return;      // the text was changed after the audio was made
           jobs.push({ p: p, href: 'ture/' + encodeURIComponent(base) + '-' + pad(i + 1, w) + '.mp3' + (hashes ? '?v=' + h : '') });
         });
-        runAudioJobs(jobs, token);
+        return runAudioJobs(jobs, token);
       });
   }
   function runAudioJobs(jobs, token) {
@@ -673,10 +685,11 @@ body.driving { overflow: hidden; }
       if (next >= jobs.length || token !== audioToken) return Promise.resolve();
       return one(jobs[next++]).then(worker);
     }
-    Promise.all([worker(), worker(), worker()]).then(function () {
-      if (token !== audioToken) return;
+    return Promise.all([worker(), worker(), worker()]).then(function () {
+      if (token !== audioToken) return 0;
       els.audioInfo.textContent = found ? 'Recorded audio for ' + found + ' of ' + pois.length + ' stops.' : '';
       renderList();
+      return found;
     });
   }
   function playAudio(p, text, done) {
@@ -852,7 +865,7 @@ body.driving { overflow: hidden; }
 
   function showHome() {
     stopGuide();
-    pois = []; track = []; trackSource = ''; lastPos = null;
+    pois = []; track = []; trackSource = ''; lastPos = null; current = null;
     setupNav([], null);
     releaseAudio();
     show('home');
@@ -912,18 +925,7 @@ body.driving { overflow: hidden; }
       }
       b.appendChild(left);
       b.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
-      b.addEventListener('click', function () {
-        setLoadStatus('Loading route…');
-        fetch('ture/' + encodeURIComponent(t.fil))
-          .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
-          .then(function (txt) {
-            loadRoute(parseGpx(txt), t.navn, {
-              radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm',
-              audioDir: String(t.fil).replace(/\.[^.]+$/, '')
-            });
-          })
-          .catch(function (e) { setLoadStatus('Could not load the route. ' + (e && e.message ? e.message : ''), true); });
-      });
+      b.addEventListener('click', function () { openTour(t); });
       els.tourList.appendChild(b);
     });
     els.noRoutes.classList.toggle('hidden', shown > 0);
@@ -1006,7 +1008,7 @@ body.driving { overflow: hidden; }
   function loadTours(fresh) {
     if (!window.fetch) { showNoRoutes(); return; }
     var captured = captureInvite() || fresh || null;
-    Promise.all([fetchOpen(), fetchInvited()]).then(function (res) {
+    return Promise.all([fetchOpen(), fetchInvited()]).then(function (res) {
       var open = res[0], invited = res[1], seen = {}, list = [], gone = [], total = 0;
       var pending = invited.filter(function (i) { return i.pending; });
       invited.forEach(function (i) {                           // an invitation that was waiting and has now arrived
@@ -1030,6 +1032,7 @@ body.driving { overflow: hidden; }
         savePending(pm);
         inviteNotice = gone.length === 1 ? 'An invitation is no longer valid, so its routes have been removed.' : gone.length + ' invitations are no longer valid, so their routes have been removed.';
       }
+      var changed = JSON.stringify(list) !== JSON.stringify(tours);
       tours = list;
       var n = inviteCodes().length;
       els.inviteInfo.textContent = n ? n + (n === 1 ? ' invitation on this phone' : ' invitations on this phone') : 'Use the code from your invitation';
@@ -1048,16 +1051,102 @@ body.driving { overflow: hidden; }
       } else if (captured && !pending.length && invited.some(function (i) { return i.code === captured && i.gone; })) {
         setLoadStatus('That invitation code is not valid (any more). Check the code, or ask for a new link.', true);
       } else if (inviteNotice && !pending.length) { setLoadStatus(inviteNotice, true); inviteNotice = ''; }
-      if (!tours.length) { showNoRoutes(); return; }
+      if (!tours.length) { showNoRoutes(); return changed; }
       els.openRoutes.classList.remove('hidden');
       els.menuRoutes.classList.remove('hidden');
       els.routeCount.textContent = tours.length + (tours.length === 1 ? ' route' : ' routes');
       if (!els.routes.classList.contains('hidden')) renderTours();
+      return changed;
     });
   }
   window.addEventListener('hashchange', function () {
     if (/(^|[#&])u=/.test(location.hash || '')) loadTours();
   });
+
+  /* ---------- changes made in Studio show up without closing Wayside ----------
+     The list of routes, the invitations, the open route and a new version of Wayside itself are checked again when you come back to the app,
+     every five minutes while it is open, and when you press "Check for updates". Never while the guide is running. */
+  var current = null, lastCheck = 0, checking = false;
+  function openTour(t, known) {                    // known = the route file text, if it was just fetched
+    function go(txt) {
+      var before = pois;
+      loadRoute(parseGpx(txt), t.navn, {
+        radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm',
+        audioDir: String(t.fil).replace(/\.[^.]+$/, '')
+      });
+      if (pois !== before) current = { t: t, text: txt };
+    }
+    if (known !== undefined) { go(known); return Promise.resolve(); }
+    setLoadStatus('Loading route…');
+    return fetch('ture/' + encodeURIComponent(t.fil), { cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error('The route file was not found.'); return r.text(); })
+      .then(go)
+      .catch(function (e) { setLoadStatus('Could not load the route. ' + (e && e.message ? e.message : ''), true); });
+  }
+  function refreshAudio() {                        // audio that was made after the route was opened: fetch it without reloading the route
+    if (!current || running) return Promise.resolve(0);
+    var had = pois.filter(function (p) { return !!p.audioBlob; }).length;
+    if (had === pois.length) return Promise.resolve(0);
+    releaseAudio();
+    pois.forEach(function (p) { p.audioBlob = null; p.audioHref = null; });
+    return prepareAudio(String(current.t.fil).replace(/\.[^.]+$/, '')).then(function (found) { return found > had ? found - had : 0; });
+  }
+  function checkCurrentRoute() {
+    var cur = current;
+    if (!cur || running || driveOn || els.guide.classList.contains('hidden')) return Promise.resolve('');
+    return fetch('ture/' + encodeURIComponent(cur.t.fil), { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (txt) {
+        if (txt === null || current !== cur || running) return '';
+        var latest = cur.t;
+        tours.forEach(function (x) { if (x.fil === cur.t.fil) latest = x; });
+        if (txt !== cur.text || JSON.stringify(latest) !== JSON.stringify(cur.t)) { openTour(latest, txt); return 'route'; }
+        return refreshAudio().then(function (n) { return n ? 'audio' : ''; });
+      })
+      .catch(function () { return ''; });
+  }
+  function checkPage() {                           // a new version of Wayside itself
+    var vi = document.getElementById('versionInfo');
+    if (!window.fetch || !vi) return Promise.resolve(false);
+    return fetch('index.html', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (t) {
+        var m = /id="versionInfo"[^>]*>([^<]*)</.exec(t);
+        var now = m ? m[1].trim() : '', mine = vi.textContent.trim();
+        if (now && mine && now !== mine) {
+          els.updateText.textContent = 'A new version of Wayside is ready (' + now.replace(/^Wayside\s*/, '') + ').';
+          els.updateBar.classList.remove('hidden');
+          return true;
+        }
+        return false;
+      })
+      .catch(function () { return false; });
+  }
+  function checkUpdates(manual) {
+    if (!window.fetch || checking) return;
+    if (!manual && (running || Date.now() - lastCheck < 20000)) return;
+    checking = true; lastCheck = Date.now();
+    if (manual) els.refreshInfo.textContent = 'Checking\u2026';
+    Promise.resolve(loadTours()).catch(function () { return false; }).then(function (listChanged) {   // first the list, so the open route is compared with the new list
+      return Promise.all([checkCurrentRoute(), checkPage()]).then(function (r) { return [listChanged, r[0], r[1]]; });
+    }).then(function (res) {
+      checking = false;
+      if (!manual) return;
+      var said = [];
+      if (res[2]) said.push('a new version of Wayside is ready (press Reload at the top)');
+      if (res[1] === 'route') said.push('this route was updated');
+      if (res[1] === 'audio') said.push('new audio was fetched');
+      if (res[0]) said.push('the list of routes changed');
+      els.refreshInfo.textContent = said.length ? 'Found: ' + said.join(', ') + '.' :
+        'Everything is up to date. A change made in Studio can take a few minutes to reach this page.';
+    });
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkUpdates(false); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) checkUpdates(false); });
+  setInterval(function () { if (document.visibilityState === 'visible') checkUpdates(false); }, 5 * 60 * 1000);
+  els.refreshBtn.addEventListener('click', function () { checkUpdates(true); });
+  els.updateBtn.addEventListener('click', function () { location.reload(); });
+
   function copyToClipboard(text, done) {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
     else { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { } document.body.removeChild(t); done(ok); }

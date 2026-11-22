@@ -91,6 +91,10 @@ a.tour { text-decoration: none; }
 .engine i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); flex: none; }
 .engine.gemini i { background: #12805c; } .engine.piper i { background: #0b61c4; } .engine.local i { background: #7c3aed; } .engine.wait i { background: #d9480f; }
 .engine b { color: var(--text); font-weight: 600; }
+.arow { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin-top: 8px; background: var(--bg); }
+.arow summary { cursor: pointer; }
+.arow summary .engine { display: inline-flex; margin-top: 0; color: var(--text); }
+.arow.done { opacity: .85; }
 .iconbtn { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--text); touch-action: manipulation; flex: none; }
 .iconbtn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
 #scrim { position: fixed; inset: 0; z-index: 190; background: rgba(8, 20, 36, 0.55); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
@@ -236,6 +240,7 @@ details.tips li { margin-bottom: 4px; }
       </label>
       <p class="hint">Keep it short, for example &ldquo;relaxed podcast host, warm and conversational&rdquo;. Do not write age, gender or accent here. You can copy the style text from Google AI Studio.</p>
       <label class="check"><input type="checkbox" id="vNumbers"><span>Write numbers as words before sending (use this if numbers or years sound wrong)</span></label>
+      <label class="check"><input type="checkbox" id="vBatch" checked><span>Several stops in one request (saves the free daily limit of about 10 requests. The voice is the same. If the stops come out cut wrong, switch this off.)</span></label>
     </div>
 
     <div class="row" style="margin-top:16px;">
@@ -289,7 +294,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v21 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v24 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -298,6 +303,15 @@ details.tips li { margin-bottom: 4px; }
     <div id="existingBox" class="hidden">
       <p class="sectionlabel" style="margin-top:0;">Edit one of your routes</p>
       <div id="existingList" class="tours"></div>
+    </div>
+
+    <div class="card" id="audioCard">
+      <h2 style="margin-top:0;">Audio status</h2>
+      <p class="hint" style="margin-top:0;">Shows which stops have audio from the voice and which are still waiting, for all your routes, so you do not have to look on GitHub. The audio is made by GitHub after you publish. With the free daily limit it can take more than a day when you publish several routes at once. It continues by itself.</p>
+      <div class="row"><button class="btn" id="audioCheck" type="button">Check audio status</button></div>
+      <p class="status" id="audioMsg" role="status"></p>
+      <div id="audioSummary"></div>
+      <div id="audioRoutes"></div>
     </div>
 
     <a class="tour" href="people.html" style="margin-bottom:10px;">
@@ -1478,7 +1492,7 @@ details.tips li { margin-bottom: 4px; }
           return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
         })
         .then(function () {
-          dlMsg('Published as ' + (access === 'invite' ? 'invite only. Give people access on the People page (menu), then send them their links.' : 'a draft that nobody sees yet.') + ' Wayside is updated in a few minutes. Progress: https://github.com/' + gh.repo + '/actions');
+          dlMsg('Published as ' + (access === 'invite' ? 'invite only. Give people access on the People page (menu), then send them their links.' : 'a draft that nobody sees yet.') + ' Wayside is updated in a few minutes (come back to the app, or press Menu > Check for updates). Progress: https://github.com/' + gh.repo + '/actions');
         })
         .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
         .then(function () { els.publishBtn.disabled = false; });
@@ -1492,8 +1506,8 @@ details.tips li { margin-bottom: 4px; }
       })
       .then(function (wf) {
         dlMsg('Published to ' + gh.repo + '. ' + (wf ?
-          'Wayside is updated automatically, including new audio for changed stops. This usually takes 3 to 6 minutes. Progress: https://github.com/' + gh.repo + '/actions' :
-          'Wayside shows the change in 1 to 3 minutes; close and reopen it to see it.'));
+          'Wayside is updated automatically, including new audio for changed stops. This usually takes 3 to 6 minutes. In Wayside, come back to the app, or press Menu > Check for updates. Progress: https://github.com/' + gh.repo + '/actions' :
+          'Wayside shows the change in 1 to 3 minutes. In Wayside, come back to the app, or press Menu > Check for updates.'));
       })
       .catch(function (e) { dlMsg('Not published. ' + e.message, true); })
       .then(function () { els.publishBtn.disabled = false; });
@@ -1607,7 +1621,7 @@ details.tips li { margin-bottom: 4px; }
     calm: 'calm and relaxed',
     none: ''
   };
-  var VOICE_DEFAULTS = { provider: 'gemini', model: 'gemini-3.8-flash-tts', voice: 'Gacrux', stylePreset: 'podcast', style: PRESETS.podcast, numbers: 'model' };
+  var VOICE_DEFAULTS = { provider: 'gemini', model: 'gemini-3.8-flash-tts', voice: 'Gacrux', stylePreset: 'podcast', style: PRESETS.podcast, numbers: 'model', batch: true };
   var lastFocus = null;
   function openMenu() {
     lastFocus = document.activeElement;
@@ -1637,6 +1651,7 @@ details.tips li { margin-bottom: 4px; }
     $('vPreset').value = preset;
     $('vStyle').value = typeof s.style === 'string' ? s.style : PRESETS.podcast;
     $('vNumbers').checked = s.numbers === 'program';
+    $('vBatch').checked = s.batch !== false;
     $('vGemini').classList.toggle('hidden', $('vProvider').value !== 'gemini');
   }
   function loadVoiceSettings() {
@@ -1665,7 +1680,8 @@ details.tips li { margin-bottom: 4px; }
       voice: $('vVoice').value,
       stylePreset: $('vPreset').value,
       style: $('vStyle').value.replace(/\s+/g, ' ').trim(),
-      numbers: $('vNumbers').checked ? 'program' : 'model'
+      numbers: $('vNumbers').checked ? 'program' : 'model',
+      batch: $('vBatch').checked
     };
     $('vSave').disabled = true; vStatus('Saving\u2026');
     putFile('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'Piper') + ')')
@@ -1673,6 +1689,145 @@ details.tips li { margin-bottom: 4px; }
       .catch(function (e) { vStatus('Not saved. ' + e.message, true); })
       .then(function () { $('vSave').disabled = false; });
   });
+
+  /* ---------- audio status: which stops have audio and which are waiting, for every route ---------- */
+  var AUD = { perRequestStops: 6, perRequestChars: 2400, perDay: 10 };      // the same limits as tools/make_audio.py, and the free daily limit
+  var audioBusy = false;
+  function stopsOfText(txt) {
+    var doc = new DOMParser().parseFromString(txt, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('The route file could not be read.');
+    return readStops(doc);
+  }
+  function voiceNow(lyd, man) {
+    if (lyd && lyd.provider === 'piper') return 'piper-da_DK-talesyntese-medium-v1';
+    if (lyd && lyd.model && lyd.voice) return 'gemini:' + lyd.model + ':' + lyd.voice;
+    return (man && man.voice) || '';
+  }
+  function auditStop(man, s, i, vNow) {          // what the audio program will think of this stop
+    if (!man) return { k: 'missing', text: 'No audio yet.' };
+    var own = String(man.voice || '').indexOf('local:') === 0;
+    if ((man.stops && man.stops[i]) !== fnv1a(stopPlain(s, i)))
+      return own ? { k: 'own', text: 'New or changed text. This route has audio from your own computer, and GitHub leaves it alone.' } : { k: 'changed', text: 'New or changed text.' };
+    if ((man.failed || []).indexOf(i + 1) !== -1) return { k: 'failed', text: 'Could not be made. It is not tried again until the text is changed.' };
+    var e = man.engines ? man.engines[i] : man.voice;
+    if (!e) return { k: 'missing', text: 'Waiting for audio.' };
+    if (e.indexOf('local:') === 0) return { k: 'ready', text: '' };
+    if (vNow && e !== vNow) return { k: 'older', text: 'Made with an older voice. It will be remade.' };
+    return { k: 'ready', text: '' };
+  }
+  function requestsFor(idx, chars, allow) {       // how many requests the audio program needs (same grouping as make_audio.py)
+    if (!idx.length) return 0;
+    if (!allow) return idx.length;
+    var n = 0, cur = 0, cc = 0;
+    idx.forEach(function (i) {
+      var c = chars[i];
+      if (cur && (cur >= AUD.perRequestStops || cc + c > AUD.perRequestChars)) { n++; cur = 0; cc = 0; }
+      cur++; cc += c;
+    });
+    return n + (cur ? 1 : 0);
+  }
+  function jsonOrNull(path) { return latestText(path).then(function (t) { return JSON.parse(t); }).catch(function () { return null; }); }
+  function lastAudioCommit() {                     // the last time the audio job saved something (needs the GitHub connection)
+    if (!gh.token || !gh.repo) return Promise.resolve(null);
+    return ghFetch('/repos/' + gh.repo + '/commits?path=ture&per_page=30')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (list) {
+        for (var i = 0; i < (list || []).length; i++) {
+          var c = list[i] && list[i].commit;
+          if (c && /^Audio:/.test(c.message || '')) return new Date((c.committer || c.author || {}).date);
+        }
+        return null;
+      })
+      .catch(function () { return null; });
+  }
+  function agoText(d) {
+    var m = Math.round((Date.now() - d.getTime()) / 60000);
+    if (m < 2) return 'just now';
+    if (m < 90) return m + ' minutes ago';
+    if (m < 60 * 36) return Math.round(m / 60) + ' hours ago';
+    return Math.round(m / 1440) + ' days ago';
+  }
+  function nextDailyRun() {                        // the workflow runs every day at 09:30 UTC
+    var n = new Date(), t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 9, 30));
+    if (t.getTime() <= n.getTime()) t = new Date(t.getTime() + 86400000);
+    return t;
+  }
+  function dayWord(d) {
+    var n = new Date(), a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(), b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var diff = Math.round((b - a) / 86400000);
+    return diff <= 0 ? 'today' : diff === 1 ? 'tomorrow' : d.toLocaleDateString(undefined, { weekday: 'long' });
+  }
+  function hhmm(d) { return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function auditRoute(t, lyd) {
+    var base = String(t.fil).replace(/\.[^.]+$/, '');
+    return Promise.all([latestText('ture/' + t.fil), jsonOrNull('ture/' + base + '.audio.json')]).then(function (r) {
+      var stops = stopsOfText(r[0]), man = r[1], vNow = voiceNow(lyd, man);
+      var items = stops.map(function (s, i) { var a = auditStop(man, s, i, vNow); a.name = s.name; a.n = i + 1; a.chars = stopPlain(s, i).length; return a; });
+      return { t: t, base: base, items: items };
+    }).catch(function (e) { return { t: t, base: base, error: (e && e.message) || 'The route could not be read.' }; });
+  }
+  function checkAudioStatus() {
+    if (audioBusy) return;
+    var msg = $('audioMsg'), sum = $('audioSummary'), box = $('audioRoutes');
+    if (!window.fetch) return;
+    if (!existing.length) { msg.className = 'status bad'; msg.textContent = 'No routes are listed yet. Wait a moment for the route list to load, or connect GitHub below.'; return; }
+    audioBusy = true; $('audioCheck').disabled = true; sum.innerHTML = ''; box.innerHTML = '';
+    msg.className = 'status'; msg.textContent = 'Checking\u2026';
+    Promise.all([jsonOrNull('tools/lyd.json'), jsonOrNull('ture/audio-batch.json'), lastAudioCommit()]).then(function (meta) {
+      var lyd = meta[0], bst = meta[1], lastRun = meta[2], results = [], next = 0, done = 0;
+      function worker() {
+        if (next >= existing.length) return Promise.resolve();
+        var t = existing[next++];
+        return auditRoute(t, lyd).then(function (res) { results.push(res); done++; msg.textContent = 'Checking ' + done + ' of ' + existing.length + '\u2026'; return worker(); });
+      }
+      return Promise.all([worker(), worker(), worker()]).then(function () { return { results: results, lyd: lyd, bst: bst, lastRun: lastRun }; });
+    }).then(function (d) {
+      var allow = !(d.lyd && d.lyd.batch === false) && !(d.bst && d.bst.bad >= 3 && d.bst.bad > d.bst.ok);
+      var todoStops = 0, requests = 0, routesWaiting = 0, failedStops = 0, unreadable = 0;
+      d.results.forEach(function (r) {
+        if (r.error) { unreadable++; return; }
+        var todo = [], chars = {};
+        r.items.forEach(function (it, i) { chars[i] = it.chars; if (it.k === 'missing' || it.k === 'changed' || it.k === 'older') todo.push(i); if (it.k === 'failed') failedStops++; });
+        r.todo = todo; r.ready = r.items.filter(function (it) { return it.k === 'ready' || it.k === 'own'; }).length;
+        r.requests = requestsFor(todo, chars, allow);
+        todoStops += todo.length; requests += r.requests; if (todo.length) routesWaiting++;
+      });
+      var tierOf = function (r) { return accessOf(r.t) === 'draft' ? 1 : 0; };
+      d.results.sort(function (a, b) {
+        var aw = a.todo && a.todo.length ? 0 : 1, bw = b.todo && b.todo.length ? 0 : 1;
+        return (aw - bw) || (tierOf(a) - tierOf(b)) || ((a.todo ? a.todo.length : 0) - (b.todo ? b.todo.length : 0)) || String(a.t.navn || a.t.fil).localeCompare(String(b.t.navn || b.t.fil));
+      });
+      function line(cls, html) { var p = document.createElement('div'); p.className = 'engine ' + cls; p.innerHTML = '<i></i><span></span>'; p.lastChild.textContent = html; return p; }
+      if (!todoStops) sum.appendChild(line('gemini', 'All ' + d.results.reduce(function (n, r) { return n + (r.items ? r.items.length : 0); }, 0) + ' stops in ' + (d.results.length - unreadable) + ' routes have audio.'));
+      else {
+        var days = Math.max(1, Math.ceil(requests / AUD.perDay)), nr = nextDailyRun();
+        sum.appendChild(line('wait', todoStops + (todoStops === 1 ? ' stop is' : ' stops are') + ' waiting for audio, in ' + routesWaiting + (routesWaiting === 1 ? ' route.' : ' routes.')));
+        sum.appendChild(line('', 'About ' + requests + (requests === 1 ? ' request' : ' requests') + ' needed' + (allow ? ' (several stops per request)' : ' (one request per stop)') + '. The free limit is about ' + AUD.perDay + ' a day, so this takes about ' + days + (days === 1 ? ' day' : ' days') + '. It goes on by itself. Next automatic run: ' + dayWord(nr) + ' about ' + hhmm(nr) + '. The stops are read with the phone voice until then.'));
+      }
+      if (failedStops) sum.appendChild(line('wait', failedStops + (failedStops === 1 ? ' stop' : ' stops') + ' could not be made and will not be tried again. Change their text and publish, or tell Claude.'));
+      if (unreadable) sum.appendChild(line('wait', unreadable + (unreadable === 1 ? ' route' : ' routes') + ' could not be read (see below).'));
+      if (d.bst && d.bst.bad >= 3 && d.bst.bad > d.bst.ok) sum.appendChild(line('wait', 'Several stops per request is switched off for now (' + d.bst.bad + ' cuts were refused, ' + d.bst.ok + ' were good). That uses more of the daily limit.'));
+      else if (d.bst && (d.bst.ok || d.bst.bad)) sum.appendChild(line('', 'Several stops per request: ' + d.bst.ok + ' good cuts, ' + d.bst.bad + ' refused.'));
+      sum.appendChild(line('', d.lastRun ? 'The audio job last saved audio ' + agoText(d.lastRun) + ' (' + d.lastRun.toLocaleString() + ').' : (gh.token ? 'No audio update found among the latest changes on GitHub.' : 'Connect GitHub (below) to see when the audio job last saved something.')));
+      if (!adminReady()) sum.appendChild(line('', 'Invite-only routes and drafts are not included, because the private list is not connected on this device.'));
+      var shownDone = [];
+      d.results.forEach(function (r) {
+        var name = r.t.navn || r.t.fil, acc = accessLabel(accessOf(r.t));
+        var det = document.createElement('details'); det.className = 'arow';
+        var sm = document.createElement('summary');
+        if (r.error) { sm.appendChild(line('wait', name + ' (' + acc + '): ' + r.error)); det.appendChild(sm); box.appendChild(det); return; }
+        var pending = r.todo.length + r.items.filter(function (it) { return it.k === 'failed' || it.k === 'own'; }).length;
+        sm.appendChild(line(pending ? 'wait' : 'gemini', name + ' (' + acc + '): ' + r.ready + ' of ' + r.items.length + ' stops have audio' + (r.todo.length ? ', ' + r.todo.length + ' waiting' : '') + (accessOf(r.t) === 'draft' && r.todo.length ? ' (drafts are made last)' : '')));
+        det.appendChild(sm);
+        r.items.forEach(function (it) { if (it.k === 'ready') return; det.appendChild(line('wait', it.n + '. ' + it.name + ': ' + it.text)); });
+        if (!pending) { det.className = 'arow done'; }
+        box.appendChild(det);
+      });
+      msg.className = 'status'; msg.textContent = 'Checked ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '.';
+    }).catch(function (e) { msg.className = 'status bad'; msg.textContent = 'Could not check. ' + ((e && e.message) || ''); })
+      .then(function () { audioBusy = false; $('audioCheck').disabled = false; });
+  }
+  $('audioCheck').addEventListener('click', checkAudioStatus);
 
   /* ---------- connection card: what is connected on this device ---------- */
   var hiddenInfo = { state: 'idle', msg: '' };
