@@ -5,7 +5,7 @@
     "908835e8",
     "5b3d11de",
     "d2fb9663",
-    "cd3c3322",
+    "ffe92907",
     "3c7b2072",
     "ed9cbd82",
     "45f35533",
@@ -20,10 +20,10 @@
   ],
   "spoken": [
     "d1667e3e",
-    "",
+    "509e8c41",
     "477121d3",
-    "",
-    "158043e2",
+    "9c428402",
+    "7806537b",
     "9f586018",
     "5493be4f",
     "6fc001cd",
@@ -33,14 +33,11 @@
     "5840516d",
     "d452845d",
     "0dc27e2d",
-    "",
-    ""
+    "aa3a22fd",
+    "318bee50"
   ],
   "engines": [
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "",
-    "gemini:gemini-3.8-flash-tts:Gacrux",
-    "",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
@@ -51,8 +48,11 @@
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "",
-    ""
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux"
   ],
   "failed": []
 }

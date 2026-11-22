@@ -1,6 +1,6 @@
 {
  "key": "eb61401f",
- "ok": 4,
+ "ok": 5,
  "bad": 3,
  "since": "2026-11-22",
  "last": "SplitError: the pause near 55 s is only 0.7 s long, too short to tell where a stop ends"
