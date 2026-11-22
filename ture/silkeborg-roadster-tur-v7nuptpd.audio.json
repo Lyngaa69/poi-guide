@@ -44,7 +44,8 @@
     "6ec3d6ec",
     "f3ac4ea9",
     "625ca8ab",
-    "4c8f6892"
+    "4c8f6892",
+    "6a4e98b1"
   ],
   "spoken": [
     "d1667e3e",
@@ -68,6 +69,7 @@
     "c5182a12",
     "295dc301",
     "63a3cbb9",
+    "9f38b78a",
     "",
     "",
     "",
@@ -93,6 +95,7 @@
     ""
   ],
   "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
