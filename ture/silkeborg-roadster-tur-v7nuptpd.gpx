@@ -113,6 +113,11 @@
 <wpt lat="56.092278" lon="9.439024"><name>Først til højre og så venstre lidt efter</name><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.121078" lon="9.463196"><name>Venstre</name><desc>Vi skal til venstre længere fremme</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.135455" lon="9.465717"><name>Bevogtet baneoverskæring</name><desc>Lidt fremme skal vi til venstre over en bevogtet baneoverskæring &lt;breath&gt;Kør forsigtigt</desc><extensions><radius xmlns="https://wayside.app/ns/1">75</radius></extensions></wpt>
+<wpt lat="56.146913" lon="9.467033"><name>Rundkørsler</name><desc>Med rundt til venstre i første rundkørsel, og til højre i den næste</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
+<wpt lat="56.148288" lon="9.477266"><name>Funder bakke</name><desc>Så går det ned af Funder bakke</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.153697" lon="9.504321"><name>Ubevogtet baneoverskæring</name><desc>Vær ekstra opmærksom. Vi skal over en ubevogtet baneoverskæring. Hold stille og kig dig for før du kører over. Vent på hinanden på den anden side</desc><extensions><radius xmlns="https://wayside.app/ns/1">75</radius></extensions></wpt>
+<wpt lat="56.150964" lon="9.503468"><name>Lille snoet vej</name><desc>Så er vi i Funderholme. Et super idyllisk lille område. Her er næsten kun sving, men vejen er smal så der skal køres langsomt. I har en lille å til at følge jer det meste af vejen, og ellers er den lille tur krydret med en gammel smedje, en put-and-take sø og en rideklub. God fornøjelse &lt;chuckle&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
+<wpt lat="56.136721" lon="9.499619"><name>Gjessø Bakke</name><desc>Så skal vi snart op ad Gjessø Bakke. Godt man ikke er på cykel &lt;grunt&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <trk>
 		<name>Silkeborg Roadster tur</name>
 		<trkseg>
