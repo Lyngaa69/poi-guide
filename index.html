@@ -545,9 +545,9 @@ body.driving { overflow: hidden; }
     <div class="row" style="margin-top:12px;">
       <button class="btn small" id="refreshBtn" type="button">Check for updates</button>
     </div>
-    <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. A change made in Studio can take a few minutes to reach this page.</p>
+    <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. Changes to routes can take a few minutes to show up here.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v24 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v25 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -811,7 +811,7 @@ body.driving { overflow: hidden; }
   }
   function parseGpx(xmlText) {
     var doc = new DOMParser().parseFromString(xmlText, 'application/xml');
-    if (doc.getElementsByTagName('parsererror').length) throw new Error('This file could not be read as GPX.');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('This route could not be read.');
     var wpts = doc.getElementsByTagName('wpt');
     var list = [];
     for (var i = 0; i < wpts.length; i++) {
@@ -833,8 +833,8 @@ body.driving { overflow: hidden; }
     opts = opts || {};
     if (!parsed.pois.length) {
       notify(parsed.track.length ?
-        'This file has a route but no stops, so there is nothing to read out. Stops (waypoints) must be added to the file first.' :
-        'This file has no stops (waypoints), so there is nothing to read out.');
+        'This route has no stops yet, so there is nothing to read out.' :
+        'This route has no stops, so there is nothing to read out.');
       return;
     }
     stopGuide();
@@ -859,7 +859,7 @@ body.driving { overflow: hidden; }
     updateNext();
     prepareAudio(opts.audioDir);
     var noDesc = pois.filter(function (p) { return !p.desc; }).length;
-    setStatus(noDesc ? noDesc + ' stop(s) have no description, so only the name is read out.' : '');
+    setStatus(noDesc ? (noDesc === 1 ? '1 stop has no text, so only its name is read out.' : noDesc + ' stops have no text, so only their names are read out.') : '');
     if (opts.osrm && !track.length) fetchRoute();
   }
 
@@ -1138,7 +1138,7 @@ body.driving { overflow: hidden; }
       if (res[1] === 'audio') said.push('new audio was fetched');
       if (res[0]) said.push('the list of routes changed');
       els.refreshInfo.textContent = said.length ? 'Found: ' + said.join(', ') + '.' :
-        'Everything is up to date. A change made in Studio can take a few minutes to reach this page.';
+        'Everything is up to date. Changes to routes can take a few minutes to show up here.';
     });
   }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkUpdates(false); });
@@ -1663,8 +1663,8 @@ body.driving { overflow: hidden; }
   function updateNavInfo() {
     var t;
     if (!pois.length) t = '';
-    else if (!Nav) t = 'Directions are off because the file nav.js did not load.';
-    else if (!prep) t = 'This route has no track, so it has no turn-by-turn directions.';
+    else if (!Nav) t = 'Directions are not available right now. Try reloading the page.';
+    else if (!prep) t = 'This route has no line to follow, so it has no turn-by-turn directions.';
     else t = turns.length ? turns.length + (turns.length === 1 ? ' turn' : ' turns') + ' on this route.' : 'No turns found on this route.';
     els.navInfo.textContent = t;
   }
@@ -1958,8 +1958,8 @@ body.driving { overflow: hidden; }
       followCar();
     }
     els.routeBtn.classList.toggle('hidden', trackSource === 'file' || trackSource === 'osrm');
-    var lineTxt = trackSource === 'file' ? 'The purple line follows the track in the GPX file. ' :
-      trackSource === 'osrm' ? 'The purple line is a calculated driving route between the stops (OpenStreetMap data via OSRM), not necessarily the road you take. ' :
+    var lineTxt = trackSource === 'file' ? 'The purple line shows the route. ' :
+      trackSource === 'osrm' ? 'The purple line is a calculated driving route between the stops, not necessarily the road you take. ' :
       'The dashed purple line is a straight line between the stops in file order, not the road. ';
     els.mapHint.textContent = lineTxt + routeNote +
       ' The blue dot is your position and the dashed circle is the trigger radius around the next stop. ' +

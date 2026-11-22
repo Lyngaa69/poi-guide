@@ -250,6 +250,11 @@ details.tips li { margin-bottom: 4px; }
     <p class="hint">Free Gemini has a daily limit (about 10 stops per day for the best model, shown in your own AI Studio). A new voice remakes every stop, so it can take several days. The rest is made automatically every morning.</p>
     <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 2.</p>
 
+    <h3>The &ldquo;Open Wayside&rdquo; button</h3>
+    <label class="field"><span>Open Wayside as</span><select id="myPerson"><option value="">Nobody (open Wayside without a code)</option></select></label>
+    <label class="field hidden" id="myCodeField"><span>Your invitation code</span><input type="text" id="myCodeText" autocomplete="off" autocapitalize="none" placeholder="the code from the People page"></label>
+    <p class="hint">An iPhone cannot open the Wayside app on your home screen from a link. The link opens Wayside in the browser instead, and the browser does not have the invitation codes that the app has. Choose yourself here, and the browser version opens with your routes too. To use the app itself, tap its icon on the home screen.</p>
+
     <h3>People and invitations</h3>
     <a class="tour" href="people.html" style="margin:8px 0 14px;">
       <span><span class="t-title">People</span><span class="t-desc">Invite people to routes and remove them again</span></span>
@@ -270,7 +275,7 @@ details.tips li { margin-bottom: 4px; }
     <span>Wayside Studio</span>
   </div>
   <div class="row" style="flex:none; flex-wrap:nowrap;">
-    <a class="btn small" href="index.html">Open Wayside</a>
+    <a class="btn small" id="openWayside" href="index.html">Open Wayside</a>
     <button class="iconbtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
@@ -294,7 +299,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v24 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v25 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -391,6 +396,9 @@ details.tips li { margin-bottom: 4px; }
       <label class="field"><span>File name (no spaces)</span><input type="text" id="fileName" autocomplete="off" autocapitalize="none"></label>
       <label class="field"><span>Route title shown in Wayside</span><input type="text" id="title" autocomplete="off"></label>
       <label class="field"><span>Short description</span><input type="text" id="desc" autocomplete="off"></label>
+      <p class="hint" style="margin-top:6px;">Filled in automatically: the length, then start and stop. Change it freely and add the places people pass, for example &ldquo;via Himmelbjerget&rdquo;. If you have written your own text, it is left alone.</p>
+      <div class="row"><button class="btn small" id="descFill" type="button">Fill in length, start and stop</button></div>
+      <p class="status" id="descMsg" role="status"></p>
       <label class="field"><span>Default trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
       <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 2.</p>
@@ -661,10 +669,11 @@ details.tips li { margin-bottom: 4px; }
     selected = -1;
     $('turnSens').value = 'normal'; turnSensWas = 'normal'; turnUndo = null; $('turnNote').classList.add('hidden');
     initTurns(doc);
+    scheduleAutoDesc();
     opts = opts || {};
     els.fileName.value = slug(opts.base || 'my-route') || 'my-route';
     els.title.value = opts.title || (opts.base || '').replace(/[-_]+/g, ' ');
-    els.desc.value = opts.desc || '';
+    els.desc.value = opts.desc || ''; autoDesc = ''; $('descMsg').textContent = '';
     els.radius.value = opts.radius || 300;
     els.adaptive.checked = opts.adaptive !== false;
     els.osrm.checked = opts.osrm != null ? !!opts.osrm : track.length < 2;
@@ -864,7 +873,7 @@ details.tips li { margin-bottom: 4px; }
       var d = JSON.parse(raw);
       var doc = parseGpx(d.rawXml);
       rawXml = d.rawXml; track = readTrack(doc); trackSource = track.length > 1 ? 'file' : ''; stops = d.stops || []; selected = -1;
-      els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || '';
+      els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || ''; autoDesc = ''; scheduleAutoDesc();
       els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; currentSource = d.source || 'new'; els.access.value = d.access || (d.visible === false ? 'draft' : (adminReady() ? 'invite' : 'open')); els.access.disabled = currentSource !== 'new'; updateAccessHint();
       els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
       initialSig = d.initialSig || signature();
@@ -996,6 +1005,7 @@ details.tips li { margin-bottom: 4px; }
         osrmRoute = j.routes[0];
         rebuildPrep();
         if (turnsEdited && navPrep) turns = Nav.place(navPrep, turns); else autoTurns(osrmRoute);
+        scheduleAutoDesc();
         renderAll(first);
         els.mapStatus.textContent = 'The purple line is a calculated driving route between your stops. It is saved in the route file when you publish, so Wayside does not need to look it up.';
       })
@@ -1249,6 +1259,79 @@ details.tips li { margin-bottom: 4px; }
     }, 300);
   }
   function updateWarn() { els.audioWarn.classList.toggle('hidden', !(hasAudio && signature() !== initialSig)); }
+
+  /* ---------- short description: filled in automatically (length, start, stop), then yours to edit ---------- */
+  var autoDesc = '', descTimer = null, geoCache = {}, descBusy = false;
+  function kmBetween(a, b) {
+    var R = 6371000, p1 = a[0] * Math.PI / 180, p2 = b[0] * Math.PI / 180, dp = p2 - p1, dl = (b[1] - a[1]) * Math.PI / 180;
+    var x = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+  }
+  function routeEnds() {                                    // [start, stop] as [lat, lon]; the track if there is one, otherwise the first and last stop
+    if (track.length > 1) return [track[0], track[track.length - 1]];
+    if (stops.length > 1) return [[stops[0].lat, stops[0].lon], [stops[stops.length - 1].lat, stops[stops.length - 1].lon]];
+    return null;
+  }
+  function routeKm() {                                      // whole kilometres along the route line, or 0 when there is no line yet
+    if (track.length < 2) return 0;
+    var m = 0;
+    for (var i = 1; i < track.length; i++) m += kmBetween(track[i - 1], track[i]);
+    return Math.max(1, Math.round(m / 1000));
+  }
+  function placeName(p) {
+    var key = p[0].toFixed(3) + ',' + p[1].toFixed(3);
+    if (geoCache[key]) return Promise.resolve(geoCache[key]);
+    return fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=da&lat=' + p[0].toFixed(5) + '&lon=' + p[1].toFixed(5))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var a = (j && j.address) || {};
+        var n = a.village || a.town || a.city || a.suburb || a.hamlet || a.neighbourhood || a.municipality || a.county || '';
+        if (n) geoCache[key] = n;
+        return n;
+      })
+      .catch(function () { return ''; });
+  }
+  function makeAutoDesc() {                                 // "23 km. Start: Silkeborg. Stop: Ry."
+    var ends = routeEnds(), km = routeKm();
+    if (!ends) return Promise.resolve('');
+    var keyA = ends[0][0].toFixed(3) + ',' + ends[0][1].toFixed(3), keyB = ends[1][0].toFixed(3) + ',' + ends[1][1].toFixed(3);
+    return placeName(ends[0]).then(function (a) {
+      var wait = (keyA === keyB || geoCache[keyB]) ? 0 : 1100;               // the place-name service asks for at most one request a second
+      return new Promise(function (res) { setTimeout(res, wait); }).then(function () { return placeName(ends[1]); }).then(function (b) { return [a, b]; });
+    }).then(function (n) {
+      var out = km ? km + ' km.' : '';
+      if (n[0] && n[1] && n[0] === n[1]) out += (out ? ' ' : '') + 'Start and stop: ' + n[0] + '.';
+      else if (n[0] || n[1]) out += (out ? ' ' : '') + 'Start: ' + (n[0] || '\u2026') + '. Stop: ' + (n[1] || '\u2026') + '.';
+      return out;
+    });
+  }
+  function descIsMine() { return els.desc.value !== '' && els.desc.value !== autoDesc; }
+  function scheduleAutoDesc() {                             // only while the field is empty or still holds exactly what was filled in
+    clearTimeout(descTimer);
+    descTimer = setTimeout(function () {
+      if (descIsMine() || descBusy) return;
+      descBusy = true;
+      makeAutoDesc().then(function (txt) {
+        descBusy = false;
+        if (descIsMine() || !txt) return;
+        els.desc.value = txt; autoDesc = txt; saveDraft();
+      }).catch(function () { descBusy = false; });
+    }, 1500);
+  }
+  var DESC_PREFIX = /^\s*(\d+ km\.\s*)?(Start and stop: .+?\.|Start: .+?\. Stop: .+?\.)(?=\s|$)\s*/;
+  $('descFill').addEventListener('click', function () {      // fill in again, and keep what you have written after it
+    var msg = $('descMsg'); msg.className = 'status'; msg.textContent = 'Looking up the places\u2026'; $('descFill').disabled = true;
+    makeAutoDesc().then(function (txt) {
+      if (!txt) { msg.className = 'status bad'; msg.textContent = 'Add stops or open a route with a line first, then try again.'; return; }
+      var cur = els.desc.value, out;
+      if (cur === '' || cur === autoDesc) out = txt;
+      else if (DESC_PREFIX.test(cur)) out = txt + ' ' + cur.replace(DESC_PREFIX, '');
+      else out = txt + ' ' + cur;
+      out = out.trim(); els.desc.value = out; autoDesc = out === txt ? txt : ''; saveDraft();
+      msg.textContent = /Start/.test(txt) ? 'Filled in. Add the places you pass, for example \u201Cvia Himmelbjerget\u201D.' : 'Only the length could be filled in. Add start and stop yourself.';
+    }).catch(function () { msg.className = 'status bad'; msg.textContent = 'Could not look up the places. Add start and stop yourself.'; })
+      .then(function () { $('descFill').disabled = false; });
+  });
 
   /* ---------- publish ---------- */
   function syncRadius() { els.radiusVal.textContent = els.radius.value + ' m'; }
@@ -1627,7 +1710,7 @@ details.tips li { margin-bottom: 4px; }
     lastFocus = document.activeElement;
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false');
     $('scrim').classList.add('on'); $('menuBtn').setAttribute('aria-expanded', 'true');
-    loadVoiceSettings();
+    loadVoiceSettings(); refreshMyPerson();
     setTimeout(function () { $('closeBtn').focus(); }, 30);
   }
   function closeMenu() {
@@ -1828,6 +1911,31 @@ details.tips li { margin-bottom: 4px; }
       .then(function () { audioBusy = false; $('audioCheck').disabled = false; });
   }
   $('audioCheck').addEventListener('click', checkAudioStatus);
+
+  /* ---------- the "Open Wayside" button: opens Wayside with your own invitation code ---------- */
+  function updateWaysideLink() {
+    var c = load('myCode') || '';
+    $('openWayside').href = c ? 'index.html#u=' + c : 'index.html';
+  }
+  function refreshMyPerson() {
+    var sel = $('myPerson'), saved = load('myCode') || '';
+    function setOptions(people) {
+      sel.innerHTML = '';
+      sel.appendChild(new Option('Nobody (open Wayside without a code)', ''));
+      var found = false;
+      people.forEach(function (p) { if (!p.code) return; sel.appendChild(new Option(p.name || p.code, p.code)); if (p.code === saved) found = true; });
+      if (saved && !found) sel.appendChild(new Option('A saved code (not in the list)', saved));
+      sel.value = saved;
+    }
+    setOptions([]);
+    $('myCodeField').classList.toggle('hidden', adminReady());
+    $('myCodeText').value = saved;
+    if (!adminReady() || !window.fetch) return;
+    Access.loadAdmin().then(function (a) { setOptions(a.model.people || []); }).catch(function () { $('myCodeField').classList.remove('hidden'); });
+  }
+  $('myPerson').addEventListener('change', function () { save('myCode', $('myPerson').value); $('myCodeText').value = $('myPerson').value; updateWaysideLink(); });
+  $('myCodeText').addEventListener('input', function () { var c = $('myCodeText').value.toLowerCase().replace(/[^a-z0-9]/g, ''); save('myCode', c); updateWaysideLink(); });
+  updateWaysideLink();
 
   /* ---------- connection card: what is connected on this device ---------- */
   var hiddenInfo = { state: 'idle', msg: '' };
