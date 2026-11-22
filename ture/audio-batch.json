@@ -1,7 +1,7 @@
 {
  "key": "eb61401f",
  "ok": 6,
- "bad": 5,
+ "bad": 6,
  "since": "2026-11-22",
- "last": "SplitError: the pause near 18 s is only 0.8 s long, too short to tell where a stop ends"
+ "last": "SplitError: there is no one clear pause where stop 1 should end (2.0 s against 1.9 s)"
 }
