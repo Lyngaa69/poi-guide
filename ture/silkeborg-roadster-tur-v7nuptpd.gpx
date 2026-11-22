@@ -10,10 +10,15 @@
 	
 
 
+
+
+
+
 <wpt lat="56.197730" lon="9.524751"><name>Start</name><desc>Vi mødes hos Gubsø Garage</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.172691" lon="9.527754"><name>Silkeborg Langsø</name><desc>Vi krydser Silkeborg Langsø, en af de mange søer i området der tilsammen udgør Søjhøjlandet</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.165805" lon="9.534942"><name>Lunden</name><desc>På venstre side passerer vi Lunden, som er et af flere udendørs forsamlingssteder i Silkeborg. Bag den tilhørende bygning skråner området ned mod søen og det store græsareal, der hvert år er vært for mange begivenheder såsom markeder, koncerter, streetfood festival og Silkeborg Automobil Festival kaldet Automania, som afholdes sidste i August.</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.170256" lon="9.554491"><name>Gudenåen</name><desc>Vi kører nu over Gudenåen, eller Remstrup Å, som den hedder på denne strækning. Der er en sluse til af få kanoer og mindre både igennem, og på venstre side ses stryget hvor vandet bruser ned forbi restauranterne og biografen længere nede af strømmen. Ret fremme ses Silkeborg Musikteater. Hele området på venstre side er nu moderniceret, men det var her Silkeborgs grundlægger Michael Drewsen grundlagde Silkeborg Papirfabrik og dermed Silkeborg by i 1844</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.169625" lon="9.555981"><name>Turbådene</name><desc>På højre hånd passerer vi nu turbådene der sejler på Silkeborg søerne. Mest kendt er naturligvis Hjejlen - verdens ældste originale kulfyrede hjuldamper i drift. Det blev bygget i 1861 på initiativ fra Michael Drewsen. Hjejlen har den bedste plads, på kajen ved siden af Hjejlekiosken, hvor mange turister og motorcykelfolk lægger vejen forbi om sommeren og får en gammeldavs isvaffel</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <trk>
 		<name>Silkeborg Roadster tur</name>
 		<trkseg>
