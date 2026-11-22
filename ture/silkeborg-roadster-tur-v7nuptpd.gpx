@@ -109,6 +109,9 @@
 <wpt lat="56.041013" lon="9.450401"><name>Vrads</name><desc>Så er vi inde i Vrads by &lt;long pause&gt; og stort set på vej ud igen</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.041321" lon="9.447941"><name>Til højre</name><desc>Så går det til højre over det flotte Vrads sande &lt;breath&gt; Husk at nyde den særprægede natur, men hold også godt øje med de hurtige sving</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.052512" lon="9.429767"><name>Sving og bakketur</name><desc>Nu går det så fra svingtur til kilderbakker &lt;giggle&gt; Hvis man er alt for frisk med højrefoden, kan man godt få lidt for meget luft under bilen</desc><extensions><radius xmlns="https://wayside.app/ns/1">75</radius></extensions></wpt>
+<wpt lat="56.071692" lon="9.385964"><name>Skarp højresving</name><desc>Se at få kastet ankeret, vi skal stoppe helt op, og derefter skarpt til højre &lt;chuckle&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
+<wpt lat="56.092278" lon="9.439024"><name>Først til højre og så venstre lidt efter</name><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.121078" lon="9.463196"><name>Venstre</name><desc>Vi skal til venstre længere fremme</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <trk>
 		<name>Silkeborg Roadster tur</name>
 		<trkseg>
