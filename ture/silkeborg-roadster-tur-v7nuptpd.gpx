@@ -19,12 +19,28 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <wpt lat="56.197730" lon="9.524751"><name>Start</name><desc>Vi mødes hos Gubsø Garage</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.172691" lon="9.527754"><name>Silkeborg Langsø</name><desc>Vi krydser Silkeborg Langsø, en af de mange søer i området der tilsammen udgør Søjhøjlandet</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.165805" lon="9.534942"><name>Lunden</name><desc>På venstre side passerer vi Lunden, som er et af flere udendørs forsamlingssteder i Silkeborg. Bag den tilhørende bygning skråner området ned mod søen og det store græsareal, der hvert år er vært for mange begivenheder såsom markeder, koncerter, streetfood festival og Silkeborg Automobil Festival kaldet Automania, som afholdes sidste i August.</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.170256" lon="9.554491"><name>Gudenåen</name><desc>Vi kører nu over Gudenåen, eller Remstrup Å, som den hedder på denne strækning. Der er en sluse til af få kanoer og mindre både igennem, og på venstre side ses stryget hvor vandet bruser ned forbi restauranterne og biografen længere nede af strømmen. Ret fremme ses Silkeborg Musikteater. Hele området på venstre side er nu moderniceret, men det var her Silkeborgs grundlægger Michael Drewsen grundlagde Silkeborg Papirfabrik og dermed Silkeborg by i 1844</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.169625" lon="9.555981"><name>Turbådene</name><desc>På højre hånd passerer vi nu turbådene der sejler på Silkeborg søerne. Mest kendt er naturligvis Hjejlen - verdens ældste originale kulfyrede hjuldamper i drift. Det blev bygget i 1861 på initiativ fra Michael Drewsen. Hjejlen har den bedste plads, på kajen ved siden af Hjejlekiosken, hvor mange turister og motorcykelfolk lægger vejen forbi om sommeren og får en gammeldavs isvaffel &lt;cheer&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
-<wpt lat="56.164512" lon="9.555792"><name>Flot vej</name><desc>Lige her efter tunnelen kommer der et stykke flot snoet vej frem mod Sejs by. Specielt  om foråret når bøgen springer ud er her virkeligt smukt &lt;sigh&gt; Vi har Gudenåen på vores højre hånd frem til Sejs, hvorefter den løber ud i Borre Sø og Brassø.</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.164512" lon="9.555792"><name>Flot vej</name><desc>Lige her efter tunnelen kommer der et stykke flot snoet vej frem mod Sejs by. Specielt om foråret når bøgen springer ud er her virkeligt smukt &lt;sigh&gt; Vi har Gudenåen på vores højre hånd frem til Sejs, hvorefter den løber ud i Borre Sø og Brassø.</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.145857" lon="9.588815"><name>De små fisk</name><desc>Området til højre hedder De Små Fisk, og er et yndet rekreativ område i sommerhalvåret primært for børnefamilier, men også alle andre der holder af at få dyppet tæerne i vandet</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.139851" lon="9.603284"><name>Sejs</name><desc>Et af de steder i Silkeborg hvor der findes pænt dyre huse ned til søerne &lt;chuckle&gt;selvfølgelig med egen badebro</desc><extensions><radius xmlns="https://wayside.app/ns/1">150</radius></extensions></wpt>
 <wpt lat="56.137665" lon="9.619915"><name>Sejs Skole</name><desc>Hjem for 850 elever fra Sejs og opland. Når eleverne går ud herfra, vælger en del af dem at søge ind til Silkeborg Gymnasium som er landets største med 20 spor og 1500 elever</desc><extensions><radius xmlns="https://wayside.app/ns/1">75</radius></extensions></wpt>
@@ -32,7 +48,7 @@
 <wpt lat="56.125510" lon="9.703568"><name>Udsigt</name><desc>Husk at nyde den flotte udsigt ud over søen på højre hånd lidt fremme på vej ned i Laven by</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.095959" lon="9.743667"><name>Endnu en bro</name><desc>Denne gang har vi Knudsø på venstre side, og Birksø på vores højre hånd &lt;breath&gt;Lige om lidt kører vi ind i Ry</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.092691" lon="9.754409"><name>Ry havn</name><desc>På højre hånd har vi Ry havn, hvor turbådene ligger til &lt;breath&gt;undervejs fra Silkeborg har de gjort flere stop, heriblandt ved Himmelbjerget</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
-<wpt lat="56.081467" lon="9.718393"><name>Gammel Ry</name><desc>Lidt længere fremme drejer vi til venstre ned i Gammel Rye</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.081467" lon="9.718393"><name>Gammel Ry til højre</name><desc>Lidt længere fremme drejer vi til venstre ned i Gammel Ry</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.073410" lon="9.697716"><name>Til højre</name><desc>&lt;breath&gt;Vi skal ud af Gammel Rye, og til højre lidt fremme</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.076734" lon="9.632821"><name>Højkol</name><desc>På højre hånd oppe i skoven. &lt;short pause&gt; &lt;breath&gt; Lige nord for Salten Langsø &lt;breath&gt; passerer vi det 735 hektar store skovgods Højkol, der blev skabt i 1900–1906 af F.L. Smidth-direktøren Poul Larsen som eksklusiv sommerresidens med herskabelig bindingsværksvilla og tårn. &lt;exhales&gt; Da sønnen, den senere trafikminister Gunnar Larsen, overtog godset i 1935, gik han skridtet videre for hurtig transport: Han anlagde Rye Flyveplads lige i nærheden, så han kunne flyve direkte mellem godset og København &lt;breath&gt; (flyvepladsen blev senere overtaget af tyskerne under 2. verdenskrig). I dag er Højkol fortsat i familiens eje som privat skovgods og sommerresidens.</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <trk>
