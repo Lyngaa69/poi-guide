@@ -122,7 +122,7 @@
 <wpt lat="56.120359" lon="9.565328"><name>Venstre lidt fremme</name><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.128567" lon="9.564076"><name>Snart ved mål</name><desc>Så er der ikke mange kilometer igen</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.148175" lon="9.556767"><name>Østre Søbad</name><desc>Sø kører vi snart forbi Østre Søbad. På en solrig dag er der fyldt op med mennesker der skal ned og bade, løbe om Almind sø, spille beach volley eller bare ligge på stranden og slikke sol. På sådan en dag er der fyldt op med biler i begge rabatter langs vejen, så vær ekstra opmærksom</desc><extensions><radius xmlns="https://wayside.app/ns/1">300</radius></extensions></wpt>
-<wpt lat="56.160446" lon="9.558095"><name>Indelukket</name><desc>Så er vi ved vejs ende. Vi holder på en parkeringsplads bag ved Indelukket. Indelukket er et rekreativt område op mod Gudenåen, der indeholder lystbådshavn, legeplads minigolf, restaurant, udendørs koncertområde, iskiosk med mere. Museum Jorn ligger lige her op ad p-pladsen, og i kort afstand herfra ligge AQUA Akvarium &amp; Dyrepark.</desc></wpt>
+<wpt lat="56.160446" lon="9.558095"><name>Indelukket</name><desc>Så er vi ved vejs ende. Vi holder på en parkeringsplads bag ved Indelukket. Indelukket er et rekreativt område op mod Gudenåen, der indeholder lystbådshavn, legeplads, minigolf, restaurant, udendørs koncertområde, iskiosk med mere. Museum Jorn ligger lige her op ad p-pladsen, og i kort afstand herfra ligge AQUA Akvarium &amp; Dyrepark.</desc></wpt>
 <trk>
 		<name>Silkeborg Roadster tur</name>
 		<trkseg>
