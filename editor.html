@@ -136,6 +136,7 @@ input[type=range] { width: 100%; height: 36px; accent-color: var(--sign); }
 .check input { width: 22px; height: 22px; accent-color: var(--sign); flex: none; }
 
 #map { width: 100%; height: 420px; border-radius: 12px; border: 1px solid var(--line); position: relative; isolation: isolate; background: var(--bg); margin-top: 10px; }
+#map { scroll-margin-top: 84px; }   /* when the page scrolls up to the map, keep it clear of the sticky top bar */
 .pin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; color: #fff; background: #0b61c4; font: 700 13px/24px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
 .pin.sel { background: #d9480f; transform: scale(1.2); }
 .results { display: grid; gap: 6px; margin-top: 8px; }
@@ -299,7 +300,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v30 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v32 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -392,6 +393,7 @@ details.tips li { margin-bottom: 4px; }
       <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
+      <div class="row" style="margin-top:6px;"><button class="btn small" id="lastStopBtn" type="button" disabled>Go to the last stop</button></div>
 
       <details class="tips" id="ghBox">
         <summary>GitHub connection: <span id="ghState">not set up</span></summary>
@@ -1111,7 +1113,7 @@ details.tips li { margin-bottom: 4px; }
       nm.addEventListener('input', function () { if (nm.value.trim()) t.name = nm.value.trim(); else delete t.name; turnsEdited = true; saveDraft(); });
       var act = document.createElement('div'); act.className = 'actions';
       var show = document.createElement('button'); show.type = 'button'; show.className = 'btn small'; show.textContent = 'Show on map';
-      show.addEventListener('click', function () { if (lmap) lmap.setView([t.lat, t.lon], Math.max(lmap.getZoom ? lmap.getZoom() : 14, 16)); selectTurn(i, false); });
+      show.addEventListener('click', function () { if (lmap) lmap.setView([t.lat, t.lon], atLeastZoom(16)); selectTurn(i, false); scrollToMap(); });
       var say = document.createElement('button'); say.type = 'button'; say.className = 'btn small'; say.textContent = 'Listen';
       say.addEventListener('click', function () {
         if (!('speechSynthesis' in window)) return;
@@ -1174,7 +1176,7 @@ details.tips li { margin-bottom: 4px; }
   function select(i, scroll) {
     selected = i;
     renderCards(); drawMap(false);
-    if (scroll && els.stopList.children[i]) els.stopList.children[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (scroll && els.stopList.children[i]) els.stopList.children[i].scrollIntoView({ behavior: motion(), block: 'center' });
   }
   function renderAll(fit) { renderCards(); renderTurns(); drawMap(!!fit); updateSummary(); updateWarn(); }
   function renderCards() {
@@ -1218,7 +1220,7 @@ details.tips li { margin-bottom: 4px; }
       function btn(label, fn, cls) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small' + (cls ? ' ' + cls : ''); b.textContent = label; b.addEventListener('click', fn); act.appendChild(b); return b; }
       var note = document.createElement('p'); note.className = 'hint listen-note'; note.setAttribute('role', 'status'); note.style.margin = '6px 0 0';
       var lb = btn('Listen', function () { listenTo(s, i, lb, note); });
-      btn('Show on map', function () { if (lmap) { lmap.setView([s.lat, s.lon], Math.max(lmap.getZoom ? lmap.getZoom() : 14, 15)); } select(i, false); });
+      btn('Show on map', function () { if (lmap) { lmap.setView([s.lat, s.lon], atLeastZoom(15)); } select(i, false); scrollToMap(); });
       if (!els.keepOrder.checked) {
         if (i > 0) btn('Move up', function () { move(i, -1); });
         if (i < stops.length - 1) btn('Move down', function () { move(i, 1); });
@@ -1241,10 +1243,28 @@ details.tips li { margin-bottom: 4px; }
     var t = stops[i]; stops[i] = stops[j]; stops[j] = t;
     selected = j; renderAll(false); saveDraft(); schedulePreview();
   }
+  function updateLastStopBtn() {
+    var b = $('lastStopBtn'), n = stops.length, nm = n ? String(stops[n - 1].name || '').trim() : '';
+    if (nm.length > 22) nm = nm.slice(0, 21) + '\u2026';
+    b.disabled = !n;
+    b.textContent = n ? 'Go to the last stop (' + n + (nm ? '. ' + nm : '') + ')' : 'Go to the last stop';
+  }
+  $('lastStopBtn').addEventListener('click', function () { if (stops.length) select(stops.length - 1, true); });   // marks it, and scrolls it into the middle of the screen
   function updateSummary() {
+    updateLastStopBtn();
     var empty = stops.filter(function (s) { return !s.text.trim(); }).length;
     els.summary.textContent = stops.length + (stops.length === 1 ? ' stop' : ' stops') +
       (empty ? ', ' + empty + ' without text (only the name will be read out).' : ', all with text.');
+  }
+  function motion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'; }   // gliding, unless the device asks for less movement
+  function atLeastZoom(n) {                        // the current zoom, but never less than n (a number, whatever the map says)
+    var z = lmap && lmap.getZoom ? lmap.getZoom() : 14;
+    return Math.max(typeof z === 'number' && !isNaN(z) ? z : 14, n);
+  }
+  function scrollToMap() {                         // "Show on map" moves the map into view too, so you do not have to scroll up to it
+    var m = els.map || $('map');
+    if (!m || !m.scrollIntoView) return;
+    m.scrollIntoView({ behavior: motion(), block: 'start' });
   }
   function speakStop(s, done) {
     if (!('speechSynthesis' in window)) { if (done) done(); return; }
