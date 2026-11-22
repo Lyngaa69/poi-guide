@@ -547,7 +547,7 @@ body.driving { overflow: hidden; }
     </div>
     <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. Changes to routes can take a few minutes to show up here.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v26 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v29 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -1885,7 +1885,9 @@ body.driving { overflow: hidden; }
   function ensureMap() {
     if (lmap) return true;
     if (!window.L) return false;
-    lmap = L.map('map', { zoomControl: false, maxZoom: 19 });
+    // Scroll-wheel zoom: Leaflet's standard setting zooms 1 to 4 whole levels for each click of a mouse wheel. Finer steps and a higher threshold give
+    // about half to one level per click. The + and - buttons still move one whole level. (Touch zoom is not affected.)
+    lmap = L.map('map', { zoomControl: false, maxZoom: 19, zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 120, wheelDebounceTime: 80 });
     if (L.control && L.control.zoom) L.control.zoom({ position: 'bottomright' }).addTo(lmap);
     var vec = null;
     if (webglOk()) {

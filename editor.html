@@ -299,7 +299,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v26 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v29 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -383,6 +383,12 @@ details.tips li { margin-bottom: 4px; }
         </select>
       </label>
       <p class="hint" id="accessHint" style="margin-top:2px;"></p>
+      <p class="hint" id="inviteText" style="margin-top:2px;"></p>
+      <details class="tips hidden" id="inviteBox" style="margin-top:8px;">
+        <summary id="inviteSummary">Invited</summary>
+        <div id="inviteList" style="margin-top:8px;"></div>
+      </details>
+      <div class="row hidden" id="inviteLinkRow" style="margin-top:8px;"><a class="btn small" href="people.html">Change on the People page</a></div>
       <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
@@ -680,6 +686,7 @@ details.tips li { margin-bottom: 4px; }
     els.osrm.checked = opts.osrm != null ? !!opts.osrm : track.length < 2;
     currentSource = opts.source || 'new';
     els.access.value = opts.access || (adminReady() ? 'invite' : 'open');
+    renderInvites(true);
     els.access.disabled = currentSource !== 'new';
     updateAccessHint();
     els.snap.checked = track.length >= 2;
@@ -790,7 +797,7 @@ details.tips li { margin-bottom: 4px; }
       sel.value = accessOf(t);
       sel.style.cssText = 'width:auto;min-height:40px;flex:1 1 170px;max-width:260px;';
       lab.appendChild(sel);
-      var badge = document.createElement('span'); badge.className = 'badge' + (accessOf(t) === 'open' ? '' : ' off'); badge.textContent = accessLabel(accessOf(t));
+      var badge = document.createElement('span'); badge.className = 'badge' + (accessOf(t) === 'open' ? '' : ' off'); badge.textContent = badgeText(t);
       sel.addEventListener('change', function () { changeAccess(t, sel, badge); });
       var del = document.createElement('button');
       del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Delete';
@@ -814,7 +821,9 @@ details.tips li { margin-bottom: 4px; }
         existing = list.filter(function (t) { return t && t.fil && String(t.fil).indexOf('/') === -1 && String(t.fil).indexOf('..') === -1; });
         renderExisting(); renderConn();
         if (!adminReady()) return;
-        return Access.hiddenRoutes().then(function (hidden) {                // invite-only routes and drafts, from the private list
+        return Access.loadAdmin().then(function (a) {                       // invite-only routes and drafts, from the private list
+          adminModel = a.model; adminModelAt = Date.now();
+          var hidden = a.model.routes.map(function (r) { var e = Access.entryOf(r); e._access = r.access; e._rid = r.rid; return e; });
           existing = existing.concat(hidden.filter(function (h) { return !existing.some(function (t) { return t.fil === h.fil; }); }));
           hiddenInfo = { state: 'ok', msg: '' }; renderExisting(); renderConn();
         }).catch(function (e) { hiddenInfo = { state: 'error', msg: e.message }; renderConn(); setStart('The invite-only routes could not be loaded: ' + e.message, true); });
@@ -839,7 +848,8 @@ details.tips li { margin-bottom: 4px; }
     });
     job.then(function () {
       if (want === 'open') { delete t.vis; delete t._access; } else if (legacy) t.vis = false;
-      badge.textContent = accessLabel(want); badge.className = 'badge' + (want === 'open' ? '' : ' off');
+      adminModel = null; badge.textContent = badgeText(t); badge.className = 'badge' + (want === 'open' ? '' : ' off');
+      if (adminReady()) ensureModel(true).then(function () { badge.textContent = badgeText(t); }).catch(function () { });
       setStart('"' + (t.navn || t.fil) + '" is now ' + (want === 'open' ? 'open to everyone' : want === 'invite' ? 'invite only. Give people access on the People page.' : 'a draft that nobody sees.') + ' The change shows up in about 3 minutes.');
       updateDeleteBox();
     }).catch(function (e) { revert(); setStart('Not saved. ' + e.message, true); })
@@ -883,7 +893,7 @@ details.tips li { margin-bottom: 4px; }
       if (navPrep && d.turnsEdited && Array.isArray(d.turns)) { turns = Nav.place(navPrep, d.turns); turnsEdited = true; selTurn = -1; }
       else initTurns(doc);
       els.start.classList.add('hidden'); els.editor.classList.remove('hidden');
-      syncRadius(); renderAll(true); checkAudio(); schedulePreview(50);
+      syncRadius(); renderAll(true); checkAudio(); schedulePreview(50); renderInvites(true);
     } catch (e) { setStart('The draft could not be restored.', true); }
   }
   els.resumeBtn.addEventListener('click', resumeDraft);
@@ -899,7 +909,9 @@ details.tips li { margin-bottom: 4px; }
   function ensureMap() {
     if (lmap) return true;
     if (!window.L) return false;
-    lmap = L.map('map');
+    // Scroll-wheel zoom: Leaflet's standard setting zooms 1 to 4 whole levels for each click of a mouse wheel (more with a smooth or free-spinning wheel).
+    // Finer steps and a higher threshold give about half to one level per click. The + and - buttons still move one whole level.
+    lmap = L.map('map', { zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 120, wheelDebounceTime: 80 });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(lmap);
     layer = L.layerGroup().addTo(lmap);
     lmap.setView([56, 10], 7);
@@ -1573,7 +1585,7 @@ details.tips li { margin-bottom: 4px; }
     if (secret) {
       Access.publishRoute(entry, gpxText, access)
         .then(function () {
-          currentSource = 'admin'; els.access.disabled = true; updateAccessHint(); saveDraft(); updateWarn();
+          currentSource = 'admin'; els.access.disabled = true; updateAccessHint(); saveDraft(); updateWarn(); adminModel = null; renderInvites(true);
           return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
         })
         .then(function () {
@@ -1938,6 +1950,76 @@ details.tips li { margin-bottom: 4px; }
   $('myPerson').addEventListener('change', function () { save('myCode', $('myPerson').value); $('myCodeText').value = $('myPerson').value; updateWaysideLink(); });
   $('myCodeText').addEventListener('input', function () { var c = $('myCodeText').value.toLowerCase().replace(/[^a-z0-9]/g, ''); save('myCode', c); updateWaysideLink(); });
   updateWaysideLink();
+
+  /* ---------- who is invited to a route: an overview under "Who can see this route" and a number on the route list ---------- */
+  var adminModel = null, adminModelAt = 0, inviteToken = 0;
+  function peopleFor(model, fil) {                          // everybody who has access to the route, and why
+    var rec = (model.routes || []).filter(function (r) { return r.fil === fil; })[0];
+    if (!rec) return null;
+    var out = [], emptyGroups = [], people = model.people || [], groups = model.groups || [];
+    people.forEach(function (p) {
+      var via = [], gs = [];
+      if ((p.routes || []).indexOf(rec.rid) !== -1) via.push('directly');
+      (p.groups || []).forEach(function (gid) {
+        groups.forEach(function (g) { if (g.id === gid && (g.routes || []).indexOf(rec.rid) !== -1) gs.push(g.name || '?'); });
+      });
+      if (gs.length) via.push((gs.length === 1 ? 'via the group ' : 'via the groups ') + gs.join(', '));
+      if (via.length) out.push({ name: p.name || '(no name)', via: via.join(' and ') });
+    });
+    groups.forEach(function (g) {
+      if ((g.routes || []).indexOf(rec.rid) !== -1 && !people.some(function (p) { return (p.groups || []).indexOf(g.id) !== -1; })) emptyGroups.push(g.name || '?');
+    });
+    out.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    return { rec: rec, people: out, emptyGroups: emptyGroups };
+  }
+  function ensureModel(force) {
+    if (!adminReady()) return Promise.resolve(null);
+    if (!force && adminModel && Date.now() - adminModelAt < 20000) return Promise.resolve(adminModel);
+    return Access.loadAdmin().then(function (a) { adminModel = a.model; adminModelAt = Date.now(); return adminModel; });
+  }
+  function badgeText(t) {                                   // "Invite only · 5" on the route list
+    var a = accessOf(t), label = accessLabel(a);
+    if (a === 'invite' && adminModel) {
+      var r = peopleFor(adminModel, t.fil);
+      if (r) label += ' \u00B7 ' + (r.people.length || 'nobody');
+    }
+    return label;
+  }
+  function peopleWord(n) { return n + (n === 1 ? ' person' : ' people'); }
+  function renderInvites(force) {
+    var box = $('inviteBox'), txt = $('inviteText'), row = $('inviteLinkRow'), list = $('inviteList');
+    var a = els.access.value, token = ++inviteToken;
+    function plain(msg, link) { box.classList.add('hidden'); txt.classList.remove('hidden'); txt.textContent = msg; row.classList.toggle('hidden', !link); }
+    if (a === 'open') { plain('Everyone can see this route.', false); return; }
+    if (a === 'draft') { plain('Nobody can see this route yet.', false); return; }
+    if (!adminReady()) { plain('The list of people is not set up on this device, so the invited people cannot be shown. Set it up on the People page.', true); return; }
+    if (currentSource === 'new') { plain('Nobody is invited yet. Give people access on the People page after you publish.', true); return; }
+    plain('Loading the list of invited people\u2026', false);
+    ensureModel(force).then(function (model) {
+      if (token !== inviteToken) return;
+      var r = peopleFor(model, currentBase() + '.gpx');
+      if (!r || !r.people.length) {
+        plain('Nobody is invited yet. Give people access on the People page.' + (r && r.emptyGroups.length ? ' The ' + (r.emptyGroups.length === 1 ? 'group ' : 'groups ') + r.emptyGroups.join(', ') + ' has this route, but nobody is in ' + (r.emptyGroups.length === 1 ? 'it' : 'them') + ' yet.' : ''), true);
+        return;
+      }
+      txt.classList.add('hidden'); box.classList.remove('hidden'); row.classList.remove('hidden');
+      $('inviteSummary').textContent = 'Invited: ' + peopleWord(r.people.length);
+      list.innerHTML = '';
+      r.people.forEach(function (p) {
+        var d = document.createElement('div'); d.style.cssText = 'display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--line);';
+        var n = document.createElement('b'); n.textContent = p.name; var v = document.createElement('span'); v.style.color = 'var(--muted)'; v.textContent = p.via;
+        d.appendChild(n); d.appendChild(document.createTextNode(' ')); d.appendChild(v); list.appendChild(d);
+      });
+      if (r.emptyGroups.length) { var g = document.createElement('p'); g.className = 'hint'; g.textContent = 'The ' + (r.emptyGroups.length === 1 ? 'group ' : 'groups ') + r.emptyGroups.join(', ') + ' has this route, but nobody is in ' + (r.emptyGroups.length === 1 ? 'it' : 'them') + ' yet.'; list.appendChild(g); }
+    }).catch(function (e) { if (token === inviteToken) plain('The list of invited people could not be loaded. ' + ((e && e.message) || ''), true); });
+  }
+  $('inviteBox').addEventListener('toggle', function () { if ($('inviteBox').open) renderInvitesKeepOpen(); });
+  function renderInvitesKeepOpen() {                        // opening the list reads the newest list of people (they may have been changed on the People page)
+    var token = inviteToken;
+    ensureModel(true).then(function () { if (token === inviteToken && $('inviteBox').open) { var wasOpen = true; renderInvites(false); $('inviteBox').open = wasOpen; } }).catch(function () { });
+  }
+  els.access.addEventListener('change', function () { renderInvites(false); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && !$('editor').classList.contains('hidden') && els.access.value === 'invite' && currentSource !== 'new') renderInvites(true); });
 
   /* ---------- connection card: what is connected on this device ---------- */
   var hiddenInfo = { state: 'idle', msg: '' };
