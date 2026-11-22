@@ -2,7 +2,7 @@
   "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
     "2b6f9a67",
-    "1a217eff",
+    "908835e8",
     "5b3d11de",
     "b4ad6e73",
     "cd3c3322",
@@ -20,7 +20,7 @@
   ],
   "spoken": [
     "d1667e3e",
-    "4530e2a6",
+    "",
     "477121d3",
     "176c7452",
     "158043e2",
@@ -38,7 +38,7 @@
   ],
   "engines": [
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
