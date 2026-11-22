@@ -248,7 +248,7 @@ details.tips li { margin-bottom: 4px; }
     </div>
     <p class="status" id="vStatus" role="status"></p>
     <p class="hint">Free Gemini has a daily limit (about 10 stops per day for the best model, shown in your own AI Studio). A new voice remakes every stop, so it can take several days. The rest is made automatically every morning.</p>
-    <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 2.</p>
+    <p class="hint"><a href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try voices and styles in Google AI Studio</a> (a new tab). Expressions such as &lt;breath&gt; are added per stop in step 3.</p>
 
     <h3>The &ldquo;Open Wayside&rdquo; button</h3>
     <label class="field"><span>Open Wayside as</span><select id="myPerson"><option value="">Nobody (open Wayside without a code)</option></select></label>
@@ -299,7 +299,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v25 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v26 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -364,35 +364,7 @@ details.tips li { margin-bottom: 4px; }
     </div>
 
     <div class="card">
-      <h2>2. Write the texts</h2>
-      <p class="hint" style="margin-top:0;">Leave a text empty if you want Claude to write it later. Wayside then only reads out the name.</p>
-      <p class="hint">With the Gemini voice you can add expressions such as &lt;breath&gt; or &lt;chuckle&gt; where the cursor is: pick one under a text and press Insert. The phone voice and the Listen button skip them.</p>
-      <div id="stopList"></div>
-      <p class="status" id="summary"></p>
-    </div>
-
-    <div class="card" id="turnCard">
-      <h2>3. Turn directions</h2>
-      <p class="hint" style="margin-top:0;">With directions switched on, Wayside shows an arrow and says &ldquo;In 300 metres, turn right&rdquo; along the route. The turns below are worked out from the shape of the track, because Wayside has no road map. Check them, and correct what is wrong. Wayside follows the route as planned and does not find another way.</p>
-      <p class="status" id="turnSummary" role="status"></p>
-      <p class="hint" id="turnInfo"></p>
-      <div id="turnNote" class="invitebox hidden" role="status" style="margin:10px 0;"><span id="turnNoteText"></span> <button class="btn small" id="turnUndo" type="button" style="margin-left:6px;">Undo</button></div>
-      <div id="turnList"></div>
-      <label class="field"><span>How many turns to look for</span>
-        <select id="turnSens">
-          <option value="normal">Normal: clear corners</option>
-          <option value="more">More: also gentle forks and tight bends (use it if turns are missing, then delete the extra ones)</option>
-        </select>
-      </label>
-      <div class="row" style="margin-top:12px;">
-        <button class="btn small" id="turnAdd" type="button">Add a turn</button>
-        <button class="btn small" id="turnReset" type="button">Calculate again</button>
-      </div>
-      <p class="hint" id="turnAddHint"></p>
-    </div>
-
-    <div class="card">
-      <h2>4. Publish to Wayside</h2>
+      <h2>2. Publish to Wayside</h2>
       <label class="field"><span>File name (no spaces)</span><input type="text" id="fileName" autocomplete="off" autocapitalize="none"></label>
       <label class="field"><span>Route title shown in Wayside</span><input type="text" id="title" autocomplete="off"></label>
       <label class="field"><span>Short description</span><input type="text" id="desc" autocomplete="off"></label>
@@ -401,7 +373,7 @@ details.tips li { margin-bottom: 4px; }
       <p class="status" id="descMsg" role="status"></p>
       <label class="field"><span>Default trigger radius: <b id="radiusVal"></b></span><input type="range" id="radius" min="50" max="600" step="25" value="300"></label>
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
-      <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 2.</p>
+      <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 3.</p>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads when the file has no track. It is saved in the route file, so Wayside does not have to look it up.</span></label>
       <label class="field"><span>Who can see this route</span>
         <select id="access">
@@ -452,6 +424,35 @@ details.tips li { margin-bottom: 4px; }
         <p class="hint">Then upload both to the <b>ture</b> folder in GitHub (Add file &gt; Upload files).</p>
       </details>
     </div>
+
+    <div class="card">
+      <h2>3. Write the texts</h2>
+      <p class="hint" style="margin-top:0;">Leave a text empty if you want Claude to write it later. Wayside then only reads out the name.</p>
+      <p class="hint">With the Gemini voice you can add expressions such as &lt;breath&gt; or &lt;chuckle&gt; where the cursor is: pick one under a text and press Insert. The phone voice and the Listen button skip them.</p>
+      <div id="stopList"></div>
+      <p class="status" id="summary"></p>
+    </div>
+
+    <div class="card" id="turnCard">
+      <h2>4. Turn directions</h2>
+      <p class="hint" style="margin-top:0;">With directions switched on, Wayside shows an arrow and says &ldquo;In 300 metres, turn right&rdquo; along the route. The turns below are worked out from the shape of the track, because Wayside has no road map. Check them, and correct what is wrong. Wayside follows the route as planned and does not find another way.</p>
+      <p class="status" id="turnSummary" role="status"></p>
+      <p class="hint" id="turnInfo"></p>
+      <div id="turnNote" class="invitebox hidden" role="status" style="margin:10px 0;"><span id="turnNoteText"></span> <button class="btn small" id="turnUndo" type="button" style="margin-left:6px;">Undo</button></div>
+      <div id="turnList"></div>
+      <label class="field"><span>How many turns to look for</span>
+        <select id="turnSens">
+          <option value="normal">Normal: clear corners</option>
+          <option value="more">More: also gentle forks and tight bends (use it if turns are missing, then delete the extra ones)</option>
+        </select>
+      </label>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn small" id="turnAdd" type="button">Add a turn</button>
+        <button class="btn small" id="turnReset" type="button">Calculate again</button>
+      </div>
+      <p class="hint" id="turnAddHint"></p>
+    </div>
+
   </section>
 </main>
 
@@ -826,7 +827,7 @@ details.tips li { margin-bottom: 4px; }
     var want = sel.value, was = accessOf(t);
     var revert = function () { sel.value = was; };
     if (want === was) return;
-    if (!gh.token || !gh.repo) { revert(); setStart('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true); return; }
+    if (!gh.token || !gh.repo) { revert(); setStart('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 2. You only need to do it once.', true); return; }
     var legacy = !adminReady() && (want === 'draft' || want === 'open') && !t._access;     // the old way: a flag in the public list
     if (!legacy && !adminReady()) {
       revert(); setStart('Set up the list of people first (People page in the menu). Then you can make routes invite-only.', true); return;
@@ -1068,7 +1069,7 @@ details.tips li { margin-bottom: 4px; }
     if (!Nav) { sum.textContent = 'Directions are off because the file nav.js did not load.'; return; }
     if (!navPrep) {
       sum.textContent = track.length > 1 ? 'The route is too short for directions.' :
-        'This route has no track yet, so it has no turn directions. Tick \"Draw a driving route along roads\" in the next step, or open a GPX file that has a track.';
+        'This route has no track yet, so it has no turn directions. Tick \"Draw a driving route along roads\" in step 2, or open a GPX file that has a track.';
       return;
     }
     if (!navCounts) navCounts = { normal: Nav.detectTurns(navPrep, { sensitivity: 'normal' }).length, more: Nav.detectTurns(navPrep, { sensitivity: 'more' }).length };
@@ -1477,6 +1478,7 @@ details.tips li { margin-bottom: 4px; }
       if (r.status === 401) msg = 'GitHub rejected the token. It may be wrong or expired. Create a new one.';
       else if (r.status === 403) msg = 'The token is not allowed to do this. It needs Contents: Read and write on this repository. ' + m;
       else if (r.status === 404) msg = 'The repository was not found. Check the name and that the token has access to it.';
+      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.';
       else msg = 'GitHub error ' + r.status + (m ? ': ' + m : '');
       var e = new Error(msg); e.status = r.status; throw e;
     });
@@ -1495,8 +1497,8 @@ details.tips li { margin-bottom: 4px; }
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     }).then(function (r) { if (!r.ok) return ghError(r); return r.json(); });
   }
-  function withRetry(fn) {            // one retry if the file changed while we were working
-    return fn().catch(function (e) { if (e.status === 409 || e.status === 422) return fn(); throw e; });
+  function withRetry(fn) {            // if something else was saved while we were working: start again from the newest version, a few times
+    return Access.retry(fn);
   }
   function putFile(path, text, message) {
     return withRetry(function () {
@@ -1642,7 +1644,7 @@ details.tips li { margin-bottom: 4px; }
       el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || '';
     };
     if (!gh.token || !gh.repo) {
-      say('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 3. You only need to do it once.', true);
+      say('Set up the GitHub connection first. Open a route and fill in "GitHub connection" under step 2. You only need to do it once.', true);
       return;
     }
     if (!window.confirm('Delete the route "' + (t.navn || fil) + '" from Wayside?\n\nThis removes ' + fil + ', its audio files and its entry in the route list. You can restore it later from the history on GitHub.')) return;
@@ -1756,7 +1758,7 @@ details.tips li { margin-bottom: 4px; }
     $('vPreset').value = match;
   });
   $('vSave').addEventListener('click', function () {
-    if (!gh.token || !gh.repo) { vStatus('Set up the GitHub connection first: open a route and fill in "GitHub connection" under step 3. You only do it once.', true); return; }
+    if (!gh.token || !gh.repo) { vStatus('Set up the GitHub connection first: open a route and fill in "GitHub connection" under step 2. You only do it once.', true); return; }
     var s = {
       provider: $('vProvider').value,
       model: $('vModel').value,

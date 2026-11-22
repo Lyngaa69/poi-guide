@@ -69,6 +69,7 @@
       if (r.status === 401) msg = 'GitHub rejected the token. It may be wrong or expired.';
       else if (r.status === 403) msg = 'The token is not allowed to do this. It needs "Contents: Read and write" on the repository. ' + m;
       else if (r.status === 404) msg = 'The repository or file was not found, or the token does not have access to it.';
+      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.';
       else msg = 'GitHub error ' + r.status + (m ? ': ' + m : '');
       throw err('HTTP', msg, r.status);
     });
@@ -91,7 +92,24 @@
     return req(repo, 'PUT', '/contents/' + encPath(path), body);
   }
   function listDir(repo, dir) { return reqOrNull(repo, '/contents/' + encPath(dir)).then(function (a) { return Array.isArray(a) ? a : []; }); }
-  function retry(fn) { return fn().catch(function (e) { if (e && (e.status === 409 || e.status === 422)) return fn(); throw e; }); }
+  /* Another save can land on GitHub in the middle of ours (most often the audio job saving new audio, or the publish of the route before this one).
+     GitHub then says "409" or "422 Update is not a fast forward". Nothing is wrong: start again from the newest version, a few times, with a short wait. */
+  function transient(e) {
+    var s = e && e.status;
+    return s === 409 || s === 422 || s === 502 || s === 503 || s === 504 || (!s && !!e && /Failed to fetch|NetworkError|Load failed/i.test(e.message || ''));
+  }
+  function retry(fn) {
+    var n = 0;
+    function go() {
+      return fn().catch(function (e) {
+        var waits = (global.Access && global.Access.retryDelays) || [];
+        if (!transient(e) || n >= waits.length) throw e;
+        var d = waits[n++];
+        return new Promise(function (res) { setTimeout(res, d); }).then(go);
+      });
+    }
+    return go();
+  }
 
   /* One commit: write files, delete files, rename files (keeping their content, so audio is not uploaded again). */
   function commitTree(repo, o) {
@@ -345,6 +363,6 @@
     splitBase: splitBase, baseOf: baseOf, entryOf: entryOf, routesOf: routesOf, routeIdsOf: routeIdsOf, personalFiles: personalFiles,
     emptyModel: emptyModel, loadAdmin: loadAdmin, saveAdmin: saveAdmin, checkAdmin: checkAdmin,
     publishModel: publishModel, setRouteAccess: setRouteAccess, publishRoute: publishRoute, deleteRoute: deleteRoute, hiddenRoutes: hiddenRoutes,
-    purgeRoute: purgeRoute, retry: retry, toB64: toB64, fromB64: fromB64
+    purgeRoute: purgeRoute, retry: retry, retryDelays: [400, 900, 1600, 2500, 4000], toB64: toB64, fromB64: fromB64
   };
 })(window);
