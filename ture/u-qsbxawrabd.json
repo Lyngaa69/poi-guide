@@ -29,6 +29,13 @@
    "beskrivelse": "4 km. Start: Hjem Stop: Zen Fitness.",
    "radius": 300,
    "adaptiv": true
+  },
+  {
+   "navn": "Silkeborg Roadster tur",
+   "fil": "silkeborg-roadster-tur-v7nuptpd.gpx",
+   "beskrivelse": "120 km. Start and stop: Silkeborg.",
+   "radius": 300,
+   "adaptiv": true
   }
  ]
 }
