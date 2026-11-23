@@ -515,7 +515,7 @@ def make_mp3_gemini(raw, out_mp3, settings, deadline=None):
 # where a stop should end, and stops of a length that fits their text. If not, the stops are made one by one, as before.
 BATCH_MAX_STOPS = int(os.environ.get('AUDIO_BATCH_STOPS', '6'))        # at most this many stops in one request (1 = never)
 BATCH_MAX_CHARS = int(os.environ.get('AUDIO_BATCH_CHARS', '2400'))     # and at most this many letters (about 3 minutes of speech)
-BATCH_NOTE = 'Read the sections one after the other as separate pieces. Leave a clear, silent pause of about two seconds between the sections.'
+BATCH_NOTE = 'Read the sections one after the other as separate pieces, with a clear silent pause where the pause tags are. Keep the usual pace and pauses inside each section.'
 GAP_MIN = 0.5            # a pause shorter than this (seconds) is part of the speech
 BOUNDARY_MIN = 0.9       # a pause between two stops must be at least this long
 FRAME = 0.02
@@ -559,38 +559,82 @@ def find_gaps(samples, rate):
             i += 1
     return gaps, len(rms) * FRAME
 
-def split_batch(samples, rate, chars):
-    """[(start, end) in seconds, one per stop], or SplitError. chars = the length of each stop's text."""
+def split_batch(samples, rate, chars, heads=None, info=None):
+    """[(start, end) in seconds, one per stop], or SplitError. chars = the length of each stop's text, heads = the length of each stop's first
+    sentence (its name). Gemini often pauses after the name too. That pause lies one name-length into the next stop, so a pause that is
+    followed by such a second pause is the end of a stop, and a lone pause one name-length after where a stop should end is not."""
     k = len(chars)
+    heads = list(heads) if heads else [0] * k
     gaps, dur = find_gaps(samples, rate)
     if len(gaps) < k - 1:
         raise SplitError('found %d pauses of %.1f s or more, but %d are needed between %d stops' % (len(gaps), GAP_MIN, k - 1, k))
     glen = [b - a for a, b in gaps]
     active = max(0.5, dur - sum(glen))
+    total = float(sum(chars)); per = active / total             # seconds of speech per letter
     before, acc = [], 0.0
     for a, b in gaps:
         before.append(a - acc); acc += b - a
-    total = float(sum(chars)); cum = 0; picks = []
+    # Does Gemini pause after the names? The first pause then lies one name-length from the start, long before the end of the first stop. That is
+    # measured from the start of the audio, so it does not depend on how fast the voice speaks. If it does pause after the names, there must be a pause
+    # after every name AND one between every two stops. With only the pauses after the names, the stops cannot be told apart and the batch is refused.
+    titles = False
+    if heads[0] and gaps:
+        x1, name_t, stop_t = before[0], per * heads[0], per * chars[0]
+        titles = abs(x1 - name_t) < abs(x1 - stop_t) and abs(x1 - name_t) <= max(0.6 * name_t, 1.0)
+        if titles and len(gaps) < 2 * k - 1:
+            raise SplitError('Gemini paused after the names but not clearly between the stops (%d pauses found, %d needed)' % (len(gaps), 2 * k - 1))
+    cum = 0; picks = []; name_like = 0
     for j in range(1, k):
-        cum += chars[j - 1]; want = active * cum / total
-        best = None
-        for gi, (a, b) in enumerate(gaps):
-            err = abs(before[gi] - want)
-            sc = err - 0.25 * min(b - a, 3.0)
-            if best is None or sc < best[0]: best = (sc, gi, err)
-        gi, err = best[1], best[2]
-        a, b = gaps[gi]
-        if b - a < BOUNDARY_MIN:
-            raise SplitError('the pause near %.0f s is only %.1f s long, too short to tell where a stop ends' % (a, b - a))
-        win = 0.5 * min(chars[j - 1], chars[j]) / total * active
-        if err > win:
-            raise SplitError('the clearest pause (%.0f s) is not where stop %d should end' % (a, j))
-        rivals = [b2 - a2 for g2, (a2, b2) in enumerate(gaps) if g2 != gi and abs(before[g2] - want) <= win]
-        if rivals and (b - a) < 1.4 * max(rivals):
-            raise SplitError('there is no one clear pause where stop %d should end (%.1f s against %.1f s)' % (j, b - a, max(rivals)))
-        picks.append(gi)
+        cum += chars[j - 1]; want = per * cum
+        win = 0.5 * min(chars[j - 1], chars[j]) * per
+        cands = [gi for gi in range(len(gaps)) if abs(before[gi] - want) <= win]
+        if not cands:
+            raise SplitError('there is no pause near %.0f s, where stop %d should end' % (want, j))
+        d = heads[j] * per                                      # how long the name of the next stop lasts
+        chosen = None
+        if heads[j]:
+            # The end of a stop is a pause that is followed, one name-length later, by the pause after the next stop's name. The best match wins.
+            scored = []
+            for gi in cands:
+                if glen[gi] < BOUNDARY_MIN: continue
+                e = gaps[gi][1]
+                errs = [abs(gaps[g2][0] - e - d) for g2 in range(len(gaps)) if g2 != gi and gaps[g2][0] >= e]
+                if errs and min(errs) <= 0.35 * d + 0.4:
+                    scored.append((min(errs) + 0.3 * abs(before[gi] - want), gi))
+            scored.sort()
+            if scored:
+                if len(scored) > 1 and scored[1][0] < scored[0][0] + 0.25:
+                    raise SplitError('there are several equally likely pauses where stop %d should end' % j)
+                chosen = scored[0][1]
+            elif titles:
+                raise SplitError('no pause where stop %d should end is followed by the pause after the next name' % j)
+        if chosen is None:
+            best = None
+            for gi in cands:
+                err = abs(before[gi] - want)
+                sc = err - 0.25 * min(glen[gi], 3.0)
+                if best is None or sc < best[0]: best = (sc, gi)
+            chosen = best[1]
+            if glen[chosen] < BOUNDARY_MIN:
+                raise SplitError('the pause near %.0f s is only %.1f s long, too short to tell where a stop ends' % (gaps[chosen][0], glen[chosen]))
+            rivals = [glen[g2] for g2 in cands if g2 != chosen]
+            if rivals and glen[chosen] < 1.4 * max(rivals):
+                raise SplitError('there is no one clear pause where stop %d should end (%.1f s against %.1f s)' % (j, glen[chosen], max(rivals)))
+            off = before[chosen] - want
+            if heads[j] and off >= 0.5 * d and abs(off - d) <= 0.35 * d + 0.4: name_like += 1
+        picks.append(chosen)
+    # If the pauses lie one name-length too late for (nearly) all the stops, they are the pauses after the names, and the stops have no gap between them.
+    if name_like >= (1 if k == 2 else max(2, int(0.75 * (k - 1) + 0.999))):
+        raise SplitError('the pauses lie where the names of the stops end, not where the stops end (%d of %d)' % (name_like, k - 1))
     if any(picks[i] >= picks[i + 1] for i in range(len(picks) - 1)):
         raise SplitError('the pauses came in a different order than the stops')
+    # The pauses between the stops are the ones that were asked for with the pause tags, so they must be clearly longer than all the other pauses.
+    others = sorted(glen[g] for g in range(len(gaps)) if g not in picks)
+    if others:
+        p75 = others[int(0.75 * (len(others) - 1))]
+        low = min(glen[g] for g in picks)
+        if low < 1.25 * p75:
+            raise SplitError('the pauses between the stops (%.1f s) are not clearly longer than the other pauses (%.1f s)' % (low, p75))
     segs, start = [], 0.0
     for gi in picks:
         end = min(gaps[gi][0] + 0.35, (gaps[gi][0] + gaps[gi][1]) / 2)
@@ -602,16 +646,24 @@ def split_batch(samples, rate, chars):
     for i, r in enumerate(rates):
         if segs[i][1] - segs[i][0] < 0.8 or r < 0.55 * med or r > 1.8 * med:
             raise SplitError('stop %d got %.1f s of audio for %d letters, which does not fit the other stops' % (i + 1, segs[i][1] - segs[i][0], chars[i]))
+    if info is not None: info.extend(glen[gi] for gi in picks)
     return segs, gaps
 
+def head_len(raw):                                                # the length of the first sentence of a stop (its name)
+    t = re.sub(r'<[^>]*>', '', gemini_text(raw)).strip()
+    return len(re.split(r'(?<=[.!?])\s', t, 1)[0])
+
+BATCH_SEP = '\n\n<long pause> <long pause>\n\n'                    # Gemini 3.8 TTS: <long pause> is an official pause tag; two in a row make a clear gap between stops
+
 def make_batch_gemini(raws, outs, settings, deadline=None):
-    text = '\n\n'.join(gemini_text(r) for r in raws)
+    text = BATCH_SEP.join(gemini_text(r) for r in raws)
     bs = dict(settings)
     st = settings['style'].strip()
     bs['style'] = (st + ' ' if st else '') + BATCH_NOTE
     data = gemini_wav(text, bs, deadline)
     samples, rate = pcm_of(data)
-    segs, gaps = split_batch(samples, rate, [plain_len(r) for r in raws])
+    plens = []
+    segs, gaps = split_batch(samples, rate, [plain_len(r) for r in raws], [head_len(r) for r in raws], plens)
     parts = []
     try:
         for out, (b, e) in zip(outs, segs):
@@ -627,27 +679,33 @@ def make_batch_gemini(raws, outs, settings, deadline=None):
     finally:
         for tmp, out in parts:
             if os.path.exists(tmp): os.remove(tmp)
-    return '%.0f s of audio, %d pauses, cut at %s' % (len(samples) / rate, len(gaps), ', '.join('%.1f s' % e for b, e in segs[:-1]))
+    return '%.0f s of audio, %d pauses, cut at %s, the pauses between the stops were %s' % (len(samples) / rate, len(gaps), ', '.join('%.1f s' % e for b, e in segs[:-1]), ', '.join('%.1f s' % x for x in plens))
 
 # ---------- how many requests are used, and where ----------
 BATCH_STATE = TURE / 'audio-batch.json'
+BATCH_STATE_VERSION = 2                                        # raise it when the way of cutting changes, so old counts do not count against the new way
 
 def batch_key(settings):
     return fnv1a(json.dumps([settings['model'], settings['voice'], settings['style']], ensure_ascii=False))
 
 def load_batch_state(settings):
-    fresh = {'key': batch_key(settings), 'ok': 0, 'bad': 0, 'since': time.strftime('%Y-%m-%d'), 'last': ''}
+    fresh = {'v': BATCH_STATE_VERSION, 'key': batch_key(settings), 'ok': 0, 'bad': 0, 'since': time.strftime('%Y-%m-%d'), 'last': ''}
     try:
         st = json.loads(BATCH_STATE.read_text(encoding='utf-8'))
         age = (time.time() - time.mktime(time.strptime(st.get('since', ''), '%Y-%m-%d'))) / 86400
-        if st.get('key') == fresh['key'] and age < 14:           # new voice settings, or two weeks old: try again from scratch
+        if st.get('v') == BATCH_STATE_VERSION and st.get('key') == fresh['key'] and age < 14:   # new voice settings, a new way of cutting, or two weeks old: try again from scratch
             fresh.update({k: st[k] for k in ('ok', 'bad', 'since', 'last') if k in st})
     except Exception:
         pass
     return fresh
 
+def batch_enough(st):
+    # A cut that works saves about four requests, one that is refused costs one. So it pays as long as about one cut in five works.
+    n = st['ok'] + st['bad']
+    return not ((st['ok'] == 0 and st['bad'] >= 3) or (n >= 6 and st['ok'] < 0.2 * n))
+
 def batch_allowed(settings, st):
-    return bool(settings.get('batch', True)) and BATCH_MAX_STOPS > 1 and not (st['bad'] >= 3 and st['bad'] > st['ok'])
+    return bool(settings.get('batch', True)) and BATCH_MAX_STOPS > 1 and batch_enough(st)
 
 def make_groups(p, allow):
     todo = list(p['todo'])
@@ -691,7 +749,7 @@ def generate_gemini(plans):
     if batch_on:
         print('Several stops per request: on (up to %d stops or %d letters per request). Earlier cuts: %d good, %d refused.' % (BATCH_MAX_STOPS, BATCH_MAX_CHARS, bstate['ok'], bstate['bad']))
     elif settings.get('batch', True) and BATCH_MAX_STOPS > 1:
-        print('::warning::Several stops per request is switched off for now: %d of the cuts were refused and %d were good (%s). One request per stop is used. It is tried again after two weeks or when the voice settings change.' % (bstate['bad'], bstate['ok'], bstate['last'][:100]))
+        print('::warning::Several stops per request is switched off for now: %d of the cuts were refused and only %d were good (%s). One request per stop is used. It is tried again after two weeks or when the voice settings change.' % (bstate['bad'], bstate['ok'], bstate['last'][:100]))
     else:
         print('Several stops per request: off. One request per stop.')
     plans, tier = prioritise(plans)
