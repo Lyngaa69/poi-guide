@@ -1,7 +1,8 @@
 {
+ "v": 2,
  "key": "eb61401f",
- "ok": 6,
- "bad": 7,
- "since": "2026-11-22",
- "last": "SplitError: there is no one clear pause where stop 1 should end (1.0 s against 1.4 s)"
+ "ok": 0,
+ "bad": 1,
+ "since": "2026-11-23",
+ "last": "SplitError: no pause where stop 3 should end is followed by the pause after the next name"
 }
