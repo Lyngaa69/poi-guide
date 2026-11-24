@@ -300,7 +300,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v33 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v34 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -336,13 +336,18 @@ details.tips li { margin-bottom: 4px; }
       <strong>Open a GPX file</strong>
       <span>For example the route you exported from Kurviger.</span>
     </label>
-    <button class="btn hidden" id="resumeBtn" type="button" style="margin-top:12px; width:100%;">Continue last draft</button>
+    <div id="draftBox" class="hidden" style="margin-top:14px;">
+      <p class="sectionlabel">Unpublished changes</p>
+      <p class="hint" style="margin-top:0;">Kept on this device only. Open one to carry on where you stopped. They are removed when you publish the route.</p>
+      <div id="draftList"></div>
+    </div>
     <div id="loadingBox" class="loading hidden" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="loadingText">Loading…</span></div>
     <p class="status" id="startStatus" role="status"></p>
   </section>
 
   <!-- Editor -->
   <section id="editor" class="hidden">
+    <div class="invitebox hidden" id="draftBanner" role="status" style="margin-bottom:12px;"><span id="draftBannerText"></span> <button class="btn small" id="draftUseBtn" type="button" style="margin-left:6px;">Use the published version instead</button></div>
     <div class="row" style="justify-content:space-between;">
       <button class="linkbtn" id="backBtn" type="button">&larr; Open another route</button>
       <span class="hint" id="sourceName" style="margin:0;"></span>
@@ -472,7 +477,7 @@ details.tips li { margin-bottom: 4px; }
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     start: $('start'), editor: $('editor'), file: $('file'), dropzone: $('dropzone'), startStatus: $('startStatus'),
-    existingBox: $('existingBox'), existingList: $('existingList'), resumeBtn: $('resumeBtn'),
+    existingBox: $('existingBox'), existingList: $('existingList'),
     backBtn: $('backBtn'), sourceName: $('sourceName'),
     searchBox: $('searchBox'), searchBtn: $('searchBtn'), results: $('results'),
     tapAdd: $('tapAdd'), snap: $('snap'), keepOrder: $('keepOrder'), mapStatus: $('mapStatus'),
@@ -696,6 +701,7 @@ details.tips li { margin-bottom: 4px; }
     els.sourceName.textContent = opts.label || '';
     sortStops();
     initialSig = signature();
+    curDraftKey = draftKeyNow(); publishedOnce = false; $('draftBanner').classList.add('hidden');
     els.start.classList.add('hidden');
     els.editor.classList.remove('hidden');
     window.scrollTo(0, 0);
@@ -703,6 +709,7 @@ details.tips li { margin-bottom: 4px; }
     renderAll(true);
     checkAudio();
     updateDeleteBox();
+    baseline = fp();                                       // what the route looks like when it is opened: only changes after this are yours
     saveDraft();
     els.mapStatus.textContent = track.length < 2 ?
       'This file has no track or route line, so a driving route is calculated from your stops once there are two or more.' : '';
@@ -730,7 +737,11 @@ details.tips li { margin-bottom: 4px; }
     r.onload = function () {
       busy('Preparing the route on the map…');
       setTimeout(function () {                       // let the browser show the message before the heavy part starts
-        try { openGpx(String(r.result), { base: f.name.replace(/\.gpx$/i, ''), label: f.name }); }
+        try {
+          var nm = slug(f.name.replace(/\.gpx$/i, '')) || 'my-route', old = draftGet(nm);
+          if (old && window.confirm('You already have unpublished changes saved under the name \u201C' + nm + '\u201D. Replace them with this file?') === false) { idle(); return; }
+          openGpx(String(r.result), { base: f.name.replace(/\.gpx$/i, ''), label: f.name });
+        }
         catch (e) { setStart(e.message, true); }
         idle();
       }, 60);
@@ -766,6 +777,21 @@ details.tips li { margin-bottom: 4px; }
       .then(function (t) { if (!t) throw new Error('empty'); return t; })
       .catch(function () { return site(); });
   }
+  function openExisting(t, skipDraft) {                      // a route that is already published; your unpublished changes to it come first
+    var key = String(t.fil).replace(/\.[^.]+$/, '');
+    if (!skipDraft && draftGet(key)) { resumeDraft(key); return; }
+    busy('Opening ' + (t.navn || t.fil) + '\u2026');
+    latestText('ture/' + t.fil)
+      .then(function (txt) {
+        busy('Preparing the route on the map\u2026');
+        return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
+          openGpx(txt, { base: key, title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', access: accessOf(t), source: t._access ? 'admin' : 'list', label: t.fil });
+          setStart('');
+          idle();
+        });
+      })
+      .catch(function (e) { idle(); setStart('Could not open the route. ' + e.message, true); });
+  }
   function renderExisting() {
     els.existingList.innerHTML = '';
     existing.forEach(function (t) {
@@ -776,19 +802,7 @@ details.tips li { margin-bottom: 4px; }
       left.appendChild(a);
       if (t.beskrivelse) { var d = document.createElement('span'); d.className = 't-desc'; d.textContent = t.beskrivelse; left.appendChild(d); }
       b.appendChild(left);
-      b.addEventListener('click', function () {
-        busy('Opening ' + (t.navn || t.fil) + '…');
-        latestText('ture/' + t.fil)
-          .then(function (txt) {
-            busy('Preparing the route on the map…');
-            return new Promise(function (res) { setTimeout(res, 60); }).then(function () {
-              openGpx(txt, { base: String(t.fil).replace(/\.[^.]+$/, ''), title: t.navn, desc: t.beskrivelse, radius: t.radius, adaptive: t.adaptiv, osrm: t.rute === 'osrm', access: accessOf(t), source: t._access ? 'admin' : 'list', label: t.fil });
-              setStart('');
-              idle();
-            });
-          })
-          .catch(function (e) { idle(); setStart('Could not open the route. ' + e.message, true); });
-      });
+      b.addEventListener('click', function () { openExisting(t, false); });
       var row = document.createElement('div'); row.className = 'routecard';
       row.appendChild(b);
       var tools = document.createElement('div'); tools.className = 'routetools';
@@ -870,40 +884,112 @@ details.tips li { margin-bottom: 4px; }
     });
   }
 
+  /* ---------- unpublished changes: one draft per route, kept on this device until you publish or throw it away ---------- */
+  var curDraftKey = '', baseline = '', publishedOnce = false, DRAFT = 'draft:';
+  function lsGet(k) { try { return window.localStorage.getItem('studio:' + k); } catch (e) { return null; } }
+  function lsDel(k) { try { window.localStorage.removeItem('studio:' + k); } catch (e) { } }
+  function draftKeyNow() { return slug(els.fileName.value) || 'my-route'; }
+  function draftGet(key) { try { var r = lsGet(DRAFT + key); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function draftKeys() {
+    var out = [];
+    try { for (var i = 0; i < window.localStorage.length; i++) { var k = window.localStorage.key(i); if (k && k.indexOf('studio:' + DRAFT) === 0) out.push(k.slice(('studio:' + DRAFT).length)); } } catch (e) { }
+    return out;
+  }
+  function fp() {                                          // what you have changed: texts, names, places, title, description, radius, and turns you edited yourself
+    return JSON.stringify([signature(), els.title.value, els.desc.value, els.radius.value, els.adaptive.checked, turnsEdited ? turns.map(function (t) { return [t.at, t.type, t.exit || 0, t.name || '']; }) : 0]);
+  }
+  function isDirty() { return (currentSource === 'new' && !publishedOnce) || fp() !== baseline; }
+  function quiet(fn) { var clean = !isDirty(); fn(); if (clean) baseline = fp(); }     // changes Studio makes by itself (the automatic description) are not yours
+  function migrateOldDraft() {                              // before v34 there was one draft for everything
+    var old = lsGet('draft');
+    if (!old) return;
+    try { var d = JSON.parse(old); d.baseline = ''; d.savedAt = new Date().toISOString(); lsDel('draft'); window.localStorage.setItem('studio:' + DRAFT + (slug(d.fileName || 'my-route') || 'my-route'), JSON.stringify(d)); } catch (e) { lsDel('draft'); }
+  }
   function saveDraft() {
     if (!rawXml) return;
-    save('draft', JSON.stringify({
-      rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
-      radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, access: els.access.value, source: currentSource,
-      snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig,
-      turns: turns, turnsEdited: turnsEdited, turnSens: $('turnSens').value
-    }));
-  }
-  function resumeDraft() {
-    var raw = load('draft');
-    if (!raw) return;
+    var key = draftKeyNow();
+    if (curDraftKey && curDraftKey !== key) lsDel(DRAFT + curDraftKey);                       // the route was renamed
+    curDraftKey = key;
+    if (!isDirty()) { lsDel(DRAFT + key); return; }                                           // nothing of yours to keep
     try {
-      var d = JSON.parse(raw);
+      window.localStorage.setItem('studio:' + DRAFT + key, JSON.stringify({
+        rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
+        radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, access: els.access.value, source: currentSource,
+        snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig,
+        turns: turns, turnsEdited: turnsEdited, turnSens: $('turnSens').value, baseline: baseline, savedAt: new Date().toISOString()
+      }));
+    } catch (e) { }
+  }
+  function markPublished() {                                // after a publish the draft has done its job
+    publishedOnce = true; baseline = fp();
+    if (curDraftKey) lsDel(DRAFT + curDraftKey);
+    lsDel(DRAFT + draftKeyNow());
+    $('draftBanner').classList.add('hidden');
+    renderDrafts();
+  }
+  function whenText(iso) { try { return new Date(iso).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+  function renderDrafts() {
+    var keys = draftKeys(), list = $('draftList'), box = $('draftBox'), rows = [];
+    keys.forEach(function (k) { var d = draftGet(k); if (d) rows.push({ k: k, d: d }); });
+    rows.sort(function (a, b) { return String(b.d.savedAt || '').localeCompare(String(a.d.savedAt || '')); });
+    list.innerHTML = '';
+    box.classList.toggle('hidden', !rows.length);
+    rows.forEach(function (r) {
+      var row = document.createElement('div'); row.className = 'routecard';
+      var go = document.createElement('button'); go.type = 'button'; go.className = 'tour'; go.style.cssText = 'flex:1;text-align:left;';
+      var a = document.createElement('span'); a.className = 't-title'; a.textContent = r.d.title || r.d.fileName || r.k;
+      var b = document.createElement('span'); b.className = 't-desc'; b.textContent = 'Saved ' + whenText(r.d.savedAt) + (r.d.source === 'new' ? ' \u00B7 not published yet' : ' \u00B7 changes not published yet');
+      go.appendChild(a); go.appendChild(document.createTextNode(' ')); go.appendChild(b);
+      go.addEventListener('click', function () { resumeDraft(r.k); });
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'btn small danger'; del.textContent = 'Discard'; del.style.marginLeft = '8px';
+      del.addEventListener('click', function () {
+        if (window.confirm('Throw away the unpublished changes to \\u201C' + (r.d.title || r.d.fileName || r.k) + '\\u201D? This cannot be undone.') === false) return;
+        lsDel(DRAFT + r.k); renderDrafts();
+      });
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;'; row.appendChild(go); row.appendChild(del); list.appendChild(row);
+    });
+  }
+  function showDraftBanner(d, fil) {
+    var bar = $('draftBanner');
+    if (!d || d.source === 'new') { bar.classList.add('hidden'); return; }
+    $('draftBannerText').textContent = 'You are looking at your unpublished changes (saved ' + whenText(d.savedAt) + '). Other people still see the published version until you press Publish.';
+    $('draftUseBtn').onclick = function () {
+      if (window.confirm('Throw away your unpublished changes and open the published version?') === false) return;
+      lsDel(DRAFT + draftKeyNow()); bar.classList.add('hidden');
+      var t = existing.filter(function (x) { return String(x.fil).replace(/\\.[^.]+$/, '') === draftKeyNow() || x.fil === fil; })[0];
+      if (t) openExisting(t, true); else { els.editor.classList.add('hidden'); els.start.classList.remove('hidden'); renderDrafts(); }
+    };
+    bar.classList.remove('hidden');
+  }
+  function resumeDraft(key) {
+    var d = draftGet(key);
+    if (!d) { setStart('The draft could not be found.', true); renderDrafts(); return; }
+    try {
       var doc = parseGpx(d.rawXml);
       rawXml = d.rawXml; track = readTrack(doc); trackSource = track.length > 1 ? 'file' : ''; stops = d.stops || []; selected = -1;
       els.fileName.value = d.fileName || 'my-route'; els.title.value = d.title || ''; els.desc.value = d.desc || ''; autoDesc = ''; scheduleAutoDesc();
-      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; currentSource = d.source || 'new'; els.access.value = d.access || (d.visible === false ? 'draft' : (adminReady() ? 'invite' : 'open')); els.access.disabled = currentSource !== 'new'; updateAccessHint();
+      els.radius.value = d.radius || 300; els.adaptive.checked = d.adaptive !== false; els.osrm.checked = !!d.osrm; currentSource = d.source || 'new';
+      els.access.value = d.access || (d.visible === false ? 'draft' : (adminReady() ? 'invite' : 'open'));
       els.snap.checked = !!d.snap; els.keepOrder.checked = !!d.keepOrder; els.sourceName.textContent = d.label || '';
       initialSig = d.initialSig || signature();
       $('turnSens').value = d.turnSens === 'more' ? 'more' : 'normal'; turnSensWas = $('turnSens').value;
       rebuildPrep();
       if (navPrep && d.turnsEdited && Array.isArray(d.turns)) { turns = Nav.place(navPrep, d.turns); turnsEdited = true; selTurn = -1; }
       else initTurns(doc);
-      els.start.classList.add('hidden'); els.editor.classList.remove('hidden');
-      syncRadius(); renderAll(true); checkAudio(); schedulePreview(50); renderInvites(true);
+      curDraftKey = key; publishedOnce = false; baseline = d.baseline == null ? '' : d.baseline;
+      els.access.disabled = currentSource !== 'new'; updateAccessHint();
+      els.start.classList.add('hidden'); els.editor.classList.remove('hidden'); window.scrollTo(0, 0);
+      syncRadius(); renderAll(true); checkAudio(); updateDeleteBox(); schedulePreview(50); renderInvites(true);
+      showDraftBanner(d, d.label);
     } catch (e) { setStart('The draft could not be restored.', true); }
   }
-  els.resumeBtn.addEventListener('click', resumeDraft);
-  if (load('draft')) els.resumeBtn.classList.remove('hidden');
+
+  migrateOldDraft();
+  renderDrafts();
 
   els.backBtn.addEventListener('click', function () {
     els.editor.classList.add('hidden'); els.start.classList.remove('hidden');
-    if (load('draft')) els.resumeBtn.classList.remove('hidden');
+    renderDrafts();
     window.scrollTo(0, 0);
   });
 
@@ -1402,7 +1488,8 @@ details.tips li { margin-bottom: 4px; }
       makeAutoDesc().then(function (txt) {
         descBusy = false;
         if (descIsMine() || !txt) return;
-        els.desc.value = txt; autoDesc = txt; saveDraft();
+        quiet(function () { els.desc.value = txt; autoDesc = txt; });
+        saveDraft();
       }).catch(function () { descBusy = false; });
     }, 1500);
   }
@@ -1660,7 +1747,7 @@ details.tips li { margin-bottom: 4px; }
     if (secret) {
       Access.publishRoute(entry, gpxText, access)
         .then(function () {
-          currentSource = 'admin'; els.access.disabled = true; updateAccessHint(); saveDraft(); updateWarn(); adminModel = null; renderInvites(true);
+          currentSource = 'admin'; els.access.disabled = true; updateAccessHint(); markPublished(); updateWarn(); adminModel = null; renderInvites(true);
           return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
         })
         .then(function () {
@@ -1673,7 +1760,7 @@ details.tips li { margin-bottom: 4px; }
     putFile('ture/' + entry.fil, gpxText, 'Studio: ' + entry.fil)
       .then(function () { dlMsg('Route file saved. Updating the route list…'); return updateList(entry); })
       .then(function () {
-        saveDraft(); updateWarn();
+        markPublished(); updateWarn();
         return ghGetFile('.github/workflows/make-audio.yml').catch(function () { return null; });
       })
       .then(function (wf) {
