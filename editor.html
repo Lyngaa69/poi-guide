@@ -301,7 +301,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v36 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v38 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -382,6 +382,8 @@ details.tips li { margin-bottom: 4px; }
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
       <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 3.</p>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads when the file has no track. It is saved in the route file, so Wayside does not have to look it up.</span></label>
+      <div class="row" style="margin-top:6px;"><button class="btn small" id="reroute" type="button" disabled>Calculate the driving route again</button></div>
+      <p class="hint" id="rerouteMsg" role="status" style="margin-top:6px;">Fetches the road between your stops again, with every corner, and saves it in the route file when you publish. Use it if the line in Wayside cuts corners across blocks. It replaces the line that is in the file now.</p>
       <label class="field"><span>Who can see this route</span>
         <select id="access">
           <option value="open">Everyone (open)</option>
@@ -503,6 +505,7 @@ details.tips li { margin-bottom: 4px; }
   var trackSource = '';       // 'file' = track from the GPX, 'osrm' = calculated preview
   var previewTimer = null, previewToken = 0;
   var Nav = window.WaysideNav || null;
+  var replaceTrack = false, rerouteWas = '';          // "Calculate the driving route again": the new road replaces the line in the file
   var turns = [], turnsEdited = false, selTurn = -1, addingTurn = false, navPrep = null, osrmRoute = null, turnSensWas = 'normal', turnUndo = null, navCounts = null;
 
   /* ---------- helpers ---------- */
@@ -540,16 +543,16 @@ details.tips li { margin-bottom: 4px; }
     for (var t = 0; t < tags.length; t++) {
       var nodes = doc.getElementsByTagName(tags[t]);
       if (nodes.length > 1) {
-        var step = Math.max(1, Math.ceil(nodes.length / 4000));
-        var pts = [];
-        for (var i = 0; i < nodes.length; i += step) {
+        var pts = [];                                          // every corner is kept; only points on straight and gently curved stretches are dropped
+        for (var i = 0; i < nodes.length; i++) {
           var la = parseFloat(nodes[i].getAttribute('lat')), lo = parseFloat(nodes[i].getAttribute('lon'));
           if (!isNaN(la) && !isNaN(lo)) pts.push([la, lo]);
         }
-        var ln = nodes[nodes.length - 1];
-        var ll = parseFloat(ln.getAttribute('lat')), lg = parseFloat(ln.getAttribute('lon'));
-        if (!isNaN(ll) && !isNaN(lg)) pts.push([ll, lg]);
-        return pts;
+        if (Nav && Nav.simplify) return Nav.simplify(pts, 1.5, 6000);
+        var step = Math.max(1, Math.ceil(pts.length / 4000)), thin = [];
+        for (var j = 0; j < pts.length; j += step) thin.push(pts[j]);
+        thin.push(pts[pts.length - 1]);
+        return thin;
       }
     }
     return [];
@@ -682,6 +685,7 @@ details.tips li { margin-bottom: 4px; }
     stops = readStops(doc);
     stops.forEach(function (s) { var i = snapInfo(s.lat, s.lon); s.pos = i ? i.pos : 0; });
     selected = -1;
+    replaceTrack = false; rerouteWas = ''; $('rerouteMsg').textContent = 'Fetches the road between your stops again, with every corner, and saves it in the route file when you publish. Use it if the line in Wayside cuts corners across blocks. It replaces the line that is in the file now.';
     $('turnSens').value = 'normal'; turnSensWas = 'normal'; turnUndo = null; $('turnNote').classList.add('hidden');
     initTurns(doc);
     scheduleAutoDesc();
@@ -1078,7 +1082,7 @@ details.tips li { margin-bottom: 4px; }
   /* ---------- driving-route preview (only when the file has no track) ---------- */
   function schedulePreview(delay) {
     clearTimeout(previewTimer);
-    if (trackSource === 'file') return;
+    if (trackSource === 'file' && !replaceTrack) return;
     if (!els.osrm.checked || stops.length < 2) {
       if (trackSource === 'osrm') { track = []; trackSource = ''; previewToken++; rebuildPrep(); turns = []; renderTurns(); drawMap(false); }
       return;
@@ -1086,7 +1090,7 @@ details.tips li { margin-bottom: 4px; }
     previewTimer = setTimeout(fetchPreview, delay == null ? 900 : delay);
   }
   function fetchPreview() {
-    if (trackSource === 'file' || stops.length < 2 || !window.fetch) return;
+    if ((trackSource === 'file' && !replaceTrack) || stops.length < 2 || !window.fetch) return;
     if (stops.length > 100) { els.mapStatus.textContent = 'Too many stops (over 100) to draw a driving route.'; return; }
     var token = ++previewToken;
     els.mapStatus.textContent = 'Drawing the driving route…';
@@ -1094,13 +1098,13 @@ details.tips li { margin-bottom: 4px; }
     fetch('https://router.project-osrm.org/route/v1/driving/' + coords + '?overview=full&geometries=geojson&steps=true')
       .then(function (r) { if (!r.ok) throw new Error('status ' + r.status); return r.json(); })
       .then(function (j) {
-        if (token !== previewToken || trackSource === 'file') return;
+        if (token !== previewToken || (trackSource === 'file' && !replaceTrack)) return;
         if (!j.routes || !j.routes.length) throw new Error('no route found');
         var g = j.routes[0].geometry.coordinates;
-        var step = Math.max(1, Math.ceil(g.length / 3000)), pts = [];
-        for (var i = 0; i < g.length; i += step) pts.push([g[i][1], g[i][0]]);
-        var last = g[g.length - 1]; pts.push([last[1], last[0]]);
-        var first = trackSource !== 'osrm';
+        var all = g.map(function (c) { return [c[1], c[0]]; }), pts;       // the whole road, with every corner (it is saved in the route file)
+        if (Nav && Nav.simplify) pts = Nav.simplify(all, 1.5, 6000);
+        else { var step = Math.max(1, Math.ceil(all.length / 3000)); pts = []; for (var i = 0; i < all.length; i += step) pts.push(all[i]); pts.push(all[all.length - 1]); }
+        var first = trackSource !== 'osrm' && !rerouteWas;                   // (fetching the road again does not change your other settings)
         track = pts; trackSource = 'osrm';
         stops.forEach(function (s) { var inf = snapInfo(s.lat, s.lon); s.pos = inf ? inf.pos : 0; });
         if (first) { els.snap.checked = true; els.keepOrder.checked = true; }
@@ -1110,12 +1114,22 @@ details.tips li { margin-bottom: 4px; }
         scheduleAutoDesc();
         renderAll(first);
         els.mapStatus.textContent = 'The purple line is a calculated driving route between your stops. It is saved in the route file when you publish, so Wayside does not need to look it up.';
+        if (rerouteWas) { rerouteWas = ''; $('rerouteMsg').textContent = 'Done. The road now has ' + track.length + ' points, with every corner. It replaces the old line in the route file when you press Publish.'; saveDraft(); }
       })
       .catch(function (e) {
         if (token !== previewToken) return;
         els.mapStatus.textContent = 'The driving route could not be drawn (' + e.message + '). A dashed line between the stops is shown instead.';
+        if (rerouteWas) { trackSource = rerouteWas; rerouteWas = ''; replaceTrack = false; $('rerouteMsg').textContent = 'The road could not be fetched (' + e.message + '), so the line in the route file is unchanged. Try again in a moment.'; }
       });
   }
+
+  $('reroute').addEventListener('click', function () {
+    if (stops.length < 2) return;
+    rerouteWas = trackSource || 'osrm'; replaceTrack = true; els.osrm.checked = true; trackSource = '';
+    $('rerouteMsg').textContent = 'Fetching the road\u2026';
+    fetchPreview();
+  });
+  function updateRerouteBtn() { $('reroute').disabled = stops.length < 2; }
 
   /* ---------- turn directions ---------- */
   function rebuildPrep() {
@@ -1338,7 +1352,7 @@ details.tips li { margin-bottom: 4px; }
   }
   $('lastStopBtn').addEventListener('click', function () { if (stops.length) select(stops.length - 1, true); });   // marks it, and scrolls it into the middle of the screen
   function updateSummary() {
-    updateLastStopBtn();
+    updateLastStopBtn(); updateRerouteBtn();
     var empty = stops.filter(function (s) { return !s.text.trim(); }).length;
     els.summary.textContent = stops.length + (stops.length === 1 ? ' stop' : ' stops') +
       (empty ? ', ' + empty + ' without text (only the name will be read out).' : ', all with text.');
@@ -1541,6 +1555,9 @@ details.tips li { margin-bottom: 4px; }
     Array.prototype.slice.call(root.children).forEach(function (c) {
       if ((c.localName || c.nodeName).toLowerCase() === 'wpt') root.removeChild(c);
     });
+    if (replaceTrack && trackSource === 'osrm' && track.length > 1) {        // the road that was fetched again replaces the old line
+      Array.prototype.slice.call(root.children).forEach(function (c) { var n = (c.localName || c.nodeName).toLowerCase(); if (n === 'rte' || n === 'trk') root.removeChild(c); });
+    }
     var anchor = null;
     for (var i = 0; i < root.children.length; i++) {
       var ln = (root.children[i].localName || root.children[i].nodeName).toLowerCase();

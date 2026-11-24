@@ -25,6 +25,38 @@
     return d === -180 ? 180 : d;
   }
 
+  /* ---------- fewer points, the same line ----------
+     Douglas-Peucker: a point is kept if it sticks out more than tolM metres from the straight line between the points around it. So every corner is kept,
+     and only the points along straight and gently curved stretches are dropped. If there are still more than maxPts points, the tolerance is raised until there are not. */
+  function simplify(pts, tolM, maxPts) {
+    var n = pts.length;
+    if (n <= 2) return pts.slice();
+    var lat0 = pts[0][0], lon0 = pts[0][1], kx = 111320 * Math.cos(lat0 * RAD), ky = 110540, X = new Array(n), Y = new Array(n), i;
+    for (i = 0; i < n; i++) { X[i] = (pts[i][1] - lon0) * kx; Y[i] = (pts[i][0] - lat0) * ky; }
+    function run(tol) {
+      var keep = new Uint8Array(n), stack = [0, n - 1], cnt = 2;
+      keep[0] = 1; keep[n - 1] = 1;
+      while (stack.length) {
+        var hi = stack.pop(), lo = stack.pop();
+        if (hi - lo < 2) continue;
+        var ax = X[lo], ay = Y[lo], dx = X[hi] - ax, dy = Y[hi] - ay, l2 = dx * dx + dy * dy, best = -1, bd = -1;
+        for (var k = lo + 1; k < hi; k++) {
+          var px = X[k] - ax, py = Y[k] - ay, d;
+          if (l2 === 0) d = Math.sqrt(px * px + py * py);
+          else { var u = Math.max(0, Math.min(1, (px * dx + py * dy) / l2)), qx = px - u * dx, qy = py - u * dy; d = Math.sqrt(qx * qx + qy * qy); }
+          if (d > bd) { bd = d; best = k; }
+        }
+        if (bd > tol) { keep[best] = 1; cnt++; stack.push(lo, best, best, hi); }
+      }
+      return { keep: keep, cnt: cnt };
+    }
+    var tol = tolM || 1.5, r = run(tol);
+    while (maxPts && r.cnt > maxPts && tol < 500) { tol *= 1.5; r = run(tol); }
+    var out = [];
+    for (i = 0; i < n; i++) if (r.keep[i]) out.push(pts[i]);
+    return out;
+  }
+
   /* ---------- a track with distances along it ---------- */
   function prepare(pts) {
     var out = [], cum = [], total = 0;
@@ -345,7 +377,7 @@
   var api = {
     NS: NS, TYPES: TYPES, LABEL: LABEL,
     dist: dist, bearing: bearing, angDiff: angDiff,
-    prepare: prepare, pointAtS: pointAtS, locate: locate,
+    prepare: prepare, pointAtS: pointAtS, locate: locate, simplify: simplify,
     detectTurns: detectTurns, turnsFromOsrm: turnsFromOsrm, place: place,
     say: say, actionText: actionText, distWords: distWords, offRouteText: offRouteText, backOnText: backOnText, arrivedText: arrivedText,
     turnsFromDoc: turnsFromDoc, writeTurns: writeTurns, lead: lead

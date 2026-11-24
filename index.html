@@ -329,6 +329,13 @@ body.driving { overflow: hidden; }
   display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px;
   background: var(--surface); border: 2px solid var(--sign); box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
 }
+#driveMap { position: absolute; inset: 0; pointer-events: auto; background: var(--bg); }
+.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { margin-bottom: var(--bar-h, 170px); }
+.voicehint {
+  position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 95; min-height: 52px; font-weight: 700;
+  background: #b3261e; color: #fff; border: 2px solid #fff; border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); cursor: pointer; font-size: 1rem; padding: 10px 14px;
+}
+body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
 .carwrap { width: 34px; height: 34px; }
 .carwrap svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
 </style>
@@ -463,7 +470,10 @@ body.driving { overflow: hidden; }
 
 <div class="updatebar hidden" id="updateBar" role="status"><span id="updateText"></span><button class="btn small" id="updateBtn" type="button">Reload</button></div>
 
+<button class="voicehint hidden" id="voiceHint" type="button">The voice is not on yet. Tap here to turn it on.</button>
+
 <div id="drive" aria-label="Map view">
+  <div id="driveMap" class="hidden" aria-label="Map, the direction you drive is up"></div>
   <div class="navcard hidden" id="navCard" role="status" aria-live="polite">
     <svg class="arrow" id="navArrow" viewBox="0 0 24 24" aria-hidden="true"></svg>
     <div>
@@ -547,7 +557,7 @@ body.driving { overflow: hidden; }
     </div>
     <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. Changes to routes can take a few minutes to show up here.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v36 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v38 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -588,6 +598,7 @@ body.driving { overflow: hidden; }
     driveBtn: $('driveBtn'), recenterBtn: $('recenterBtn'),
     navCard: $('navCard'), navArrow: $('navArrow'), navDist: $('navDist'), navText: $('navText'), navRoad: $('navRoad'),
     navOn: $('navOn'), navInfo: $('navInfo'), fullMap: $('fullMap'),
+    driveMap: $('driveMap'), voiceHint: $('voiceHint'),
     refreshBtn: $('refreshBtn'), refreshInfo: $('refreshInfo'), updateBar: $('updateBar'), updateText: $('updateText'), updateBtn: $('updateBtn')
   };
 
@@ -611,6 +622,8 @@ body.driving { overflow: hidden; }
   var nav = null;                           // where the car is along the route (see resetNav)
   var driveOn = false, mapKind = '', lastZoomAt = 0;
   var playTok = 0, navPending = 0, currentStop = -1;
+  var ttsChunk = 0, resumeInfo = null;     // where a story had got to when a turn instruction cut in, so it can go on from there
+  var speechOk = false, voiceHintShown = false, lastSpoken = '';   // has the phone's voice started at least once? If not, a tap is needed to turn it on
   var muteNav = false, muteStory = false;   // sound switches for this visit only (not remembered): directions voice, story voice
 
   /* ---------- audio files (optional per stop) ---------- */
@@ -629,6 +642,7 @@ body.driving { overflow: hidden; }
   }
   function stopAudio() {
     try { player.pause(); } catch (e) {}
+    player.onloadedmetadata = null;
     player.onended = null;
     player.onerror = null;
   }
@@ -692,7 +706,7 @@ body.driving { overflow: hidden; }
       return found;
     });
   }
-  function playAudio(p, text, done) {
+  function playAudio(p, text, done, fromTime) {
     var urls = [p.audioBlob, p.audioHref].filter(Boolean);
     var i = 0, finished = false;
     function end(fn) { finished = true; player.onended = null; player.onerror = null; fn(); }
@@ -702,6 +716,7 @@ body.driving { overflow: hidden; }
       player.onended = function () { end(done); };
       player.onerror = tryNext;
       player.src = urls[i++];
+      if (fromTime > 0 && i === 1) player.onloadedmetadata = function () { player.onloadedmetadata = null; try { player.currentTime = fromTime; } catch (e) { } };
       var pr = player.play();
       if (pr && pr.catch) pr.catch(function (e) { if (!(e && e.name === 'AbortError')) tryNext(); });
     }
@@ -765,16 +780,18 @@ body.driving { overflow: hidden; }
     for (var t = 0; t < tags.length; t++) {
       var nodes = doc.getElementsByTagName(tags[t]);
       if (nodes.length > 1) {
-        var step = Math.max(1, Math.ceil(nodes.length / 1500));
+        // The line on the map: every corner is kept (a point is dropped only if it lies within 1.5 m of the line between its neighbours). Taking every
+        // fifth point instead cut corners in town, so the line ran straight across blocks where the road turns.
         var pts = [];
-        for (var i = 0; i < nodes.length; i += step) {
+        for (var i = 0; i < nodes.length; i++) {
           var la = parseFloat(nodes[i].getAttribute('lat')), lo = parseFloat(nodes[i].getAttribute('lon'));
           if (!isNaN(la) && !isNaN(lo)) pts.push([la, lo]);
         }
-        var ln = nodes[nodes.length - 1];
-        var ll = parseFloat(ln.getAttribute('lat')), lg = parseFloat(ln.getAttribute('lon'));
-        if (!isNaN(ll) && !isNaN(lg)) pts.push([ll, lg]);
-        return pts;
+        if (Nav && Nav.simplify) return Nav.simplify(pts, 1.5, 6000);
+        var step = Math.max(1, Math.ceil(pts.length / 1500)), thin = [];
+        for (var j = 0; j < pts.length; j += step) thin.push(pts[j]);
+        thin.push(pts[pts.length - 1]);
+        return thin;
       }
     }
     return [];
@@ -1245,7 +1262,12 @@ body.driving { overflow: hidden; }
     var v = currentVoice();
     return !v || /^da/i.test(v.lang);
   }
-  function say(en, da) { if (muteNav && muteStory) return; speak(voiceIsDanish() ? da : en, null); }
+  function noteSpeechStarted() { speechOk = true; els.voiceHint.classList.add('hidden'); }
+  function checkVoice() {                                   // the voice did not start: ask for a tap, once
+    if (speechOk || voiceHintShown || !running || (muteNav && muteStory)) return;
+    voiceHintShown = true; els.voiceHint.classList.remove('hidden');
+  }
+  function say(en, da) { if (muteNav && muteStory) return; var t = voiceIsDanish() ? da : en; lastSpoken = t; speak(t, null); }
 
   function chunkText(text) {
     var parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
@@ -1256,21 +1278,27 @@ body.driving { overflow: hidden; }
     if (cur.trim()) out.push(cur);
     return out;
   }
-  function speak(text, done) {
+  function speak(text, done, from, track) {
     if (!('speechSynthesis' in window)) { setStatus('This browser cannot read text aloud.', true); if (done) done(); return; }
     var chunks = chunkText(text);
+    var start = from || 0;
+    if (start >= chunks.length) start = Math.max(0, chunks.length - 1);
+    if (track) ttsChunk = start;
     var v = currentVoice();
     chunks.forEach(function (c, idx) {
+      if (idx < start) return;
       var u = new SpeechSynthesisUtterance(c);
       u.lang = (v && v.lang) || 'da-DK';
       if (v) u.voice = v;
       u.rate = 1;
+      u.onstart = function () { noteSpeechStarted(); if (track) ttsChunk = idx; };
       if (idx === chunks.length - 1) {
         u.onend = function () { if (done) done(); };
         u.onerror = function () { if (done) done(); };
       }
       window.speechSynthesis.speak(u);
     });
+    if (!speechOk) setTimeout(checkVoice, 3000);
   }
   function enqueue(i) {
     if (queue.indexOf(i) === -1) queue.push(i);
@@ -1299,7 +1327,8 @@ body.driving { overflow: hidden; }
     p.read = true; p.skipped = false; p.muted = false;
     renderList();
     updateNext();
-    setStatus('Reading: ' + p.name + (queue.length ? ' (' + queue.length + ' more waiting)' : ''));
+    var from = resumeInfo && resumeInfo.i === i ? resumeInfo : null; resumeInfo = null;      // a story that a turn instruction cut short goes on from there
+    setStatus((from ? 'Continuing: ' : 'Reading: ') + p.name + (queue.length ? ' (' + queue.length + ' more waiting)' : ''));
     var text = p.desc ? (p.name + '. ' + p.desc) : p.name;
     var after = function () {
       if (tok !== playTok) return;                               // this story was cut short by a turn instruction
@@ -1307,8 +1336,8 @@ body.driving { overflow: hidden; }
       if (running) setStatus('Guide running. Waiting for the next stop.');
       pump();
     };
-    if (p.audioBlob) playAudio(p, text, after);
-    else speak(text, after);
+    if (p.audioBlob) playAudio(p, text, after, from && from.audio ? Math.max(0, from.t - 1) : 0);   // a second back, to catch the thread
+    else speak(text, after, from && !from.audio ? from.chunk : 0, true);                                 // the sentence that was cut starts again, not the whole text
   }
 
   /* ---------- GPS ---------- */
@@ -1350,6 +1379,7 @@ body.driving { overflow: hidden; }
       prevFix = { lat: cur.lat, lon: cur.lon, t: now };
     }
     navUpdate(c, good);
+    if (gl && glReady) glFollow(c);
     updateNext();
     renderList();
     var parts = ['GPS ±' + Math.round(c.accuracy || 0) + ' m'];
@@ -1453,6 +1483,7 @@ body.driving { overflow: hidden; }
   async function startGuide() {
     if (running || !pois.length) return;
     if (!('geolocation' in navigator)) { setStatus('This browser has no GPS access.', true); return; }
+    unlockAudio(); unlockSpeech();     // FIRST, inside the tap: an iPhone only allows sound and speech that start in the tap itself, not after something has been awaited
     var perm = await queryLocation();
     if (perm === 'denied') { setStatus('Placering er slået fra for Wayside. Se hjælpen herunder.', true); showLocHelp(); return; }
     hideLocHelp();
@@ -1481,6 +1512,7 @@ body.driving { overflow: hidden; }
     speaking = false;
     playTok++;
     navPending = 0;
+    resumeInfo = null;
     stopAudio();
     running = false;
     prevFix = null;
@@ -1517,7 +1549,7 @@ body.driving { overflow: hidden; }
     renderList();
     running = true;
     prevFix = null;
-    unlockAudio();
+    unlockAudio(); unlockSpeech();
     setStartUi(true);
     els.runBanner.classList.add('hidden');
     els.dimBtn.disabled = false;
@@ -1632,7 +1664,7 @@ body.driving { overflow: hidden; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         stopAudio();
         unlockAudio();
-        queue = []; speaking = false; playTok++;
+        queue = []; speaking = false; playTok++; resumeInfo = null;
         p.force = true;
         enqueue(i);
       });
@@ -1673,8 +1705,10 @@ body.driving { overflow: hidden; }
     if (muteNav || !('speechSynthesis' in window)) return;
     var resume = -1, done = false;
     navPending++;
-    if (interrupt && speaking) {                    // a story is being read: cut it, say the turn, then read the story again from its start
+    if (interrupt && speaking) {                    // a story is being read: pause it, say the turn, then go on from where it was
       resume = currentStop;
+      var rp = pois[currentStop];
+      resumeInfo = { i: currentStop, audio: !!(rp && rp.audioBlob), t: (player && player.currentTime) || 0, chunk: ttsChunk };
       playTok++; speaking = false; currentStop = -1;
       try { window.speechSynthesis.cancel(); } catch (e) { }
       stopAudio();
@@ -1687,9 +1721,11 @@ body.driving { overflow: hidden; }
     }
     var v = currentVoice(), u = new SpeechSynthesisUtterance(text);
     u.lang = (v && v.lang) || 'da-DK'; if (v) u.voice = v; u.rate = 1;
-    u.onend = finish; u.onerror = finish;
+    u.onend = finish; u.onerror = finish; u.onstart = noteSpeechStarted;
+    lastSpoken = text;
     setTimeout(finish, Math.max(6000, text.length * 130));
     window.speechSynthesis.speak(u);
+    if (!speechOk) setTimeout(checkVoice, 2500);
   }
   function navUpdate(c, good) {
     if (!Nav || !prep || !good || !nav) return;
@@ -1751,6 +1787,7 @@ body.driving { overflow: hidden; }
     els.driveStop.classList.toggle('stop', running);
     els.driveStop.classList.toggle('start', !running);
     els.driveDim.disabled = !running;
+    glRefresh();
     var card = els.navCard, show = navShown() && nav && (nav.off || nav.s != null || nav.loc);
     card.classList.toggle('hidden', !show);
     if (!show) return;
@@ -1828,24 +1865,141 @@ body.driving { overflow: hidden; }
   updateMuteUi();
 
   /* ---------- full-screen map ---------- */
+  /* ---------- the driving map: the direction you drive is UP ----------
+     In the full-screen view the map is drawn by MapLibre directly (it can turn). The page map under it stays a normal north-up Leaflet map.
+     If MapLibre or WebGL is missing, or the map does not load in 15 seconds, the full-screen view falls back to the north-up Leaflet map. */
+  var gl = null, glReady = false, glCar = null, glBearing = null, glTimer = null, glZoomAt = 0;
+  function glAvailable() {
+    try {
+      if (!window.maplibregl) return false;
+      var c = document.createElement('canvas');
+      return !!(c.getContext && (c.getContext('webgl2') || c.getContext('webgl')));
+    } catch (e) { return false; }
+  }
+  function circlePoly(lat, lon, r) {
+    var pts = [], kxm = 111320 * Math.cos(lat * Math.PI / 180), kym = 110540;
+    for (var a = 0; a <= 64; a++) { var t = a / 64 * 2 * Math.PI; pts.push([lon + r * Math.cos(t) / kxm, lat + r * Math.sin(t) / kym]); }
+    return pts;
+  }
+  var EMPTY = { type: 'FeatureCollection', features: [] };
+  function glRouteData() {
+    if (track.length < 2) return EMPTY;
+    return { type: 'Feature', geometry: { type: 'LineString', coordinates: track.map(function (p) { return [p[1], p[0]]; }) }, properties: {} };
+  }
+  function glStopsData() {
+    var next = nextIndex();
+    return { type: 'FeatureCollection', features: pois.map(function (p, i) {
+      return { type: 'Feature', geometry: { type: 'Point', coordinates: [p.lon, p.lat] }, properties: { st: i === next ? 'next' : (p.read ? 'read' : 'todo') } };
+    }) };
+  }
+  function glRadiusData() {
+    var i = nextIndex();
+    if (i < 0) return EMPTY;
+    var p = pois[i];
+    return { type: 'Feature', geometry: { type: 'LineString', coordinates: circlePoly(p.lat, p.lon, stopRadius(p, lastPos && lastPos.speed)) }, properties: {} };
+  }
+  function glTurnData() {
+    var nx = navNext();
+    if (!nx) return EMPTY;
+    return { type: 'Feature', geometry: { type: 'Point', coordinates: [nx.turn.lon, nx.turn.lat] }, properties: {} };
+  }
+  function glSet(id, data) { var s = gl.getSource(id); if (s) s.setData(data); }
+  function glRefresh() {
+    if (!gl || !glReady) return;
+    try { glSet('route', glRouteData()); glSet('stops', glStopsData()); glSet('radius', glRadiusData()); glSet('turn', glTurnData()); } catch (e) { }
+  }
+  function glStop() {
+    clearTimeout(glTimer);
+    if (gl) { try { gl.remove(); } catch (e) { } }
+    gl = null; glReady = false; glCar = null; glBearing = null;
+    els.driveMap.classList.add('hidden');
+  }
+  function glFail() { glStop(); if (driveOn) { els.map.classList.add('full'); refit(); } }
+  function glStart() {
+    if (gl) return true;
+    if (!glAvailable()) return false;
+    try {
+      els.driveMap.classList.remove('hidden');
+      var start = lastPos ? [lastPos.longitude, lastPos.latitude] : (track.length ? [track[0][1], track[0][0]] : (pois.length ? [pois[0].lon, pois[0].lat] : [10, 56]));
+      gl = new maplibregl.Map({ container: els.driveMap, style: MAP_STYLE, center: start, zoom: 15, bearing: 0, attributionControl: false, pitchWithRotate: false, touchPitch: false });
+      gl.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: MAP_CREDIT }));
+      gl.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+      if (gl.touchZoomRotate && gl.touchZoomRotate.disableRotation) gl.touchZoomRotate.disableRotation();   // two fingers only zoom: the turning is done by the driving direction
+      gl.on('load', function () {
+        if (!gl) return;
+        gl.addSource('route', { type: 'geojson', data: glRouteData() });
+        gl.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.9 } });
+        gl.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#7c3aed', 'line-width': 5.5 } });
+        gl.addSource('radius', { type: 'geojson', data: glRadiusData() });
+        gl.addLayer({ id: 'radius', type: 'line', source: 'radius', paint: { 'line-color': '#1b6fe0', 'line-width': 2, 'line-dasharray': [2, 2] } });
+        gl.addSource('stops', { type: 'geojson', data: glStopsData() });
+        gl.addLayer({ id: 'stops', type: 'circle', source: 'stops', paint: { 'circle-radius': ['case', ['==', ['get', 'st'], 'next'], 10, 7], 'circle-color': ['match', ['get', 'st'], 'next', '#d9480f', 'read', '#8a8f98', '#1b6fe0'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } });
+        gl.addSource('turn', { type: 'geojson', data: glTurnData() });
+        gl.addLayer({ id: 'turn', type: 'circle', source: 'turn', paint: { 'circle-radius': 9, 'circle-color': '#d9480f', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
+        var el = document.createElement('div'); el.className = 'carwrap';
+        el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 19-8-5-8 5z" fill="#1b6fe0" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
+        glCar = new maplibregl.Marker({ element: el, rotationAlignment: 'viewport' }).setLngLat(start).addTo(gl);
+        glReady = true; clearTimeout(glTimer);
+        if (lastPos) glFollow(lastPos);
+      });
+      gl.on('dragstart', function () { if (els.follow.checked) { els.follow.checked = false; save('follow', false); } });   // you moved the map yourself: it stays where you put it until you press the centre button
+      glTimer = setTimeout(function () { if (!glReady) glFail(); }, 15000);
+      return true;
+    } catch (e) { glStop(); return false; }
+  }
+  function driveBearing(c) {                                // the direction of travel: the GPS heading when moving, else the direction of the route, else the last one
+    if (typeof c.heading === 'number' && !isNaN(c.heading) && (c.speed || 0) > 1.5) return c.heading;
+    if (Nav && prep && nav && nav.s != null) {
+      var a = Nav.pointAtS(prep, nav.s), b = Nav.pointAtS(prep, Math.min(prep.total, nav.s + 40));
+      if (a && b && (a[0] !== b[0] || a[1] !== b[1])) return Nav.bearing(a[0], a[1], b[0], b[1]);
+    }
+    return glBearing != null ? ((glBearing % 360) + 360) % 360 : 0;
+  }
+  function glFollow(c) {
+    if (!gl || !glReady || !c) return;
+    var target = driveBearing(c), following = els.follow.checked;
+    if (glBearing == null) glBearing = target;
+    else glBearing += Nav.angDiff(((glBearing % 360) + 360) % 360, target) * 0.6;          // turns smoothly towards the new direction, the short way round
+    if (glCar) { glCar.setLngLat([c.longitude, c.latitude]); glCar.setRotation(following ? 0 : ((typeof c.heading === 'number' && !isNaN(c.heading) ? c.heading : target) - gl.getBearing())); }
+    if (!following) return;
+    var speed = c.speed, want = speed != null && speed > 22 ? 14 : speed != null && speed > 12 ? 15 : 16, now = Date.now();
+    var opts = { center: [c.longitude, c.latitude], bearing: glBearing, duration: 900, essential: true, offset: [0, Math.round(window.innerHeight * 0.16)] };   // the car sits below the middle, so there is more road ahead
+    var z = gl.getZoom();
+    if (typeof z === 'number' && Math.abs(z - want) >= 1 && now - glZoomAt > 20000) { opts.zoom = want; glZoomAt = now; }
+    gl.easeTo(opts);
+  }
+
+
   function refit() {
     setTimeout(function () { if (lmap) { try { lmap.invalidateSize(); } catch (e) { } } drawMap(); }, 60);
   }
   function enterDrive() {
     if (driveOn || !pois.length) return;
     driveOn = true; lastZoomAt = 0;
-    els.drive.classList.add('on'); els.map.classList.add('full'); document.body.classList.add('driving');
+    els.drive.classList.add('on'); document.body.classList.add('driving');
     var h = els.driveBar.offsetHeight;
     if (h > 0) document.documentElement.style.setProperty('--bar-h', h + 'px');
+    if (!glStart()) els.map.classList.add('full');          // the turning map, or (without MapLibre or WebGL) the north-up map
     renderDrive();
     refit();
   }
   function exitDrive() {
     if (!driveOn) return;
     driveOn = false;
+    glStop();
     els.drive.classList.remove('on'); els.map.classList.remove('full'); document.body.classList.remove('driving');
     refit();
   }
+  els.voiceHint.addEventListener('click', function () {      // a tap is what allows the voice to start on an iPhone
+    els.voiceHint.classList.add('hidden'); voiceHintShown = false;
+    unlockSpeech();
+    try { window.speechSynthesis.cancel(); } catch (e) { }
+    if (lastSpoken && 'speechSynthesis' in window) {
+      var u = new SpeechSynthesisUtterance(lastSpoken), v = currentVoice();
+      u.lang = (v && v.lang) || 'da-DK'; if (v) u.voice = v; u.onstart = noteSpeechStarted;
+      window.speechSynthesis.speak(u); setTimeout(checkVoice, 2500);
+    }
+  });
   els.driveBtn.addEventListener('click', function () { if (driveOn) exitDrive(); else enterDrive(); });
   els.driveDetails.addEventListener('click', exitDrive);
   els.driveMenu.addEventListener('click', openMenu);
@@ -1855,7 +2009,8 @@ body.driving { overflow: hidden; }
   });
   els.recenterBtn.addEventListener('click', function () {
     els.follow.checked = true; save('follow', true); lastZoomAt = 0;
-    if (lastPos && lmap) followCar(); else drawMap();
+    if (gl && lastPos) glFollow(lastPos);
+    else if (lastPos && lmap) followCar(); else drawMap();
   });
 
   /* ---------- map (Leaflet; OpenFreeMap vector map, OpenStreetMap as backup) ---------- */
