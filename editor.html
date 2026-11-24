@@ -108,6 +108,7 @@ a.tour { text-decoration: none; }
 .exrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .exrow select { width: auto; min-height: 40px; flex: 1 1 160px; max-width: 260px; }
 @media (prefers-reduced-motion: reduce) { #drawer, #scrim { transition: none; } }
+select:disabled { -webkit-appearance: none; appearance: none; background-image: none; cursor: default; opacity: .85; }   /* a choice that cannot be changed here shows no arrow */
 .loading { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); font-weight: 600; }
 .spinner { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--sign); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -300,7 +301,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v34 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v36 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -2011,10 +2012,16 @@ details.tips li { margin-bottom: 4px; }
     if (m < 60 * 36) return Math.round(m / 60) + ' hours ago';
     return Math.round(m / 1440) + ' days ago';
   }
-  function nextDailyRun() {                        // the workflow runs every day at 09:30 UTC
-    var n = new Date(), t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 9, 30));
-    if (t.getTime() <= n.getTime()) t = new Date(t.getTime() + 86400000);
-    return t;
+  var RUN_TIMES = [[8, 23], [11, 41], [15, 7]];    // the workflow runs three times a day (UTC); GitHub can be late or skip a run
+  function nextDailyRun() {
+    var n = new Date(), best = null;
+    for (var day = 0; day < 2 && !best; day++) {
+      for (var i = 0; i < RUN_TIMES.length; i++) {
+        var t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + day, RUN_TIMES[i][0], RUN_TIMES[i][1]));
+        if (t.getTime() > n.getTime()) { best = t; break; }
+      }
+    }
+    return best;
   }
   function dayWord(d) {
     var n = new Date(), a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(), b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -2066,7 +2073,7 @@ details.tips li { margin-bottom: 4px; }
       else {
         var days = Math.max(1, Math.ceil(requests / AUD.perDay)), nr = nextDailyRun();
         sum.appendChild(line('wait', todoStops + (todoStops === 1 ? ' stop is' : ' stops are') + ' waiting for audio, in ' + routesWaiting + (routesWaiting === 1 ? ' route.' : ' routes.')));
-        sum.appendChild(line('', 'About ' + requests + (requests === 1 ? ' request' : ' requests') + ' needed' + (allow ? ' (several stops per request)' : ' (one request per stop)') + '. The free limit is about ' + AUD.perDay + ' a day, so this takes about ' + days + (days === 1 ? ' day' : ' days') + '. It goes on by itself. Next automatic run: ' + dayWord(nr) + ' about ' + hhmm(nr) + '. The stops are read with the phone voice until then.'));
+        sum.appendChild(line('', 'About ' + requests + (requests === 1 ? ' request' : ' requests') + ' needed' + (allow ? ' (several stops per request)' : ' (one request per stop)') + '. The free limit is about ' + AUD.perDay + ' a day, so this takes about ' + days + (days === 1 ? ' day' : ' days') + '. It goes on by itself. Next automatic run: ' + dayWord(nr) + ' about ' + hhmm(nr) + ' (it runs three times a day, and GitHub can be a little late). The stops are read with the phone voice until then.'));
       }
       if (failedStops) sum.appendChild(line('wait', failedStops + (failedStops === 1 ? ' stop' : ' stops') + ' could not be made and will not be tried again. Change their text and publish, or tell Claude.'));
       if (unreadable) sum.appendChild(line('wait', unreadable + (unreadable === 1 ? ' route' : ' routes') + ' could not be read (see below).'));
