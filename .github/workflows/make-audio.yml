@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '30 9 * * *'          # every day at 09:30 UTC (10:30 or 11:30 Danish time): continues what the daily limit stopped
+    # Three times a day, at odd minutes: GitHub delays or skips scheduled runs when it is busy (most at the start of the hour), and one run a day was not enough.
+    # A run that finds nothing to do ends in seconds. A run after the daily limit is used up stops at once. Times are UTC (Danish time is one or two hours later).
+    - cron: '23 8 * * *'          # 09:23 or 10:23 Danish time: just after Google's daily limit has been reset
+    - cron: '41 11 * * *'         # 12:41 or 13:41 Danish time
+    - cron: '7 15 * * *'          # 16:07 or 17:07 Danish time
   workflow_dispatch:
     inputs:
       chain:
