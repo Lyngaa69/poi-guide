@@ -9,13 +9,13 @@
   "spoken": [
     "0b017758",
     "a24452b8",
-    "",
+    "1bef10c0",
     ""
   ],
   "engines": [
     "gemini:gemini-3.8-flash-tts:Gacrux",
     "gemini:gemini-3.8-flash-tts:Gacrux",
-    "",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
     ""
   ],
   "failed": []
