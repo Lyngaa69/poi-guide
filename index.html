@@ -190,7 +190,9 @@ main {
 .lochelp strong { display: block; font-size: 1.05rem; }
 .lochelp p { margin: 8px 0 0; }
 .lochelp ol { margin: 8px 0 0; padding-left: 20px; }
-.lochelp li { margin: 6px 0; }
+.lochelp li { margin: 8px 0; font-size: 1.05rem; }
+.lochelp b { color: var(--text); }
+.lochelp.pre { border-color: var(--sign); }
 .invitebox { margin: 12px 0; padding: 12px 14px; border: 2px solid var(--sign); border-radius: 12px; background: var(--surface); line-height: 1.4; }
 .invitebox strong { display: block; font-size: 1.05rem; }
 .invitebox p { margin: 8px 0 0; }
@@ -424,6 +426,13 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
       </ul>
     </details>
 
+    <div id="locPre" class="lochelp pre hidden">
+      <strong>Tillad placering, så guiden kan finde dig</strong>
+      <p id="locPreText"></p>
+      <div class="row" style="margin-top:10px;"><button class="btn small" id="locCheck" type="button">Tjek placering nu</button></div>
+      <p class="status" id="locCheckMsg" role="status"></p>
+    </div>
+
     <div id="locHelp" class="lochelp hidden" role="alert">
       <strong>Wayside kan ikke se din placering</strong>
       <p id="locWhy"></p>
@@ -557,7 +566,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     </div>
     <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. Changes to routes can take a few minutes to show up here.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v39 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v40 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -599,6 +608,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     navCard: $('navCard'), navArrow: $('navArrow'), navDist: $('navDist'), navText: $('navText'), navRoad: $('navRoad'),
     navOn: $('navOn'), navInfo: $('navInfo'), fullMap: $('fullMap'),
     driveMap: $('driveMap'), voiceHint: $('voiceHint'),
+    locPre: $('locPre'), locPreText: $('locPreText'), locCheck: $('locCheck'), locCheckMsg: $('locCheckMsg'),
     refreshBtn: $('refreshBtn'), refreshInfo: $('refreshInfo'), updateBar: $('updateBar'), updateText: $('updateText'), updateBtn: $('updateBtn')
   };
 
@@ -869,7 +879,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     els.routeName.textContent = label;
     setLoadStatus('');
     show('guide');
-    queryLocation().then(function (st) { if (st === 'denied') showLocHelp(); else hideLocHelp(); });
+    checkLocationEarly();                                  // location: say so now if it will not work, and ask for it before the drive
     els.simBtn.disabled = false;
     els.resetBtn.disabled = false;
     renderList();
@@ -1320,11 +1330,11 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
       setStatus('Skipped "' + p.name + '" because you had already driven past it.');
       return pump();
     }
-    p.force = false;
+    var byHand = p.force; p.force = false;
     speaking = true;
     currentStop = i;
     var tok = ++playTok;
-    p.read = true; p.skipped = false; p.muted = false;
+    if (!(byHand && !running)) { p.read = true; p.skipped = false; p.muted = false; }      // a stop you listen to yourself before the guide has started is not counted as read: the guide reads it when you get there
     renderList();
     updateNext();
     var from = resumeInfo && resumeInfo.i === i ? resumeInfo : null; resumeInfo = null;      // a story that a turn instruction cut short goes on from there
@@ -1432,9 +1442,10 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
   }
   var LOC_STEPS = {
     ios: [
-      'Åbn Indstillinger > Anonymitet og sikkerhed > Lokalitetstjenester. Den skal være slået <b>Til</b>.',
-      'Rul ned i samme liste til <b>Safari-websteder</b>, og vælg <b>Mens appen bruges</b>.',
-      'Åbn Wayside i Safari. Tryk på <b>aA</b> til venstre i adressefeltet > <b>Webstedsindstillinger</b> > <b>Lokalitet</b> > <b>Tillad</b>.',
+      'Åbn <b>Indstillinger</b> > <b>Anonymitet og sikkerhed</b> > <b>Lokalitetstjenester</b>. Den skal være slået <b>Til</b>.',
+      'Rul ned i den samme liste til <b>Safari-websteder</b>, og vælg <b>Mens appen bruges</b>.',
+      'Åbn Wayside i Safari. Tryk på <b>aA</b> til venstre i adressefeltet > <b>Webstedsindstillinger</b> > <b>Lokalitet</b> > <b>Tillad</b>. (Eller: <b>Indstillinger</b> > <b>Apps</b> > <b>Safari</b> > <b>Lokalitet</b> > <b>Spørg</b> eller <b>Tillad</b>. På en ældre iPhone: <b>Indstillinger</b> > <b>Safari</b> > <b>Lokalitet</b>.)',
+      'Har du lagt Wayside på hjemmeskærmen: luk den helt, åbn den igen, og tryk <b>Tillad</b>, når den spørger.',
       'Tryk <b>Prøv igen</b> herunder (eller genindlæs siden), og tryk <b>Tillad</b>, når telefonen spørger om din placering.'
     ],
     android: [
@@ -1447,7 +1458,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
       'Tryk <b>Prøv igen</b> herunder.'
     ]
   };
-  function showLocHelp(whyDenied) {
+  function showLocHelp(whyDenied, quiet) {
     var p = platformOf();
     els.locWhy.textContent = whyDenied === false ? '' : 'Telefonen har sagt nej til placering for Wayside. Derfor kan guiden ikke vide, hvor du kører, og kan ikke starte. Sådan retter du det:';
     els.locSteps.innerHTML = '';
@@ -1456,9 +1467,32 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     els.locInApp.classList.toggle('hidden', !inApp);
     if (inApp) els.locInApp.textContent = 'Det ser ud til, at Wayside er åbnet inde i en anden app (fx Beskeder eller Mail). Det kan være årsagen. Tryk på Del-ikonet eller de tre prikker, og vælg ' + (p === 'ios' ? '"Åbn i Safari"' : '"Åbn i Chrome"') + '.';
     els.locHelp.classList.remove('hidden');
-    try { els.locHelp.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+    if (!quiet) { try { els.locHelp.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } }
   }
   function hideLocHelp() { els.locHelp.classList.add('hidden'); }
+  function checkLocationEarly() {                            // when a route is opened: tell now, not after you have started driving
+    if (!('geolocation' in navigator)) return;
+    queryLocation().then(function (st) {
+      if (st === 'granted') { els.locPre.classList.add('hidden'); hideLocHelp(); return; }
+      if (st === 'denied') { els.locPre.classList.add('hidden'); showLocHelp(true, true); return; }
+      var ios = platformOf() === 'ios';
+      els.locPreText.innerHTML = 'Telefonen spørger om din placering. ' + (ios ? 'Tryk <b>Tillad</b> (på en iPhone også <b>Tillad ved brug af appen</b>)' : 'Tryk <b>Tillad</b>') +
+        ', når den gør det. Det sker, første gang du trykker <b>Start guide</b>, eller nu, hvis du trykker på knappen herunder. Wayside bruger kun placeringen, mens guiden kører.' +
+        (inAppBrowser() ? ' <b>Du har åbnet Wayside inde i en anden app.</b> Tryk på Del-ikonet eller de tre prikker, og vælg ' + (ios ? '"Åbn i Safari"' : '"Åbn i Chrome"') + ' først.' : '');
+      els.locCheckMsg.textContent = '';
+      els.locPre.classList.remove('hidden');
+    }).catch(function () { });
+  }
+  els.locCheck.addEventListener('click', function () {      // the tap makes the phone ask now, and tells whether it works
+    els.locCheckMsg.className = 'status'; els.locCheckMsg.textContent = 'Spørger telefonen om din placering\u2026';
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      els.locPre.classList.add('hidden'); hideLocHelp();
+      setStatus('Placering virker (nøjagtighed cirka ' + Math.round(pos.coords.accuracy || 0) + ' m). Du kan trykke Start guide.');
+    }, function (err) {
+      if (err && err.code === 1) { els.locPre.classList.add('hidden'); showLocHelp(true); }
+      else { els.locCheckMsg.className = 'status bad'; els.locCheckMsg.textContent = 'Placering er tilladt, men telefonen har ikke fundet dig endnu. Gå ud under åben himmel, og tryk på knappen igen.'; }
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
+  });
   var permWatched = null;
   function queryLocation() {                                    // 'granted' | 'prompt' | 'denied' | null (not supported)
     if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(null);
@@ -1922,7 +1956,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
       els.driveMap.classList.remove('hidden');
       var start = lastPos ? [lastPos.longitude, lastPos.latitude] : (track.length ? [track[0][1], track[0][0]] : (pois.length ? [pois[0].lon, pois[0].lat] : [10, 56]));
       gl = new maplibregl.Map({ container: els.driveMap, style: MAP_STYLE, center: start, zoom: 15, bearing: 0, attributionControl: false, pitchWithRotate: false, touchPitch: false });
-      gl.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: MAP_CREDIT }));
+      gl.addControl(new maplibregl.AttributionControl({ compact: true }));          // the map style brings its own credit (OpenFreeMap, OpenMapTiles, OpenStreetMap): shown once
       gl.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
       if (gl.touchZoomRotate && gl.touchZoomRotate.disableRotation) gl.touchZoomRotate.disableRotation();   // two fingers only zoom: the turning is done by the driving direction
       gl.on('load', function () {
@@ -1940,6 +1974,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
         el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 19-8-5-8 5z" fill="#1b6fe0" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
         glCar = new maplibregl.Marker({ element: el, rotationAlignment: 'viewport' }).setLngLat(start).addTo(gl);
         glReady = true; clearTimeout(glTimer);
+        setTimeout(function () { try { var a = els.driveMap.querySelector('.maplibregl-ctrl-attrib'); if (a) { a.classList.remove('maplibregl-compact-show'); a.removeAttribute('open'); } } catch (e) { } }, 1200);   // the credit is a small (i) until it is tapped
         if (lastPos) glFollow(lastPos);
       });
       gl.on('dragstart', function () { if (els.follow.checked) { els.follow.checked = false; save('follow', false); } });   // you moved the map yourself: it stays where you put it until you press the centre button
@@ -1955,6 +1990,12 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     }
     return glBearing != null ? ((glBearing % 360) + 360) % 360 : 0;
   }
+  function glPadding() {                                    // the part of the screen that shows the map: below the turn card, above the bar with the buttons
+    var card = els.navCard && !els.navCard.classList.contains('hidden') ? els.navCard.getBoundingClientRect() : null;
+    var top = card && card.bottom > 0 ? Math.round(card.bottom) + 8 : 70;
+    var bottom = (els.driveBar ? els.driveBar.offsetHeight : 170) + 8;
+    return { top: top, bottom: bottom, left: 0, right: 0 };
+  }
   function glFollow(c) {
     if (!gl || !glReady || !c) return;
     var target = driveBearing(c), following = els.follow.checked;
@@ -1963,7 +2004,8 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     if (glCar) { glCar.setLngLat([c.longitude, c.latitude]); glCar.setRotation(following ? 0 : ((typeof c.heading === 'number' && !isNaN(c.heading) ? c.heading : target) - gl.getBearing())); }
     if (!following) return;
     var speed = c.speed, want = speed != null && speed > 22 ? 14 : speed != null && speed > 12 ? 15 : 16, now = Date.now();
-    var opts = { center: [c.longitude, c.latitude], bearing: glBearing, duration: 900, essential: true, offset: [0, Math.round(window.innerHeight * 0.16)] };   // the car sits below the middle, so there is more road ahead
+    var pad = glPadding(), visible = Math.max(100, window.innerHeight - pad.top - pad.bottom);
+    var opts = { center: [c.longitude, c.latitude], bearing: glBearing, padding: pad, duration: 900, essential: true, offset: [0, Math.round(visible * 0.12)] };   // the car sits a little below the middle of what you can see, so there is more road ahead
     var z = gl.getZoom();
     if (typeof z === 'number' && Math.abs(z - want) >= 1 && now - glZoomAt > 20000) { opts.zoom = want; glZoomAt = now; }
     gl.easeTo(opts);
