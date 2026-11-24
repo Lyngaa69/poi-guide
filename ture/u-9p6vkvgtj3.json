@@ -1,0 +1,12 @@
+{
+ "v": 1,
+ "routes": [
+  {
+   "navn": "Normal Hjem",
+   "fil": "normal-hjem-bczp62n9.gpx",
+   "beskrivelse": "3 km. Start and stop: Silkeborg.",
+   "radius": 50,
+   "adaptiv": true
+  }
+ ]
+}
