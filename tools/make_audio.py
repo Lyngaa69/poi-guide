@@ -559,7 +559,7 @@ def find_gaps(samples, rate):
             i += 1
     return gaps, len(rms) * FRAME
 
-def split_batch(samples, rate, chars, heads=None, info=None):
+def _split_batch(samples, rate, chars, heads, info, dbg):
     """[(start, end) in seconds, one per stop], or SplitError. chars = the length of each stop's text, heads = the length of each stop's first
     sentence (its name). Gemini often pauses after the name too. That pause lies one name-length into the next stop, so a pause that is
     followed by such a second pause is the end of a stop, and a lone pause one name-length after where a stop should end is not."""
@@ -574,6 +574,11 @@ def split_batch(samples, rate, chars, heads=None, info=None):
     before, acc = [], 0.0
     for a, b in gaps:
         before.append(a - acc); acc += b - a
+    ends, run = [], 0
+    for c in chars[:-1]:
+        run += c; ends.append(per * run)
+    dbg.append('audio %.1f s, speech %.1f s, %d stops | letters per stop %s | letters in the name of each stop %s | where each stop should end, in seconds of speech: %s | pauses (starts at / lasts, in seconds): %s'
+               % (dur, active, k, chars, heads, ['%.1f' % x for x in ends], ' '.join('%.1f/%.1f' % (a, b - a) for a, b in gaps[:60]) + (' ...' if len(gaps) > 60 else '')))
     # Does Gemini pause after the names? The first pause then lies one name-length from the start, long before the end of the first stop. That is
     # measured from the start of the audio, so it does not depend on how fast the voice speaks. If it does pause after the names, there must be a pause
     # after every name AND one between every two stops. With only the pauses after the names, the stops cannot be told apart and the batch is refused.
@@ -649,6 +654,17 @@ def split_batch(samples, rate, chars, heads=None, info=None):
     if info is not None: info.extend(glen[gi] for gi in picks)
     return segs, gaps
 
+def split_batch(samples, rate, chars, heads=None, info=None, diag=None):
+    """See _split_batch. On a refusal the SplitError carries .diag, a line with everything that was measured, so a refusal can be understood from the log."""
+    dbg = []
+    try:
+        r = _split_batch(samples, rate, chars, list(heads) if heads else [0] * len(chars), info, dbg)
+    except SplitError as e:
+        e.diag = dbg[0] if dbg else ''
+        raise
+    if diag is not None and dbg: diag.append(dbg[0])
+    return r
+
 def head_len(raw):                                                # the length of the first sentence of a stop (its name)
     t = re.sub(r'<[^>]*>', '', gemini_text(raw)).strip()
     return len(re.split(r'(?<=[.!?])\s', t, 1)[0])
@@ -662,8 +678,13 @@ def make_batch_gemini(raws, outs, settings, deadline=None):
     bs['style'] = (st + ' ' if st else '') + BATCH_NOTE
     data = gemini_wav(text, bs, deadline)
     samples, rate = pcm_of(data)
-    plens = []
-    segs, gaps = split_batch(samples, rate, [plain_len(r) for r in raws], [head_len(r) for r in raws], plens)
+    plens, diag = [], []
+    try:
+        segs, gaps = split_batch(samples, rate, [plain_len(r) for r in raws], [head_len(r) for r in raws], plens, diag)
+    except SplitError as e:
+        print('Cut details (refused): %s' % getattr(e, 'diag', ''))        # copy this line when a cut is refused: it shows what Gemini did
+        raise
+    print('Cut details: %s' % (diag[0] if diag else ''))
     parts = []
     try:
         for out, (b, e) in zip(outs, segs):
