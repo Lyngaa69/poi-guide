@@ -2,7 +2,7 @@
  "v": 2,
  "key": "eb61401f",
  "ok": 0,
- "bad": 2,
+ "bad": 3,
  "since": "2026-11-23",
- "last": "SplitError: no pause where stop 2 should end is followed by the pause after the next name"
+ "last": "SplitError: there is no pause near 2 s, where stop 1 should end"
 }

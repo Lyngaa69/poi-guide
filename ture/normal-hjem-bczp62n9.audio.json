@@ -1,0 +1,22 @@
+{
+  "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
+  "stops": [
+    "a637f886",
+    "47bda476",
+    "99800262",
+    "4caf222a"
+  ],
+  "spoken": [
+    "0b017758",
+    "a24452b8",
+    "",
+    ""
+  ],
+  "engines": [
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "gemini:gemini-3.8-flash-tts:Gacrux",
+    "",
+    ""
+  ],
+  "failed": []
+}
