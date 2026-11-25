@@ -31,6 +31,11 @@
 
 
 
+
+
+
+
+
 <wpt lat="56.177116" lon="9.514596"><name>Så er du på vej</name><desc>Flot Magnus, nu er du på vej til træning</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.177632" lon="9.530026"><name>Lyskryds</name><desc>Husk at checke om det er grønt før du kører over. Ikke noget med at køre over for gult eller rødt</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <wpt lat="56.178362" lon="9.539620"><name>Corona test</name><desc>&lt;heavy breath&gt;Kan du huske da vi skulle tage coronatests herinde. Fede tider &lt;phew&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
@@ -249,4 +254,4 @@
 			</trkpt>
 		</trkseg>
 	</trk>
-<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.177891" lon="9.514287" at="70" type="right"/><turn lat="56.177121" lon="9.514559" at="156" type="slight-left"/><turn lat="56.175258" lon="9.517092" at="439" type="left"/><turn lat="56.176173" lon="9.523630" at="900" type="left"/><turn lat="56.176617" lon="9.522233" at="1004" type="right"/><turn lat="56.178385" lon="9.552635" at="2940" type="left"/><turn lat="56.181938" lon="9.547804" at="3440" type="right"/></turns></extensions></gpx>
+<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.177891" lon="9.514287" at="70" type="right"/><turn lat="56.177121" lon="9.514559" at="156" type="slight-left"/><turn lat="56.175258" lon="9.517092" at="439" type="left"/><turn lat="56.176173" lon="9.523630" at="900" type="left"/><turn lat="56.176617" lon="9.522233" at="1003" type="right"/><turn lat="56.178385" lon="9.552635" at="2940" type="left"/><turn lat="56.181938" lon="9.547804" at="3440" type="right"/></turns></extensions></gpx>
