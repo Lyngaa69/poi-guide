@@ -12,5 +12,12 @@
     "ok": false,
     "message": "found 0 long pauses (1.5 s or longer), but 8 are needed between 9 stops; 0 shorter pauses were found. Put a line of 25 dots (in Clipchamp every dot is a pause of 0.1 s) between the stops, and press Enter at the end of each line of dots in Clipchamp so that it becomes a blue pause of 2.5 s. Dots that",
     "time": "2026-11-25 21:31:12"
+  },
+  {
+    "route": "silkeborg-aarhus-n-clipchamp-bn4yzran",
+    "file": "rec-1795643643660.m4a",
+    "ok": true,
+    "message": "added 9 stops (1, 2, 3, 4, 5, 6, 7, 8, 9) to silkeborg-aarhus-n-clipchamp-bn4yzran from rec-1795643643660.m4a",
+    "time": "2026-11-25 21:54:32"
   }
 ]
