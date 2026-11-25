@@ -37,6 +37,7 @@ p { margin: 0 0 10px; }
 .hint { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
 .status { color: var(--muted); font-size: 0.95rem; margin: 10px 0 0; min-height: 1.4em; }
 .status.bad { color: var(--warn); }
+.hint.bad { color: var(--warn); }
 
 .topbar {
   position: sticky; top: 0; z-index: 50;
@@ -301,7 +302,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v43 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v44 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -382,7 +383,9 @@ details.tips li { margin-bottom: 4px; }
       <label class="check"><input type="checkbox" id="adaptive" checked><span>Larger radius at high speed (not for stops with their own radius)</span></label>
       <p class="hint" style="margin-top:2px;">The default radius is used by every stop that is set to &ldquo;Route default&rdquo; in step 3.</p>
       <label class="check"><input type="checkbox" id="osrm"><span>Draw a driving route along roads when the file has no track. It is saved in the route file, so Wayside does not have to look it up.</span></label>
-      <div class="row" style="margin-top:6px;"><button class="btn small" id="reroute" type="button" disabled>Calculate the driving route again</button></div>
+      <div class="row" style="margin-top:6px;"><button class="btn small" id="replaceLine" type="button">Replace the route line with a new GPX file</button><input type="file" id="lineFile" class="hidden" accept=".gpx,application/gpx+xml,text/xml,application/xml,*/*"></div>
+      <p class="hint" id="lineMsg" role="status" style="margin-top:6px;">Use it when you have changed the route in Kurviger. The line is replaced. Your stops, texts, settings, invitations and links stay as they are, and no new audio is needed. Stops that are no longer near the line can be moved on the map. Nothing changes for anyone else until you press Publish.</p>
+      <div class="row" style="margin-top:14px;"><button class="btn small" id="reroute" type="button" disabled>Calculate the driving route again</button></div>
       <p class="hint" id="rerouteMsg" role="status" style="margin-top:6px;">Fetches the road between your stops again, with every corner, and saves it in the route file when you publish. Use it if the line in Wayside cuts corners across blocks. It replaces the line that is in the file now.</p>
       <label class="field"><span>Who can see this route</span>
         <select id="access">
@@ -505,6 +508,7 @@ details.tips li { margin-bottom: 4px; }
   var trackSource = '';       // 'file' = track from the GPX, 'osrm' = calculated preview
   var previewTimer = null, previewToken = 0;
   var Nav = window.WaysideNav || null;
+  var lineChanged = false;                            // the route line was replaced with the line of another file (counts as a change of yours)
   var replaceTrack = false, rerouteWas = '';          // "Calculate the driving route again": the new road replaces the line in the file
   var turns = [], turnsEdited = false, selTurn = -1, addingTurn = false, navPrep = null, osrmRoute = null, turnSensWas = 'normal', turnUndo = null, navCounts = null;
 
@@ -706,7 +710,8 @@ details.tips li { margin-bottom: 4px; }
     els.sourceName.textContent = opts.label || '';
     sortStops();
     initialSig = signature();
-    curDraftKey = draftKeyNow(); publishedOnce = false; $('draftBanner').classList.add('hidden');
+    curDraftKey = draftKeyNow(); publishedOnce = false; lineChanged = false; $('draftBanner').classList.add('hidden');
+    $('lineMsg').className = 'hint'; $('lineMsg').textContent = LINE_HINT;
     els.start.classList.add('hidden');
     els.editor.classList.remove('hidden');
     window.scrollTo(0, 0);
@@ -901,7 +906,7 @@ details.tips li { margin-bottom: 4px; }
     return out;
   }
   function fp() {                                          // what you have changed: texts, names, places, title, description, radius, and turns you edited yourself
-    return JSON.stringify([signature(), els.title.value, els.desc.value, els.radius.value, els.adaptive.checked, turnsEdited ? turns.map(function (t) { return [t.at, t.type, t.exit || 0, t.name || '']; }) : 0]);
+    return JSON.stringify([signature(), els.title.value, els.desc.value, els.radius.value, els.adaptive.checked, turnsEdited ? turns.map(function (t) { return [t.at, t.type, t.exit || 0, t.name || '']; }) : 0, lineChanged ? 1 : 0]);
   }
   function isDirty() { return (currentSource === 'new' && !publishedOnce) || fp() !== baseline; }
   function quiet(fn) { var clean = !isDirty(); fn(); if (clean) baseline = fp(); }     // changes Studio makes by itself (the automatic description) are not yours
@@ -921,12 +926,12 @@ details.tips li { margin-bottom: 4px; }
         rawXml: rawXml, stops: stops, fileName: els.fileName.value, title: els.title.value, desc: els.desc.value,
         radius: els.radius.value, adaptive: els.adaptive.checked, osrm: els.osrm.checked, access: els.access.value, source: currentSource,
         snap: els.snap.checked, keepOrder: els.keepOrder.checked, label: els.sourceName.textContent, initialSig: initialSig,
-        turns: turns, turnsEdited: turnsEdited, turnSens: $('turnSens').value, baseline: baseline, savedAt: new Date().toISOString()
+        turns: turns, turnsEdited: turnsEdited, turnSens: $('turnSens').value, lineChanged: lineChanged, baseline: baseline, savedAt: new Date().toISOString()
       }));
     } catch (e) { }
   }
   function markPublished() {                                // after a publish the draft has done its job
-    publishedOnce = true; baseline = fp();
+    publishedOnce = true; lineChanged = false; baseline = fp();
     if (curDraftKey) lsDel(DRAFT + curDraftKey);
     lsDel(DRAFT + draftKeyNow());
     $('draftBanner').classList.add('hidden');
@@ -981,7 +986,7 @@ details.tips li { margin-bottom: 4px; }
       rebuildPrep();
       if (navPrep && d.turnsEdited && Array.isArray(d.turns)) { turns = Nav.place(navPrep, d.turns); turnsEdited = true; selTurn = -1; }
       else initTurns(doc);
-      curDraftKey = key; publishedOnce = false; baseline = d.baseline == null ? '' : d.baseline;
+      curDraftKey = key; publishedOnce = false; lineChanged = !!d.lineChanged; baseline = d.baseline == null ? '' : d.baseline;
       els.access.disabled = currentSource !== 'new'; updateAccessHint();
       els.start.classList.add('hidden'); els.editor.classList.remove('hidden'); window.scrollTo(0, 0);
       syncRadius(); renderAll(true); checkAudio(); updateDeleteBox(); schedulePreview(50); renderInvites(true);
@@ -1122,6 +1127,51 @@ details.tips li { margin-bottom: 4px; }
         if (rerouteWas) { trackSource = rerouteWas; rerouteWas = ''; replaceTrack = false; $('rerouteMsg').textContent = 'The road could not be fetched (' + e.message + '), so the line in the route file is unchanged. Try again in a moment.'; }
       });
   }
+
+  var LINE_HINT = $('lineMsg').textContent;
+  function lineMsg(text, bad) { $('lineMsg').className = bad ? 'hint bad' : 'hint'; $('lineMsg').textContent = text; }
+  function replaceLine(text, fname) {                 // the line of another GPX file replaces the line of this route; stops, texts and settings stay
+    var nd;
+    try { nd = parseGpx(text); } catch (e) { lineMsg('That file could not be read as a GPX file.', true); return; }
+    var nodes = Array.prototype.slice.call(nd.documentElement.children).filter(function (c) { return /^(trk|rte)$/i.test(c.localName || c.nodeName); });
+    var nt = readTrack(nd);
+    if (nt.length < 2 || !nodes.length) { lineMsg('That file has no route line (no track and no route). In Kurviger, export the route as a GPX track.', true); return; }
+    var m = 0; for (var i = 1; i < nt.length; i++) m += kmBetween(nt[i - 1], nt[i]);
+    var km = Math.max(1, Math.round(m / 1000));
+    if (window.confirm('Replace the route line with the line from \u201C' + fname + '\u201D (' + km + ' km)?\n\nYour stops, texts and settings stay as they are, and nothing is published until you press Publish.' +
+        (turnsEdited ? '\n\nYou have edited the turn directions by hand. They are worked out again from the new line.' : '')) === false) return;
+    var cur = parseGpx(rawXml), root = cur.documentElement;
+    Array.prototype.slice.call(root.children).forEach(function (c) { var n = (c.localName || c.nodeName).toLowerCase(); if (n === 'trk' || n === 'rte') root.removeChild(c); });
+    Array.prototype.slice.call(cur.getElementsByTagNameNS('*', 'turns')).forEach(function (t) { if (t.parentNode) t.parentNode.removeChild(t); });   // the old turns belong to the old line
+    nodes.forEach(function (n) { root.appendChild(cur.importNode(n, true)); });                    // every point of the new file is kept, as it was in the file
+    rawXml = new XMLSerializer().serializeToString(cur);
+    var d2 = parseGpx(rawXml);
+    track = readTrack(d2); trackSource = 'file'; replaceTrack = false; rerouteWas = ''; osrmRoute = null;
+    $('rerouteMsg').textContent = 'Fetches the road between your stops again, with every corner, and saves it in the route file when you publish. Use it if the line in Wayside cuts corners across blocks. It replaces the line that is in the file now.';
+    $('turnSens').value = 'normal'; turnSensWas = 'normal'; turnUndo = null; $('turnNote').classList.add('hidden');
+    initTurns(d2);                                                                                 // the old turns are gone from the file, so they are worked out from the new line
+    els.osrm.checked = false;
+    var far = 0, backwards = 0, prev = -1;
+    stops.forEach(function (s) {                                                                   // the order of the stops is kept (the audio is made per stop number)
+      var si = snapInfo(s.lat, s.lon); s.pos = si ? si.pos : 0;
+      if (si && si.d > 300) far++;
+      if (s.pos < prev - 0.0001) backwards++;
+      prev = s.pos;
+    });
+    lineChanged = true; scheduleAutoDesc(); saveDraft(); renderAll(true); updateRerouteBtn();
+    lineMsg('Done. The line is now the one from \u201C' + fname + '\u201D (' + km + ' km, ' + turns.length + (turns.length === 1 ? ' turn' : ' turns') + ' worked out). Press Publish to use it.' +
+      (far ? ' ' + far + ' of the ' + stops.length + ' stops ' + (far === 1 ? 'is' : 'are') + ' more than 300 m from the new line: check them on the map and move them if needed.' : '') +
+      (backwards ? ' ' + backwards + (backwards === 1 ? ' stop is' : ' stops are') + ' in a different order along the new line. The order is kept as it is, because the audio is made per stop number.' : ''), false);
+  }
+  $('replaceLine').addEventListener('click', function () { $('lineFile').value = ''; $('lineFile').click(); });
+  $('lineFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { try { replaceLine(String(r.result), f.name); } catch (e) { lineMsg('The line could not be replaced: ' + e.message, true); } };
+    r.onerror = function () { lineMsg('The file could not be read.', true); };
+    r.readAsText(f);
+  });
 
   $('reroute').addEventListener('click', function () {
     if (stops.length < 2) return;
