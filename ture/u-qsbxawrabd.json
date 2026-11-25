@@ -43,6 +43,13 @@
    "beskrivelse": "3 km. Start and stop: Silkeborg.",
    "radius": 50,
    "adaptiv": true
+  },
+  {
+   "navn": "silkeborg - Aarhus N clipchamp",
+   "fil": "silkeborg-aarhus-n-clipchamp-bn4yzran.gpx",
+   "beskrivelse": "52 km. Start: Silkeborg. Stop: Aarhus.",
+   "radius": 300,
+   "adaptiv": true
   }
  ]
 }
