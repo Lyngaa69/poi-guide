@@ -23,6 +23,7 @@ Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it shoul
 Lines starting with # are ignored. Words match whole words, in any capitalisation.
 """
 import array, base64, io, json, math, os, re, shutil, subprocess, sys, time, wave
+import tempfile
 import urllib.error, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -566,7 +567,7 @@ def find_gaps(samples, rate):
             i += 1
     return gaps, len(rms) * FRAME
 
-def _split_batch(samples, rate, chars, heads, info, dbg):
+def _split_batch(samples, rate, chars, heads, info, dbg, forced=None):
     """[(start, end) in seconds, one per stop], or SplitError. chars = the length of each stop's text, heads = the length of each stop's first
     sentence (its name). Gemini often pauses after the name too. That pause lies one name-length into the next stop, so a pause that is
     followed by such a second pause is the end of a stop, and a lone pause one name-length after where a stop should end is not."""
@@ -589,8 +590,8 @@ def _split_batch(samples, rate, chars, heads, info, dbg):
     # First choice: the pauses between the stops are the LONGEST pauses in the audio (that is what the pause tags are for). If the k-1 longest pauses are
     # clearly longer than all the others, and lie roughly where the stops should end, they are the ends of the stops, whatever else is in the stops
     # (sounds like <sigh>, a pause after each name). This does not depend on how fast the voice speaks.
-    picks = None
-    if k > 1 and len(gaps) >= k - 1:
+    picks = list(forced) if forced else None             # the pauses can also be given (found by listening)
+    if picks is None and k > 1 and len(gaps) >= k - 1:
         order = sorted(range(len(gaps)), key=lambda g: -glen[g])
         longest = sorted(order[:k - 1])
         rest = [glen[g] for g in order[k - 1:]]
@@ -679,11 +680,11 @@ def _split_batch(samples, rate, chars, heads, info, dbg):
     if info is not None: info.extend(glen[gi] for gi in picks)
     return segs, gaps
 
-def split_batch(samples, rate, chars, heads=None, info=None, diag=None):
+def split_batch(samples, rate, chars, heads=None, info=None, diag=None, forced=None):
     """See _split_batch. On a refusal the SplitError carries .diag, a line with everything that was measured, so a refusal can be understood from the log."""
     dbg = []
     try:
-        r = _split_batch(samples, rate, chars, list(heads) if heads else [0] * len(chars), info, dbg)
+        r = _split_batch(samples, rate, chars, list(heads) if heads else [0] * len(chars), info, dbg, forced)
     except SplitError as e:
         e.diag = dbg[0] if dbg else ''
         raise
@@ -694,12 +695,120 @@ def head_len(raw):                                                # the length o
     t = re.sub(r'<[^>]*>', '', gemini_text(raw)).strip()
     return len(re.split(r'(?<=[.!?])\s', t, 1)[0])
 
+# ---------- B: Gemini listens to the whole recording and says where each stop begins ----------
+# Pauses cannot tell where a stop ends (Gemini's pauses between stops are as long as the pauses inside them). So when the pauses are not clear,
+# the recording is sent to a text model that can listen, with the first words of every stop, and it says when each stop begins.
+# The times are only used to choose between the pauses that were found: the pause that ends just before a stop begins. Not clear? The stops are made one by one.
+LISTEN = os.environ.get('AUDIO_LISTEN', '1') != '0'
+LISTEN_MODELS = [m.strip() for m in os.environ.get('AUDIO_LISTEN_MODELS', 'gemini-3.6-flash,gemini-3.5-flash,gemini-flash-latest').split(',') if m.strip()]
+
+def first_words(raw, n=8):
+    return ' '.join(re.sub(r'<[^>]*>', '', gemini_text(raw)).split()[:n])
+
+def listen_prompt(raws):
+    lines = ['%d. "%s"' % (i + 1, first_words(r)) for i, r in enumerate(raws)]
+    return ('This recording has %d sections, read one after the other by the same voice, in Danish. The sections begin with these words:\n%s\n'
+            'Give the time in seconds, with one decimal, when the FIRST word of each section is spoken. The first section normally starts at or near 0. '
+            'Reply only with JSON like {"starts": [0.0, 12.3, 30.1]} with exactly %d numbers, in the order of the sections.') % (len(raws), '\n'.join(lines), len(raws))
+
+def listen_call(model, prompt, mp3_bytes):
+    url = os.environ.get('GEMINI_API_BASE', 'https://generativelanguage.googleapis.com').rstrip('/') + '/v1beta/models/%s:generateContent' % model
+    body = {'contents': [{'parts': [{'text': prompt}, {'inline_data': {'mime_type': 'audio/mpeg', 'data': base64.b64encode(mp3_bytes).decode('ascii')}}]}],
+            'generationConfig': {'responseMimeType': 'application/json', 'temperature': 0}}
+    req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'), method='POST', headers={
+        'Content-Type': 'application/json', 'x-goog-api-key': os.environ['GEMINI_API_KEY'].strip()})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp = json.loads(r.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        detail = _redact(e.read().decode('utf-8', 'replace')[:200])
+        raise SplitError('the listening step (%s) was refused: HTTP %d %s' % (model, e.code, detail))
+    except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        raise SplitError('the listening step (%s) could not be reached: %s' % (model, _redact(str(e))[:100]))
+    try:
+        text = ''.join(p.get('text', '') for p in resp['candidates'][0]['content']['parts'])
+    except (KeyError, IndexError, TypeError):
+        raise SplitError('the listening step (%s) gave no answer' % model)
+    return text
+
+def parse_starts(text, k, dur):
+    try:
+        data = json.loads(re.sub(r'^```(?:json)?|```$', '', text.strip(), flags=re.MULTILINE).strip())
+    except ValueError:
+        raise SplitError('the listening step did not answer with JSON: %s' % _redact(text)[:80])
+    starts = data.get('starts') if isinstance(data, dict) else data
+    if not isinstance(starts, list) or len(starts) != k or not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in starts):
+        raise SplitError('the listening step did not give %d times: %s' % (k, _redact(text)[:80]))
+    starts = [float(x) for x in starts]
+    if any(starts[i] >= starts[i + 1] for i in range(k - 1)) or starts[0] > 4 or starts[-1] > dur + 2:
+        raise SplitError('the times from the listening step do not fit the recording: %s' % ', '.join('%.1f' % x for x in starts))
+    return starts
+
+def snap_to_pauses(starts, gaps, heads=None, per=0.06):
+    """For every stop but the first: the one pause that is right before where the stop begins. The pause after a stop's NAME lies close behind
+    the pause between the stops, so a pause that looks like it (a short stretch of speech, the length of the name, after another pause) is not trusted.
+    Not exactly one pause that fits? Refused."""
+    picks = []
+    heads = heads or [0] * len(starts)
+    def name_like(g, j):
+        d = heads[j] * per
+        if not d: return False
+        return any(h != g and gaps[h][1] <= gaps[g][0] and abs((gaps[g][0] - gaps[h][1]) - d) <= 0.25 * d + 0.25 for h in range(len(gaps)))
+    for j in range(1, len(starts)):
+        t = starts[j]
+        cands = [g for g in range(len(gaps)) if gaps[g][0] - 0.2 <= t <= gaps[g][1] + 1.0]        # in the pause, or at most a second after it
+        if not cands:
+            raise SplitError('there is no pause where stop %d begins (%.1f s)' % (j + 1, t))
+        if len(cands) == 2 and name_like(cands[1], j):
+            cands = [cands[0]]                                                             # the boundary, and the pause after the name that follows it
+        if len(cands) != 1:
+            raise SplitError('%d pauses fit where stop %d begins (%.1f s)' % (len(cands), j + 1, t))
+        g = cands[0]
+        if name_like(g, j):
+            raise SplitError('the pause near %.1f s, where stop %d begins, looks like the one after the name of the stop' % (gaps[g][0], j + 1))
+        if picks and g <= picks[-1]:
+            raise SplitError('two stops begin after the same pause (near %.1f s)' % t)
+        picks.append(g)
+    return picks
+
+def listen_boundaries(samples, rate, raws, gaps, dur, state, chars=None, heads=None):
+    """The indexes of the pauses between the stops, found by letting a model listen. Raises SplitError when it cannot be done clearly."""
+    tmp_wav = tempfile.mktemp(suffix='.wav'); tmp_mp3 = tempfile.mktemp(suffix='.mp3')
+    try:
+        piece = array.array('h', samples)
+        if sys.byteorder == 'big': piece.byteswap()
+        with wave.open(tmp_wav, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(piece.tobytes())
+        subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', tmp_wav, '-ac', '1', '-ar', '16000', '-b:a', '48k', tmp_mp3], check=True)
+        mp3 = open(tmp_mp3, 'rb').read()
+    finally:
+        for f in (tmp_wav, tmp_mp3):
+            if os.path.exists(f): os.remove(f)
+    prompt = listen_prompt(raws)
+    models = list(LISTEN_MODELS)
+    if state.get('listen_model') in models: models.remove(state['listen_model']); models.insert(0, state['listen_model'])
+    last = None
+    for m in models:
+        try:
+            print('Listening: asking %s where the %d stops begin (%.0f s of audio).' % (m, len(raws), dur))
+            text = listen_call(m, prompt, mp3)
+        except SplitError as e:
+            last = e; print('Listening: %s' % e); continue
+        starts = parse_starts(text, len(raws), dur)
+        active = max(0.5, dur - sum(b - a for a, b in gaps))
+        picks = snap_to_pauses(starts, gaps, heads, active / float(sum(chars)) if chars else 0.06)
+        state['listen_model'] = m
+        print('Listening: the stops begin at %s s; the pauses before them are at %s s.' % (', '.join('%.1f' % x for x in starts), ', '.join('%.1f' % gaps[g][0] for g in picks)))
+        return picks
+    raise last or SplitError('no model could listen')
+
+
 BATCH_TAGS = int(os.environ.get('AUDIO_PAUSE_TAGS', '6'))          # Gemini 3.8 TTS: <long pause> is an official pause tag. One of them gave only about half a second, so several in a row
 
 def batch_sep(n):
     return '\n\n' + ' '.join(['<long pause>'] * max(1, n)) + '\n\n'
 
-def make_batch_gemini(raws, outs, settings, deadline=None, tags=None):
+def make_batch_gemini(raws, outs, settings, deadline=None, tags=None, bstate=None):
     tags = tags or BATCH_TAGS
     text = batch_sep(tags).join(gemini_text(r) for r in raws)
     bs = dict(settings)
@@ -708,11 +817,23 @@ def make_batch_gemini(raws, outs, settings, deadline=None, tags=None):
     data = gemini_wav(text, bs, deadline)
     samples, rate = pcm_of(data)
     plens, diag = [], []
+    chars_w, heads_l = [weight(r) for r in raws], [head_len(r) for r in raws]
+    how = 'by the pauses'
     try:
-        segs, gaps = split_batch(samples, rate, [weight(r) for r in raws], [head_len(r) for r in raws], plens, diag)
+        segs, gaps = split_batch(samples, rate, chars_w, heads_l, plens, diag)
     except SplitError as e:
-        print('Cut details (refused): %s | pause tags between stops: %d' % (getattr(e, 'diag', ''), tags))        # copy this line when a cut is refused: it shows what Gemini did
-        raise
+        print('Cut details (the pauses were not clear): %s | pause tags between stops: %d' % (getattr(e, 'diag', ''), tags))        # what Gemini did
+        if not LISTEN:
+            print('Cut details (refused): listening is switched off'); raise
+        try:
+            all_gaps, dur0 = find_gaps(samples, rate)
+            picks = listen_boundaries(samples, rate, raws, all_gaps, dur0, bstate if bstate is not None else {}, chars_w, heads_l)
+            plens, diag = [], []
+            segs, gaps = split_batch(samples, rate, chars_w, heads_l, plens, diag, picks)
+            how = 'by listening'
+        except SplitError as e2:
+            print('Cut details (refused): %s' % e2)
+            raise
     print('Cut details: %s | pause tags between stops: %d' % (diag[0] if diag else '', tags))
     parts = []
     try:
@@ -729,7 +850,7 @@ def make_batch_gemini(raws, outs, settings, deadline=None, tags=None):
     finally:
         for tmp, out in parts:
             if os.path.exists(tmp): os.remove(tmp)
-    return '%.0f s of audio, %d pauses, cut at %s, the pauses between the stops were %s' % (len(samples) / rate, len(gaps), ', '.join('%.1f s' % e for b, e in segs[:-1]), ', '.join('%.1f s' % x for x in plens))
+    return '%.0f s of audio, %d pauses, cut %s at %s, the pauses between the stops were %s' % (len(samples) / rate, len(gaps), how, ', '.join('%.1f s' % e for b, e in segs[:-1]), ', '.join('%.1f s' % x for x in plens))
 
 # ---------- how many requests are used, and where ----------
 BATCH_STATE = TURE / 'audio-batch.json'
@@ -744,7 +865,7 @@ def load_batch_state(settings):
         st = json.loads(BATCH_STATE.read_text(encoding='utf-8'))
         age = (time.time() - time.mktime(time.strptime(st.get('since', ''), '%Y-%m-%d'))) / 86400
         if st.get('v') == BATCH_STATE_VERSION and st.get('key') == fresh['key'] and age < 14:   # new voice settings, a new way of cutting, or two weeks old: try again from scratch
-            fresh.update({k: st[k] for k in ('ok', 'bad', 'since', 'last', 'tags') if k in st})
+            fresh.update({k: st[k] for k in ('ok', 'bad', 'since', 'last', 'tags', 'listen_model') if k in st})
     except Exception:
         pass
     return fresh
@@ -839,7 +960,7 @@ def generate_gemini(plans):
             if len(grp) > 1 and batch_on:
                 wait_turn()
                 try:
-                    info = make_batch_gemini([p['raws'][i - 1] for i in grp], [out_of(i) for i in grp], settings, deadline, bstate.get('tags', BATCH_TAGS))
+                    info = make_batch_gemini([p['raws'][i - 1] for i in grp], [out_of(i) for i in grp], settings, deadline, bstate.get('tags', BATCH_TAGS), bstate)
                     S['trouble'] = 0; bstate['ok'] += 1
                     for i in grp:
                         made[i] = p['voice_id']; S['total_made'] += 1; failed.discard(i)
