@@ -98,20 +98,23 @@
     var s = e && e.status;
     return s === 409 || s === 422 || s === 502 || s === 503 || s === 504 || (!s && !!e && /Failed to fetch|NetworkError|Load failed/i.test(e.message || ''));
   }
-  function retry(fn) {
+  function retry(fn, delays, onRetry) {              // delays: the waits between the tries (default: a few seconds in all); onRetry(k, total) is called before each new try
     var n = 0;
     function go() {
       return fn().catch(function (e) {
-        var waits = (global.Access && global.Access.retryDelays) || [];
+        var waits = delays || (global.Access && global.Access.retryDelays) || [];
         if (!transient(e) || n >= waits.length) throw e;
         var d = waits[n++];
+        if (onRetry) { try { onRetry(n, waits.length); } catch (x) { } }
         return new Promise(function (res) { setTimeout(res, d); }).then(go);
       });
     }
     return go();
   }
 
-  /* One commit: write files, delete files, rename files (keeping their content, so audio is not uploaded again). */
+  /* One commit: write files, delete files, rename files (keeping their content, so audio is not uploaded again).
+     A file can be text (a string) or binary ({ base64: '...' }, for example an audio recording). Everything in one commit means one push, so the audio job
+     starts once and sees all the files. Two commits one after the other can overtake each other, and the run for the first does not see the second. */
   function commitTree(repo, o) {
     var files = o.files || {}, deletes = o.deletes || [], renames = o.renames || [];
     var branch, head, baseTree;
@@ -125,6 +128,13 @@
         return Promise.all(Object.keys(dirs).map(function (d) { return listDir(repo, d).then(function (list) { return [d, list]; }); }));
       })
       .then(function (lists) {
+        var bins = Object.keys(files).filter(function (p) { return files[p] && typeof files[p] === 'object' && files[p].base64; }), blobSha = {};
+        return Promise.all(bins.map(function (p) {
+          return req(repo, 'POST', '/git/blobs', { content: files[p].base64, encoding: 'base64' }).then(function (b) { blobSha[p] = b.sha; });
+        })).then(function () { return [lists, blobSha]; });
+      })
+      .then(function (pair) {
+        var lists = pair[0], blobSha = pair[1];
         var shaOf = {}, tree = [];
         lists.forEach(function (pair) { pair[1].forEach(function (f) { shaOf[pair[0] + '/' + f.name] = f.sha; }); });
         renames.forEach(function (rn) {
@@ -133,7 +143,10 @@
           tree.push({ path: rn.from, mode: '100644', type: 'blob', sha: null });
         });
         deletes.forEach(function (p) { tree.push({ path: p, mode: '100644', type: 'blob', sha: null }); });
-        Object.keys(files).forEach(function (p) { tree.push({ path: p, mode: '100644', type: 'blob', content: files[p] }); });
+        Object.keys(files).forEach(function (p) {
+          if (blobSha[p]) tree.push({ path: p, mode: '100644', type: 'blob', sha: blobSha[p] });
+          else tree.push({ path: p, mode: '100644', type: 'blob', content: files[p] });
+        });
         if (!tree.length) return { noop: true };
         return req(repo, 'POST', '/git/trees', { base_tree: baseTree, tree: tree }).then(function (t) {
           if (t.sha === baseTree) return { noop: true };           // nothing changed: no empty commit
@@ -363,6 +376,7 @@
     splitBase: splitBase, baseOf: baseOf, entryOf: entryOf, routesOf: routesOf, routeIdsOf: routeIdsOf, personalFiles: personalFiles,
     emptyModel: emptyModel, loadAdmin: loadAdmin, saveAdmin: saveAdmin, checkAdmin: checkAdmin,
     publishModel: publishModel, setRouteAccess: setRouteAccess, publishRoute: publishRoute, deleteRoute: deleteRoute, hiddenRoutes: hiddenRoutes,
-    purgeRoute: purgeRoute, retry: retry, retryDelays: [400, 900, 1600, 2500, 4000], toB64: toB64, fromB64: fromB64
+    purgeRoute: purgeRoute, retry: retry, retryDelays: [400, 900, 1600, 2500, 4000], longRetryDelays: [500, 1000, 2000, 3000, 5000, 8000, 12000, 15000],
+    commitTree: commitTree, toB64: toB64, fromB64: fromB64
   };
 })(window);

@@ -303,7 +303,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v46 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v47 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -1272,12 +1272,12 @@ details.tips li { margin-bottom: 4px; }
     for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
     return btoa(s);
   }
-  function ghPutNew(path, b64, message) {           // a new file (the name is unique), the content already in base64
-    return withRetry(function () {
-      return ghFetch('/repos/' + gh.repo + '/contents/' + path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message, content: b64 }) })
-        .then(function (r) { if (!r.ok) return ghError(r); return r.json(); });
-    });
+  var ownAudioBase = '';                              // set when you have added audio of your own to this route in this session
+  function hasOwnAudio() {
+    var m = manifest && Array.isArray(manifest.engines) && manifest.engines.some(function (e) { return String(e).indexOf('manual:') === 0; });
+    return !!m || (!!ownAudioBase && ownAudioBase === (slug(els.fileName.value) || 'my-route'));
   }
+  function ownAudioAtRisk() { return $('vProvider').value !== 'manual' && hasOwnAudio() && audioNeed() !== 0; }     // Gemini would make audio for the stops that have none
   function clipUpload() {
     var up = $('clipUpMsg'), f = $('clipFile').files && $('clipFile').files[0];
     function bad(t) { up.className = 'hint bad'; up.textContent = t; }
@@ -1296,9 +1296,17 @@ details.tips li { margin-bottom: 4px; }
     r.onerror = function () { $('clipUpload').disabled = false; bad('The file could not be read.'); };
     r.onload = function () {
       up.textContent = 'Uploading ' + Math.round(f.size / 1024) + ' kB to GitHub\u2026';
-      ghPutNew('ture/inbox/' + base + '/' + name, bytesToB64(r.result), 'Studio: audio for ' + base + ' (stops ' + stopsLabel(idx) + ')')
-        .then(function () { return ghPutNew('ture/inbox/' + base + '/' + name + '.json', toB64(JSON.stringify(desc)), 'Studio: which stops the audio is for (' + base + ')'); })
-        .then(function () { up.className = 'hint'; up.textContent = 'Uploaded. GitHub cuts the file at the long pauses and adds the ' + idx.length + (idx.length === 1 ? ' stop' : ' stops') + ' in a few minutes. Press "Check audio status" on the first screen to see the result.'; })
+      var files = {};                                   // the recording and its description go to GitHub in ONE commit: one push, one run that sees both
+      files['ture/inbox/' + base + '/' + name] = { base64: bytesToB64(r.result) };
+      files['ture/inbox/' + base + '/' + name + '.json'] = JSON.stringify(desc);
+      Access.retry(function () { return Access.commitTree(gh.repo, { files: files, message: 'Studio: audio for ' + base + ' (stops ' + stopsLabel(idx) + ')' }); }, Access.longRetryDelays,
+          function (k, total) { up.textContent = 'GitHub is saving something else right now. Trying again\u2026 (' + k + ' of ' + total + ')'; })
+        .then(function () {
+          ownAudioBase = base;
+          up.className = 'hint';
+          up.textContent = 'Uploaded. GitHub cuts the file at the long pauses and adds the ' + idx.length + (idx.length === 1 ? ' stop' : ' stops') + ' in a few minutes. Press "Check audio status" on the first screen to see the result.' +
+            ($('vProvider').value !== 'manual' ? ' The voice engine is Gemini, so GitHub will also make Gemini audio for the stops that have none. If you make all the audio yourself, open the menu, choose "Own audio only" under "Voice for the audio", and save.' : '');
+        })
         .catch(function (e) { bad('The upload failed. ' + ((e && e.message) || '')); })
         .then(function () { $('clipUpload').disabled = false; });
     };
@@ -1945,6 +1953,7 @@ details.tips li { margin-bottom: 4px; }
       dlMsg('To publish an invite-only route, set up the list of people first (People page). Or choose Everyone (open).', true);
       return;
     }
+    if (ownAudioAtRisk() && window.confirm('This route has audio you made yourself, and the voice engine is Gemini.\n\nAfter you publish, GitHub makes Gemini audio for every stop that still has no audio or has a new text, and uses part of the day\u2019s free requests on it.\n\nIf you make the audio yourself (for example in Clipchamp): press Cancel, open the menu, choose \u201COwn audio only\u201D under \u201CVoice for the audio\u201D, save, and publish again.\n\nPublish anyway?') === false) return;
     var secret = currentSource === 'admin' || (currentSource === 'new' && access !== 'open' && adminReady());
     if (currentSource === 'new' && secret && !Access.splitBase(currentBase()).token) {
       els.fileName.value = currentBase() + '-' + Access.random(8);        // a secret part in the file name
@@ -2153,9 +2162,13 @@ details.tips li { margin-bottom: 4px; }
       batch: $('vBatch').checked
     };
     $('vSave').disabled = true; vStatus('Saving\u2026');
-    putFile('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'Piper') + ')')
+    var vMsg = 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : (s.provider === 'manual' ? 'own audio only' : 'Piper')) + ')';
+    Access.retry(function () { return ghGetFile('tools/lyd.json').then(function (f) { return ghPut('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', vMsg, f && f.sha); }); }, Access.longRetryDelays,
+        function (k, total) { vStatus('GitHub is saving something else right now (often the audio job). Trying again\u2026 (' + k + ' of ' + total + ')'); })
       .then(function () { vStatus(s.provider === 'manual' ? 'Saved. GitHub no longer makes audio itself. It only adds the audio you upload in step 3 (Texts for Clipchamp, and audio you made yourself).' : 'Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
-      .catch(function (e) { vStatus('Not saved. ' + e.message, true); })
+      .catch(function (e) {
+        vStatus(e && (e.status === 409 || e.status === 422) ? 'Not saved, because GitHub was busy for about 45 seconds (the automatic audio job saves files all the time). Nothing was lost. Open GitHub > Actions: if a job has a yellow dot, wait until it is green, or press Cancel workflow. Then press Save again.' : 'Not saved. ' + ((e && e.message) || ''), true);
+      })
       .then(function () { $('vSave').disabled = false; });
   });
 
