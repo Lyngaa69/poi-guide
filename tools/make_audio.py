@@ -230,7 +230,7 @@ def read_stops(gpx):
 
 # ---------- voice settings (tools/lyd.json, edited in Studio) ----------
 DEFAULT_SETTINGS = {
-    'provider': 'gemini',                      # 'gemini' or 'piper'
+    'provider': 'gemini',                      # 'gemini', 'piper' or 'manual' (the audio is made by you, for example in Clipchamp, and added through Studio)
     'model': 'gemini-3.8-flash-tts',
     'voice': 'Gacrux',
     'stylePreset': 'podcast',
@@ -248,7 +248,9 @@ def load_settings():
     return s
 
 def active_provider():
-    """'piper', 'gemini', or 'none' (Gemini is chosen but there is no key, so nothing is touched)"""
+    """'piper', 'gemini', 'manual' (you make the audio yourself, for example in Clipchamp), or 'none' (Gemini is chosen but there is no key, so nothing is touched)"""
+    if load_settings()['provider'] == 'manual':
+        return 'manual'
     if load_settings()['provider'] != 'gemini':
         return 'piper'
     return 'gemini' if os.environ.get('GEMINI_API_KEY', '').strip() else 'none'
@@ -340,6 +342,8 @@ def plan_route(gpx, provider='piper'):
     todo = []
     for i, h in enumerate(hashes, 1):
         mp3 = TURE / ('%s-%0*d.mp3' % (base, width, i))
+        if i <= len(old) and old[i - 1] == h and str(engines_old[i - 1]).startswith('manual:') and mp3.exists() and i not in failed:
+            continue                               # audio you made yourself, for the same text: left alone
         same_text = i <= len(old) and old[i - 1] == h
         if same_text:
             if old_spoken is not None:
@@ -353,7 +357,10 @@ def plan_route(gpx, provider='piper'):
         todo.append(i)
     pat = re.compile('^' + re.escape(base) + r'-(\d+)\.mp3$')
     orphans = [p for p in TURE.iterdir() if (m := pat.match(p.name)) and int(m.group(1)) > len(stops)]
-    manifest_ok = (not todo and man.get('voice') == vid and man.get('stops') == hashes and man.get('spoken') == spoken_hashes
+    sp = man.get('spoken')
+    spoken_ok = isinstance(sp, list) and len(sp) == len(spoken_hashes) and all(
+        sp[k] == spoken_hashes[k] or str(engines_old[k]).startswith('manual:') for k in range(len(sp)))
+    manifest_ok = (not todo and man.get('voice') == vid and man.get('stops') == hashes and spoken_ok
                    and listed is not None and len(listed) == len(stops))
     return dict(base=base, stops=stops, raws=raws, hashes=hashes, spoken_hashes=spoken_hashes, width=width, voice_id=vid,
                 todo=todo, orphans=orphans, manifest_ok=manifest_ok, failed=failed, old_hashes=old, engines_old=engines_old)
@@ -1128,6 +1135,150 @@ def make_previews(plan, voice_loader):
     path.write_text(json.dumps(plan, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     print('previews: %d words listed' % len(plan['words']))
 
+# ---------- audio that you made yourself (for example in Clipchamp) ----------
+# Studio uploads the recording and a small description (ture/inbox/<route>/<name>.json: which stops, and the fingerprint of each text).
+# The recording has the stops one after another with a LONG pause between (Clipchamp: a line of 25 dots gives 2.5 s, every dot is 0.1 s; the pauses inside a text are at most
+# about 0.7 s). It is cut at the long pauses: exactly one fewer long pause than stops, or the file is refused. No guessing.
+INBOX = TURE / 'inbox'
+INBOX_FAILED = TURE / 'inbox-failed'
+IMPORT_LOG = TURE / 'audio-import.json'
+LONG_PAUSE = 1.5
+
+def inbox_jobs():
+    out = []
+    if INBOX.is_dir():
+        for d in sorted(x for x in INBOX.iterdir() if x.is_dir()):
+            for side in sorted(d.glob('*.json')):
+                out.append((d.name, side))
+    return out
+
+def log_import(entry):
+    try:
+        log = json.loads(IMPORT_LOG.read_text(encoding='utf-8'))
+    except Exception:
+        log = []
+    if not isinstance(log, list): log = []
+    entry['time'] = time.strftime('%Y-%m-%d %H:%M:%S')
+    log.append(entry)
+    IMPORT_LOG.write_text(json.dumps(log[-20:], indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+def speech_span(samples, rate):
+    """(first, last) second with speech, so that silence at the start and the end of a recording is left out."""
+    n = int(rate * FRAME); rms = []
+    for i in range(0, len(samples) - n + 1, n):
+        c = samples[i:i + n]; rms.append(math.sqrt(sum(x * x for x in c) / n))
+    if not rms: raise SplitError('the audio was empty')
+    thr = max(sorted(rms)[int(len(rms) * 0.9)] * 0.04, 25.0)
+    loud = [i for i, v in enumerate(rms) if v >= thr]
+    if not loud: raise SplitError('the audio is silent')
+    return loud[0] * FRAME, (loud[-1] + 1) * FRAME
+
+def split_own_audio(samples, rate, n, letters):
+    """Cut a recording of n stops (one after another, a long pause between) into n pieces: [(start, end)] in seconds. Not exactly n-1 long pauses: refused."""
+    gaps, dur = find_gaps(samples, rate)
+    longs = [(a, b) for a, b in gaps if b - a >= LONG_PAUSE]
+    if len(longs) != n - 1:
+        raise SplitError('found %d long pauses (%.1f s or longer), but %d are needed between %d stops; %d shorter pauses were found. Put a line of 25 dots (in Clipchamp every dot is a pause of 0.1 s) between the stops, and no long runs of dots inside a stop' % (len(longs), LONG_PAUSE, n - 1, n, len(gaps) - len(longs)))
+    t0, t1 = speech_span(samples, rate)
+    segs, start = [], max(0.0, t0 - 0.1)
+    for a, b in longs:
+        segs.append((start, a + 0.25)); start = max(b - 0.15, (a + b) / 2)
+    segs.append((start, min(dur, t1 + 0.3)))
+    if n > 1:
+        rates = [max(0.01, e - b) / max(1, letters[i]) for i, (b, e) in enumerate(segs)]
+        med = sorted(rates)[len(rates) // 2]
+        for i, (b, e) in enumerate(segs):
+            if e - b < 0.8 or rates[i] < 0.4 * med or rates[i] > 2.5 * med:
+                raise SplitError('piece %d got %.1f s of audio for %d letters, which does not fit the other stops. Are the stops in the file in the order of the list?' % (i + 1, e - b, letters[i]))
+    return segs
+
+def decode_mono(path, rate=24000):
+    tmp = tempfile.mktemp(suffix='.wav')
+    try:
+        subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', str(path), '-ac', '1', '-ar', str(rate), tmp], check=True)
+        return pcm_of(open(tmp, 'rb').read())
+    finally:
+        if os.path.exists(tmp): os.remove(tmp)
+
+def import_one(base, side):
+    """Add the stops of one uploaded recording. Returns the message; raises SplitError (or ValueError) if it cannot be done."""
+    meta = json.loads(side.read_text(encoding='utf-8'))
+    audio = side.with_name(str(meta.get('file', '')))
+    if not audio.is_file(): raise ValueError('the recording %s was not found next to its description' % meta.get('file'))
+    gpx = TURE / (base + '.gpx')
+    if not gpx.is_file(): raise ValueError('the route %s was not found. Publish the route first' % base)
+    items = read_stops_raw(gpx)
+    idx = [int(x) for x in meta.get('stops', [])]
+    fps = [str(x) for x in meta.get('fps', [])]
+    if not idx or len(fps) != len(idx) or sorted(set(idx)) != idx or idx[0] < 1 or idx[-1] > len(items):
+        raise ValueError('the description does not fit the route (%d stops in the route, stops %s in the description). Publish the route first, then add the audio' % (len(items), idx))
+    for k, i in enumerate(idx):
+        if fnv1a(items[i - 1][0]) != fps[k]:
+            raise ValueError('the text of stop %d is not the same as the text the audio was made for. Publish the texts first, then add the audio (or make the texts again)' % i)
+    p = plan_route(gpx, 'piper')
+    if p.get('external'): raise ValueError('this route has audio made outside GitHub (%s)' % p['external'])
+    samples, rate = decode_mono(audio)
+    segs = split_own_audio(samples, rate, len(idx), [plain_len(items[i - 1][1]) for i in idx])
+    engine = str(meta.get('engine') or 'manual:own')
+    made = []
+    for (b, e), i in zip(segs, idx):
+        out = TURE / ('%s-%0*d.mp3' % (base, p['width'], i))
+        wav = str(out) + '.wav'
+        piece = array.array('h', samples[int(b * rate):int(e * rate)])
+        if sys.byteorder == 'big': piece.byteswap()
+        with wave.open(wav, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(piece.tobytes())
+        try:
+            wav_to_mp3(wav, out)
+        finally:
+            if os.path.exists(wav): os.remove(wav)
+        made.append(out)
+    man_path = TURE / (base + '.audio.json')
+    try:
+        man = json.loads(man_path.read_text(encoding='utf-8'))
+    except Exception:
+        man = {}
+    n = len(items)
+    pad = lambda lst, fill: (list(lst) + [fill] * n)[:n]
+    stops_fp = pad(man.get('stops', []) if isinstance(man.get('stops'), list) else [], '')
+    spoken_l = pad(man.get('spoken', []) if isinstance(man.get('spoken'), list) else [], '')
+    engines = pad(p['engines_old'], '')
+    failed = set(man.get('failed', []))
+    for k, i in enumerate(idx):
+        stops_fp[i - 1] = fps[k]; spoken_l[i - 1] = ''; engines[i - 1] = engine; failed.discard(i)
+    man_path.write_text(json.dumps({'voice': man.get('voice') or 'manual', 'stops': stops_fp, 'spoken': spoken_l, 'engines': engines, 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
+    return 'added %d stops (%s) to %s from %s' % (len(idx), ', '.join(str(i) for i in idx[:12]) + (' ...' if len(idx) > 12 else ''), base, audio.name)
+
+def ingest_inbox():
+    count = 0
+    for base, side in inbox_jobs():
+        try:
+            meta_file = json.loads(side.read_text(encoding='utf-8')).get('file', '')
+        except Exception:
+            meta_file = ''
+        try:
+            msg = import_one(base, side)
+        except (SplitError, ValueError, subprocess.CalledProcessError, KeyError, OSError) as e:
+            err = '%s: %s' % (type(e).__name__, _redact(str(e))[:300])
+            print('::warning::The audio %s for %s could not be added: %s' % (meta_file, base, err))
+            log_import({'route': base, 'file': meta_file, 'ok': False, 'message': str(e)[:300]})
+            dest = INBOX_FAILED / base; dest.mkdir(parents=True, exist_ok=True)
+            for f in (side, side.with_name(meta_file)):
+                if f.is_file(): shutil.move(str(f), str(dest / f.name))
+            try: side.parent.rmdir()
+            except OSError: pass
+            continue
+        print(msg)
+        log_import({'route': base, 'file': meta_file, 'ok': True, 'message': msg})
+        for f in (side, side.with_name(meta_file)):
+            if f.is_file(): f.unlink()
+        count += 1
+        try: side.parent.rmdir()
+        except OSError: pass
+    try: INBOX.rmdir()
+    except OSError: pass
+    return count
+
 def set_output(key, value):
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -1139,10 +1290,15 @@ def main():
     except Exception:
         pass
     provider = active_provider()
-    plans = all_plans(provider) if provider != 'none' else []
+    plans = all_plans(provider) if provider not in ('none', 'manual') else []
     if '--plan' in sys.argv:
         s = load_settings()
-        if provider == 'none':
+        pending = inbox_jobs()
+        if pending:
+            print('audio you made yourself: %d recordings are waiting to be added (%s)' % (len(pending), ', '.join(sorted(set(b for b, _ in pending)))))
+        if provider == 'manual':
+            print('audio engine: your own audio only. GitHub does not make audio itself; it adds the recordings you upload in Studio.')
+        elif provider == 'none':
             print('::warning::The voice is set to Gemini, but GEMINI_API_KEY is not set in GitHub. No audio is made until it is.')
         elif provider == 'gemini':
             print('audio engine: Gemini (%s, %s)' % (s['model'], s['voice']))
@@ -1167,12 +1323,18 @@ def main():
             pplan = preview_plan()
             pneeded = previews_needed(pplan)
             print('word previews: %d words to review%s' % (len(pplan['words']), ', needs updating' if pneeded else ', up to date'))
-        flag = 'true' if (needed(plans) or pneeded) else 'false'
+        flag = 'true' if (needed(plans) or pneeded or pending) else 'false'
         print('needed=' + flag)
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                 f.write('needed=%s\n' % flag)
                 f.write('piper=%s\n' % ('true' if (flag == 'true' and provider == 'piper') else 'false'))
+        return
+    added = ingest_inbox()                                    # recordings you made yourself come first, so they are not made again
+    if added and provider not in ('none', 'manual'):
+        plans = all_plans(provider)
+    if provider == 'manual':
+        set_output('more', 'false')
         return
     if provider == 'none':
         print('::warning::The voice is set to Gemini, but GEMINI_API_KEY is not set in GitHub. No audio is made.')
