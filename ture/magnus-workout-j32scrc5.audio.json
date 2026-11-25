@@ -1,18 +1,18 @@
 {
   "voice": "gemini:gemini-3.8-flash-tts:Gacrux",
   "stops": [
-    "2a1f5f53",
-    "2ef6d66d",
-    "8d4cab2b",
-    "ba7149b6",
-    "9b37459b"
+    "cc6351c7",
+    "31934b79",
+    "20c5d4be",
+    "1856da48",
+    "0d02bbef"
   ],
   "spoken": [
-    "2e06a4d2",
-    "00d67388",
-    "a024106b",
-    "07252972",
-    "f185f58d"
+    "70a8129e",
+    "f96a34bc",
+    "93611978",
+    "9bb275be",
+    "c404ed97"
   ],
   "engines": [
     "gemini:gemini-3.8-flash-tts:Gacrux",

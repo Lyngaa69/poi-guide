@@ -1,9 +1,10 @@
 {
  "v": 3,
  "key": "eb61401f",
- "ok": 0,
+ "ok": 1,
  "bad": 1,
  "since": "2026-11-25",
  "last": "SplitError: no pause where stop 1 should end is followed by the pause after the next name",
- "tags": 6
+ "tags": 6,
+ "listen_model": "gemini-3.6-flash"
 }
