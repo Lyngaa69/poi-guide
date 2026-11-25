@@ -182,6 +182,7 @@ details.tips li { margin-bottom: 4px; }
       <select id="vProvider">
         <option value="gemini">Gemini (AI voice, needs the key in GitHub)</option>
         <option value="piper">Piper (free, runs on GitHub, more robotic)</option>
+        <option value="manual">Own audio only (you make it, for example in Clipchamp, and add it in step 3)</option>
       </select>
     </label>
 
@@ -302,7 +303,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v44 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v45 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -448,6 +449,24 @@ details.tips li { margin-bottom: 4px; }
       <h2>3. Write the texts</h2>
       <p class="hint" style="margin-top:0;">Leave a text empty if you want Claude to write it later. Wayside then only reads out the name.</p>
       <p class="hint">With the Gemini voice you can add expressions such as &lt;breath&gt; or &lt;chuckle&gt; where the cursor is: pick one under a text and press Insert. The phone voice and the Listen button skip them.</p>
+      <details class="tips" id="clipBox">
+        <summary>Texts for Clipchamp, and audio you made yourself</summary>
+        <div style="margin-top:10px;">
+          <p class="hint" style="margin-top:0;">For when you make the audio in Microsoft Clipchamp (or another program) instead of with Gemini. 1) Make the texts here and paste each part into Clipchamp (Record &amp; create &gt; Text to speech, Danish, your voice), then save. 2) Export the audio only. 3) Choose the file below. GitHub cuts it at the long pauses, makes one file per stop and adds them to the route. <b>Publish the route first</b>, so the texts on GitHub are the ones you pasted.</p>
+          <label class="check"><input type="checkbox" id="clipOnlyNew" checked><span>Only the stops that need new audio (new or changed text)</span></label>
+          <div class="row" style="margin-top:8px;"><button class="btn small" id="clipMake" type="button">Make the texts</button></div>
+          <p class="hint" id="clipMsg" role="status"></p>
+          <div id="clipParts"></div>
+          <div id="clipAdd" class="hidden" style="margin-top:16px;">
+            <p class="hint" style="margin:0 0 6px;font-weight:700;">Add the audio you made</p>
+            <label>Which part is the file?<select id="clipPick"></select></label>
+            <label style="margin-top:8px;">The stops in the file, in the order they are spoken<input type="text" id="clipStops" inputmode="numeric" autocomplete="off"></label>
+            <input type="file" id="clipFile" accept="audio/*,.m4a,.mp3,.wav,.mp4,.aac,.ogg,.webm" style="margin-top:8px;">
+            <div class="row" style="margin-top:8px;"><button class="btn small" id="clipUpload" type="button">Add the audio to the route</button></div>
+            <p class="hint" id="clipUpMsg" role="status"></p>
+          </div>
+        </div>
+      </details>
       <div id="stopList"></div>
       <p class="status" id="summary"></p>
     </div>
@@ -629,6 +648,7 @@ details.tips li { margin-bottom: 4px; }
     if (!e) return '';
     if (e.indexOf('gemini:') === 0) { var p = e.split(':'); return 'Gemini \u00B7 ' + (p[2] || ''); }
     if (e.indexOf('local:') === 0) return 'Own audio (' + e.slice(6) + ')';
+    if (e.indexOf('manual:') === 0) return 'Own audio (' + e.slice(7) + ')';
     if (e.indexOf('piper') === 0) return 'Piper';
     return e;
   }
@@ -690,6 +710,7 @@ details.tips li { margin-bottom: 4px; }
     stops.forEach(function (s) { var i = snapInfo(s.lat, s.lon); s.pos = i ? i.pos : 0; });
     selected = -1;
     replaceTrack = false; rerouteWas = ''; $('rerouteMsg').textContent = 'Fetches the road between your stops again, with every corner, and saves it in the route file when you publish. Use it if the line in Wayside cuts corners across blocks. It replaces the line that is in the file now.';
+    $('clipParts').innerHTML = ''; $('clipMsg').textContent = ''; $('clipAdd').classList.add('hidden'); $('clipUpMsg').textContent = ''; $('clipFile').value = '';
     $('turnSens').value = 'normal'; turnSensWas = 'normal'; turnUndo = null; $('turnNote').classList.add('hidden');
     initTurns(doc);
     scheduleAutoDesc();
@@ -1180,6 +1201,110 @@ details.tips li { margin-bottom: 4px; }
     fetchPreview();
   });
   function updateRerouteBtn() { $('reroute').disabled = stops.length < 2; }
+
+  /* ---------- texts for Clipchamp, and audio you made yourself ---------- */
+  var CLIP_WORDS = 1000;                            // a text to speech item in Clipchamp can take 10 minutes: about 1300 words
+  var CLIP_DOTS = 25;                               // in Clipchamp every full stop is a pause of 0.1 s, so 25 dots on a line are a pause of 2.5 s: that is where GitHub cuts
+  var CLIP_SEP = '\n\n' + new Array(CLIP_DOTS + 1).join('.') + '\n\n';
+  var clipParts = [];
+  function wordCount(t) { return (String(t).match(/\S+/g) || []).length; }
+  function clipNeeds(i) {
+    if (!manifest) return true;
+    var a = auditStop(manifest, stops[i], i, manifest.voice);
+    return a.k === 'changed' || a.k === 'missing' || a.k === 'own';
+  }
+  function makeClipParts() {
+    var only = $('clipOnlyNew').checked && !!manifest, idx = [];
+    stops.forEach(function (s, i) { if (!only || clipNeeds(i)) idx.push(i); });
+    var parts = [], cur = null;
+    idx.forEach(function (i) {
+      var txt = stopPlain(stops[i], i).replace(/\u2026/g, '.').replace(/\.{2,}/g, '.'), w = wordCount(txt);       // dots inside a text would become long pauses in Clipchamp, and the file could not be cut
+      if (!cur || (cur.words + w > CLIP_WORDS && cur.stops.length)) { cur = { stops: [], texts: [], words: 0 }; parts.push(cur); }
+      cur.stops.push(i + 1); cur.texts.push(txt); cur.words += w;
+    });
+    parts.forEach(function (p, k) { p.n = k + 1; p.text = p.texts.join(CLIP_SEP); });
+    return parts;
+  }
+  function stopsLabel(list) {                       // 1, 2, 3, 5 -> "1-3, 5"
+    var out = [], a = list[0], b = a;
+    for (var i = 1; i <= list.length; i++) {
+      if (list[i] === b + 1) { b = list[i]; continue; }
+      out.push(a === b ? String(a) : a + '\u2013' + b); a = list[i]; b = a;
+    }
+    return out.join(', ');
+  }
+  function copyText(ta) {
+    ta.focus(); ta.select();
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value); return true; } } catch (e) { }
+    try { return document.execCommand('copy'); } catch (e2) { return false; }
+  }
+  function renderClipParts() {
+    var box = $('clipParts'), msg = $('clipMsg');
+    box.innerHTML = '';
+    clipParts = makeClipParts();
+    $('clipAdd').classList.toggle('hidden', !clipParts.length);
+    if (!stops.length) { msg.textContent = 'The route has no stops yet.'; return; }
+    if (!clipParts.length) { msg.textContent = 'No stop needs new audio. Untick "Only the stops that need new audio" to make the texts of all stops.'; return; }
+    var total = clipParts.reduce(function (n, p) { return n + p.stops.length; }, 0);
+    msg.textContent = total + (total === 1 ? ' stop' : ' stops') + ' in ' + clipParts.length + (clipParts.length === 1 ? ' part' : ' parts') +
+      '. In Clipchamp: Record & create > Text to speech, choose Danish and your voice, paste a part, and save. The lines of 25 dots between the stops become the long pauses (in Clipchamp every dot is a pause of 0.1 second).';
+    var pick = $('clipPick'); pick.innerHTML = '';
+    clipParts.forEach(function (p) {
+      var minutes = Math.max(1, Math.round(p.words / 130));
+      var h = document.createElement('p'); h.className = 'hint'; h.style.cssText = 'margin:14px 0 4px;font-weight:700;';
+      h.textContent = 'Part ' + p.n + ' of ' + clipParts.length + ': stops ' + stopsLabel(p.stops) + ' (' + p.stops.length + (p.stops.length === 1 ? ' stop, ' : ' stops, ') + p.words + ' words, about ' + minutes + (minutes === 1 ? ' minute)' : ' minutes)');
+      var ta = document.createElement('textarea'); ta.readOnly = true; ta.rows = 6; ta.value = p.text; ta.setAttribute('aria-label', 'Text of part ' + p.n);
+      var row = document.createElement('div'); row.className = 'row'; row.style.marginTop = '6px';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Copy part ' + p.n;
+      var st = document.createElement('span'); st.className = 'hint'; st.style.margin = '0 0 0 8px';
+      b.addEventListener('click', function () { st.textContent = copyText(ta) ? 'Copied.' : 'Press and hold in the box, and choose Copy.'; });
+      row.appendChild(b); row.appendChild(st);
+      box.appendChild(h); box.appendChild(ta); box.appendChild(row);
+      var o = document.createElement('option'); o.value = String(p.n - 1); o.textContent = 'Part ' + p.n + ' (stops ' + stopsLabel(p.stops) + ')'; pick.appendChild(o);
+    });
+    $('clipStops').value = clipParts[0].stops.join(', ');
+  }
+  $('clipMake').addEventListener('click', renderClipParts);
+  $('clipOnlyNew').addEventListener('change', function () { $('clipParts').innerHTML = ''; $('clipMsg').textContent = ''; $('clipAdd').classList.add('hidden'); });
+  $('clipPick').addEventListener('change', function () { var p = clipParts[Number($('clipPick').value)]; if (p) $('clipStops').value = p.stops.join(', '); });
+  function bytesToB64(buf) {
+    var bytes = new Uint8Array(buf), s = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+  function ghPutNew(path, b64, message) {           // a new file (the name is unique), the content already in base64
+    return withRetry(function () {
+      return ghFetch('/repos/' + gh.repo + '/contents/' + path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message, content: b64 }) })
+        .then(function (r) { if (!r.ok) return ghError(r); return r.json(); });
+    });
+  }
+  function clipUpload() {
+    var up = $('clipUpMsg'), f = $('clipFile').files && $('clipFile').files[0];
+    function bad(t) { up.className = 'hint bad'; up.textContent = t; }
+    up.className = 'hint';
+    if (!gh.token || !gh.repo) return bad('Set up the GitHub connection first (step 2). You only do it once.');
+    if (!f) return bad('Choose the audio file first.');
+    var idx = String($('clipStops').value).split(/[^0-9]+/).filter(Boolean).map(Number);
+    idx = idx.filter(function (n, k) { return idx.indexOf(n) === k; }).sort(function (a, b) { return a - b; });
+    if (!idx.length || idx[0] < 1 || idx[idx.length - 1] > stops.length) return bad('Write the numbers of the stops that are in the file, for example 1, 2, 3. The route has ' + stops.length + ' stops.');
+    if (currentSource === 'new' && !publishedOnce) return bad('Publish the route first, so the texts on GitHub are the ones you pasted into Clipchamp. Then add the audio.');
+    var base = slug(els.fileName.value) || 'my-route', ext = (/\.([A-Za-z0-9]{2,5})$/.exec(f.name) || [0, 'm4a'])[1].toLowerCase();
+    var name = 'rec-' + Date.now() + '.' + ext;
+    var desc = { route: base, stops: idx, fps: idx.map(function (n) { return fnv1a(stopPlain(stops[n - 1], n - 1)); }), engine: 'manual:Clipchamp', file: name };
+    $('clipUpload').disabled = true; up.textContent = 'Reading the file\u2026';
+    var r = new FileReader();
+    r.onerror = function () { $('clipUpload').disabled = false; bad('The file could not be read.'); };
+    r.onload = function () {
+      up.textContent = 'Uploading ' + Math.round(f.size / 1024) + ' kB to GitHub\u2026';
+      ghPutNew('ture/inbox/' + base + '/' + name, bytesToB64(r.result), 'Studio: audio for ' + base + ' (stops ' + stopsLabel(idx) + ')')
+        .then(function () { return ghPutNew('ture/inbox/' + base + '/' + name + '.json', toB64(JSON.stringify(desc)), 'Studio: which stops the audio is for (' + base + ')'); })
+        .then(function () { up.className = 'hint'; up.textContent = 'Uploaded. GitHub cuts the file at the long pauses and adds the ' + idx.length + (idx.length === 1 ? ' stop' : ' stops') + ' in a few minutes. Press "Check audio status" on the first screen to see the result.'; })
+        .catch(function (e) { bad('The upload failed. ' + ((e && e.message) || '')); })
+        .then(function () { $('clipUpload').disabled = false; });
+    };
+    r.readAsArrayBuffer(f);
+  }
+  $('clipUpload').addEventListener('click', clipUpload);
 
   /* ---------- turn directions ---------- */
   function rebuildPrep() {
@@ -1986,7 +2111,7 @@ details.tips li { margin-bottom: 4px; }
 
   function vStatus(msg, bad) { var el = $('vStatus'); el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || ''; }
   function showVoice(s) {
-    $('vProvider').value = s.provider === 'piper' ? 'piper' : 'gemini';
+    $('vProvider').value = s.provider === 'piper' ? 'piper' : (s.provider === 'manual' ? 'manual' : 'gemini');
     $('vModel').value = s.model || VOICE_DEFAULTS.model;
     if (!$('vModel').value) $('vModel').value = VOICE_DEFAULTS.model;
     $('vVoice').value = s.voice || VOICE_DEFAULTS.voice;
@@ -2029,7 +2154,7 @@ details.tips li { margin-bottom: 4px; }
     };
     $('vSave').disabled = true; vStatus('Saving\u2026');
     putFile('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'Piper') + ')')
-      .then(function () { vStatus('Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
+      .then(function () { vStatus(s.provider === 'manual' ? 'Saved. GitHub no longer makes audio itself. It only adds the audio you upload in step 3 (Texts for Clipchamp, and audio you made yourself).' : 'Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
       .catch(function (e) { vStatus('Not saved. ' + e.message, true); })
       .then(function () { $('vSave').disabled = false; });
   });
@@ -2055,7 +2180,7 @@ details.tips li { margin-bottom: 4px; }
     if ((man.failed || []).indexOf(i + 1) !== -1) return { k: 'failed', text: 'Could not be made. It is not tried again until the text is changed.' };
     var e = man.engines ? man.engines[i] : man.voice;
     if (!e) return { k: 'missing', text: 'Waiting for audio.' };
-    if (e.indexOf('local:') === 0) return { k: 'ready', text: '' };
+    if (e.indexOf('local:') === 0 || e.indexOf('manual:') === 0) return { k: 'ready', text: '' };
     if (vNow && e !== vNow) return { k: 'older', text: 'Made with an older voice. It will be remade.' };
     return { k: 'ready', text: '' };
   }
@@ -2136,14 +2261,14 @@ details.tips li { margin-bottom: 4px; }
     if (!existing.length) { msg.className = 'status bad'; msg.textContent = 'No routes are listed yet. Wait a moment for the route list to load, or connect GitHub below.'; return; }
     audioBusy = true; $('audioCheck').disabled = true; sum.innerHTML = ''; box.innerHTML = '';
     msg.className = 'status'; msg.textContent = 'Checking\u2026';
-    Promise.all([jsonOrNull('tools/lyd.json'), jsonOrNull('ture/audio-batch.json'), lastAudioCommit()]).then(function (meta) {
-      var lyd = meta[0], bst = meta[1], lastRun = meta[2], results = [], next = 0, done = 0;
+    Promise.all([jsonOrNull('tools/lyd.json'), jsonOrNull('ture/audio-batch.json'), lastAudioCommit(), jsonOrNull('ture/audio-import.json')]).then(function (meta) {
+      var lyd = meta[0], bst = meta[1], lastRun = meta[2], imp = meta[3], results = [], next = 0, done = 0;
       function worker() {
         if (next >= existing.length) return Promise.resolve();
         var t = existing[next++];
         return auditRoute(t, lyd).then(function (res) { results.push(res); done++; msg.textContent = 'Checking ' + done + ' of ' + existing.length + '\u2026'; return worker(); });
       }
-      return Promise.all([worker(), worker(), worker()]).then(function () { return { results: results, lyd: lyd, bst: bst, lastRun: lastRun }; });
+      return Promise.all([worker(), worker(), worker()]).then(function () { return { results: results, lyd: lyd, bst: bst, lastRun: lastRun, imp: imp }; });
     }).then(function (d) {
       var allow = !(d.lyd && d.lyd.batch === false) && !batchOff(d.bst);
       var todoStops = 0, requests = 0, routesWaiting = 0, failedStops = 0, unreadable = 0;
@@ -2162,6 +2287,10 @@ details.tips li { margin-bottom: 4px; }
       });
       function line(cls, html) { var p = document.createElement('div'); p.className = 'engine ' + cls; p.innerHTML = '<i></i><span></span>'; p.lastChild.textContent = html; return p; }
       if (!todoStops) sum.appendChild(line('gemini', 'All ' + d.results.reduce(function (n, r) { return n + (r.items ? r.items.length : 0); }, 0) + ' stops in ' + (d.results.length - unreadable) + ' routes have audio.'));
+      else if (d.lyd && d.lyd.provider === 'manual') {
+        sum.appendChild(line('wait', todoStops + (todoStops === 1 ? ' stop is' : ' stops are') + ' waiting for audio, in ' + routesWaiting + (routesWaiting === 1 ? ' route.' : ' routes.')));
+        sum.appendChild(line('', 'The voice is set to \u201Cown audio only\u201D, so GitHub does not make audio itself. Make the audio yourself: open a route and use \u201CTexts for Clipchamp, and audio you made yourself\u201D in step 3. The stops are read with the phone voice until then.'));
+      }
       else {
         var days = Math.max(1, Math.ceil(requests / AUD.perDay)), nr = nextDailyRun();
         sum.appendChild(line('wait', todoStops + (todoStops === 1 ? ' stop is' : ' stops are') + ' waiting for audio, in ' + routesWaiting + (routesWaiting === 1 ? ' route.' : ' routes.')));
@@ -2169,7 +2298,11 @@ details.tips li { margin-bottom: 4px; }
       }
       if (failedStops) sum.appendChild(line('wait', failedStops + (failedStops === 1 ? ' stop' : ' stops') + ' could not be made and will not be tried again. Change their text and publish, or tell Claude.'));
       if (unreadable) sum.appendChild(line('wait', unreadable + (unreadable === 1 ? ' route' : ' routes') + ' could not be read (see below).'));
-      if (batchOff(d.bst)) sum.appendChild(line('wait', 'Several stops per request is switched off for now (' + d.bst.bad + ' cuts were refused, ' + d.bst.ok + ' were good). That uses more of the daily limit.'));
+      (Array.isArray(d.imp) ? d.imp.slice(-3).reverse() : []).forEach(function (e) {     // the last audio you added yourself, and whether it worked
+        sum.appendChild(line(e.ok ? 'gemini' : 'wait', (e.ok ? 'Audio added ' : 'Audio NOT added ') + (e.time || '') + ': ' + (e.route || '') + '. ' + String(e.message || '').slice(0, 260)));
+      });
+      if (d.lyd && d.lyd.provider === 'manual') { }
+      else if (batchOff(d.bst)) sum.appendChild(line('wait', 'Several stops per request is switched off for now (' + d.bst.bad + ' cuts were refused, ' + d.bst.ok + ' were good). That uses more of the daily limit.'));
       else if (validBatch(d.bst) && (d.bst.ok || d.bst.bad)) sum.appendChild(line('', 'Several stops per request: ' + d.bst.ok + ' good cuts, ' + d.bst.bad + ' refused.'));
       sum.appendChild(line('', d.lastRun ? 'The audio job last saved audio ' + agoText(d.lastRun) + ' (' + d.lastRun.toLocaleString() + ').' : (gh.token ? 'No audio update found among the latest changes on GitHub.' : 'Connect GitHub (below) to see when the audio job last saved something.')));
       if (!adminReady()) sum.appendChild(line('', 'Invite-only routes and drafts are not included, because the private list is not connected on this device.'));
