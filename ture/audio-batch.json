@@ -1,8 +1,9 @@
 {
- "v": 2,
+ "v": 3,
  "key": "eb61401f",
  "ok": 0,
- "bad": 3,
- "since": "2026-11-23",
- "last": "SplitError: there is no pause near 2 s, where stop 1 should end"
+ "bad": 1,
+ "since": "2026-11-25",
+ "last": "SplitError: no pause where stop 1 should end is followed by the pause after the next name",
+ "tags": 6
 }
