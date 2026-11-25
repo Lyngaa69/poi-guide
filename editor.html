@@ -301,7 +301,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v41 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v43 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -398,7 +398,7 @@ details.tips li { margin-bottom: 4px; }
         <div id="inviteList" style="margin-top:8px;"></div>
       </details>
       <div class="row hidden" id="inviteLinkRow" style="margin-top:8px;"><a class="btn small" href="people.html">Change on the People page</a></div>
-      <div id="audioWarn" class="banner hidden">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</div>
+      <div id="audioWarn" class="banner hidden"><b id="audioWarnCount" style="display:block;margin-bottom:4px;"></b><span id="audioWarnText">This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.</span></div>
       <button class="btn sign" id="publishBtn" type="button" style="width:100%; margin-top:14px;">Publish to Wayside</button>
       <p class="status" id="dlStatus" role="status"></p>
       <div class="row" style="margin-top:6px;"><button class="btn small" id="lastStopBtn" type="button" disabled>Go to the last stop</button></div>
@@ -1447,7 +1447,24 @@ details.tips li { margin-bottom: 4px; }
         });
     }, 300);
   }
-  function updateWarn() { els.audioWarn.classList.toggle('hidden', !(hasAudio && signature() !== initialSig)); }
+  function audioNeed() {                          // how many stops need new audio: their text is new, or differs from the text the audio was made from
+    if (!manifest) return null;
+    var n = 0;
+    stops.forEach(function (s, i) { var a = auditStop(manifest, s, i, manifest.voice); if (a.k === 'changed' || a.k === 'missing') n++; });
+    return n;
+  }
+  function updateWarn() {
+    var need = audioNeed(), show = need === null ? (hasAudio && signature() !== initialSig) : (hasAudio && need > 0);      // without the list of fingerprints: as before
+    els.audioWarn.classList.toggle('hidden', !show);
+    var c = $('audioWarnCount'), t = $('audioWarnText');
+    if (show && need !== null) {
+      c.textContent = need + ' of the ' + stops.length + ' stops ' + (need === 1 ? 'needs' : 'need') + ' new audio.';
+      t.textContent = 'Their text is new, or has changed since the audio was made. Until new audio has been made they use the phone voice. If automatic audio is set up, it appears a few minutes after you publish. It uses up to ' + need + ' of the day\u2019s free requests (about 10), and fewer when several stops can be made in one request. If not, send the GPX to Claude.';
+    } else if (show) {
+      c.textContent = '';
+      t.textContent = 'This route has recorded audio. Stops you change use the phone voice until new audio has been made. If automatic audio is set up, new audio appears a few minutes after you publish. If not, send the GPX to Claude.';
+    }
+  }
 
   /* ---------- short description: filled in automatically (length, start, stop), then yours to edit ---------- */
   var autoDesc = '', descTimer = null, geoCache = {}, descBusy = false;

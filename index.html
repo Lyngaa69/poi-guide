@@ -566,7 +566,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     </div>
     <p class="hint" id="refreshInfo">Wayside also checks by itself when you come back to it. Changes to routes can take a few minutes to show up here.</p>
 
-    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v41 (20 Nov 2026)</p>
+    <p class="hint" id="versionInfo" style="margin-top:22px;text-align:center;">Wayside v43 (20 Nov 2026)</p>
 
   </div>
 </aside>
@@ -1617,7 +1617,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
         onPosition({ coords: { latitude: p0.lat, longitude: p0.lon, accuracy: 5, speed: speed } });
         return;
       }
-      if (speaking && waited < 240) {                       // the car stands still while a stop is read, so no stop is driven past unread
+      if ((speaking || navPending > 0) && waited < 240) {   // the car stands still while a stop is read or a turn is announced, so no stop is driven past unread
         waited++;
         els.simText.textContent = 'Simulation paused while a stop is read';
         return;
@@ -1737,7 +1737,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
   function navShown() { return !!(Nav && prep && els.navOn.checked && running); }
   function navSpeak(text, interrupt) {
     if (muteNav || !('speechSynthesis' in window)) return;
-    var resume = -1, done = false;
+    var resume = -1, done = false, wait = 0;
     navPending++;
     if (interrupt && speaking) {                    // a story is being read: pause it, say the turn, then go on from where it was
       resume = currentStop;
@@ -1746,6 +1746,7 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
       playTok++; speaking = false; currentStop = -1;
       try { window.speechSynthesis.cancel(); } catch (e) { }
       stopAudio();
+      wait = 220;                                   // iPhone/Safari can cut a new utterance short when it is started right after cancel(): give the cancel a moment to finish
     }
     function finish() {
       if (done) return; done = true;
@@ -1757,9 +1758,9 @@ body.driving .voicehint { top: calc(env(safe-area-inset-top, 0px) + 112px); }
     u.lang = (v && v.lang) || 'da-DK'; if (v) u.voice = v; u.rate = 1;
     u.onend = finish; u.onerror = finish; u.onstart = noteSpeechStarted;
     lastSpoken = text;
-    setTimeout(finish, Math.max(6000, text.length * 130));
-    window.speechSynthesis.speak(u);
-    if (!speechOk) setTimeout(checkVoice, 2500);
+    setTimeout(finish, wait + Math.max(6000, text.length * 130));
+    function go() { window.speechSynthesis.speak(u); if (!speechOk) setTimeout(checkVoice, 2500); }
+    if (wait) setTimeout(go, wait); else go();
   }
   function navUpdate(c, good) {
     if (!Nav || !prep || !good || !nav) return;
