@@ -36,11 +36,16 @@
 
 
 
-<wpt lat="56.177116" lon="9.514596"><name>Så er du på vej</name><desc>Flot Magnus, nu er du på vej til træning</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
-<wpt lat="56.177632" lon="9.530026"><name>Lyskryds</name><desc>Husk at checke om det er grønt før du kører over. Ikke noget med at køre over for gult eller rødt</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
-<wpt lat="56.178362" lon="9.539620"><name>Corona test</name><desc>&lt;heavy breath&gt;Kan du huske da vi skulle tage coronatests herinde. Fede tider &lt;phew&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
-<wpt lat="56.178355" lon="9.552526"><name>Farligt t-kryds</name><desc>&lt;gasp&gt; Har du husket at kigge efter cyklister</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
-<wpt lat="56.182057" lon="9.547963"><name>Træning</name><desc>&lt;cheer&gt; Jubiiii så er du snart fremme. Rigtig god træning Kammersjuk. Pas nu på at du ikke overbelaster spaghettiarmene &lt;giggle&gt; &lt;laugh&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+
+
+
+
+
+<wpt lat="56.177116" lon="9.514596"><name>Så er du på vej</name><desc>Flot Magnus, nu er du på vej til træning.</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
+<wpt lat="56.177632" lon="9.530026"><name>Lyskryds</name><desc>Husk at checke om det er grønt før du kører over. Ikke noget med at køre over for gult eller rødt.</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.178362" lon="9.539620"><name>Corona test</name><desc>&lt;heavy breath&gt;Kan du huske da vi skulle tage coronatests herinde? Fede tider &lt;phew&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
+<wpt lat="56.178355" lon="9.552526"><name>Farligt t-kryds</name><desc>&lt;gasp&gt; Har du husket at kigge efter cyklister.</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
+<wpt lat="56.182057" lon="9.547963"><name>Træning</name><desc>&lt;cheer&gt; Jubiiii så er du snart fremme. Rigtig god træning Kammersjuk. Pas nu på at du ikke overbelaster spaghettiarmene. &lt;giggle&gt; &lt;laugh&gt;</desc><extensions><radius xmlns="https://wayside.app/ns/1">50</radius></extensions></wpt>
 <trk>
 		<name>Magnus workout</name>
 		<trkseg>
