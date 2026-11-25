@@ -301,7 +301,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v40 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v41 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -2003,7 +2003,15 @@ details.tips li { margin-bottom: 4px; }
     });
     return n + (cur ? 1 : 0);
   }
+  var BATCH_STATE_VERSION = 3;                      // the same number as in tools/make_audio.py
+  function validBatch(b) {                          // the audio program starts again from zero when the file is from an older way of cutting, or two weeks old
+    if (!b || b.v !== BATCH_STATE_VERSION) return null;
+    var age = (Date.now() - Date.parse(String(b.since || '') + 'T00:00:00')) / 86400000;
+    if (!isNaN(age) && age >= 14) return null;
+    return b;
+  }
   function batchOff(b) {                          // the same rule as the audio program: switched off when too few of the cuts work
+    b = validBatch(b);
     if (!b) return false;
     var n = (b.ok || 0) + (b.bad || 0);
     return ((b.ok || 0) === 0 && (b.bad || 0) >= 3) || (n >= 6 && (b.ok || 0) < 0.2 * n);
@@ -2095,7 +2103,7 @@ details.tips li { margin-bottom: 4px; }
       if (failedStops) sum.appendChild(line('wait', failedStops + (failedStops === 1 ? ' stop' : ' stops') + ' could not be made and will not be tried again. Change their text and publish, or tell Claude.'));
       if (unreadable) sum.appendChild(line('wait', unreadable + (unreadable === 1 ? ' route' : ' routes') + ' could not be read (see below).'));
       if (batchOff(d.bst)) sum.appendChild(line('wait', 'Several stops per request is switched off for now (' + d.bst.bad + ' cuts were refused, ' + d.bst.ok + ' were good). That uses more of the daily limit.'));
-      else if (d.bst && (d.bst.ok || d.bst.bad)) sum.appendChild(line('', 'Several stops per request: ' + d.bst.ok + ' good cuts, ' + d.bst.bad + ' refused.'));
+      else if (validBatch(d.bst) && (d.bst.ok || d.bst.bad)) sum.appendChild(line('', 'Several stops per request: ' + d.bst.ok + ' good cuts, ' + d.bst.bad + ' refused.'));
       sum.appendChild(line('', d.lastRun ? 'The audio job last saved audio ' + agoText(d.lastRun) + ' (' + d.lastRun.toLocaleString() + ').' : (gh.token ? 'No audio update found among the latest changes on GitHub.' : 'Connect GitHub (below) to see when the audio job last saved something.')));
       if (!adminReady()) sum.appendChild(line('', 'Invite-only routes and drafts are not included, because the private list is not connected on this device.'));
       var shownDone = [];
