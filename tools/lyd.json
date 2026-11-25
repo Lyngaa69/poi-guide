@@ -1,8 +1,9 @@
 {
-  "provider": "gemini",
+  "provider": "manual",
   "model": "gemini-3.8-flash-tts",
   "voice": "Gacrux",
   "stylePreset": "podcast",
   "style": "relaxed podcast host, warm and conversational, natural pacing",
-  "numbers": "model"
+  "numbers": "model",
+  "batch": true
 }
