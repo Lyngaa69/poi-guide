@@ -69,15 +69,19 @@
       if (r.status === 401) msg = 'GitHub rejected the token. It may be wrong or expired.';
       else if (r.status === 403) msg = 'The token is not allowed to do this. It needs "Contents: Read and write" on the repository. ' + m;
       else if (r.status === 404) msg = 'The repository or file was not found, or the token does not have access to it.';
-      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.';
+      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.' + (m ? ' (GitHub says: ' + m + ')' : '');
       else msg = 'GitHub error ' + r.status + (m ? ': ' + m : '');
-      throw err('HTTP', msg, r.status);
+      var e = err('HTTP', msg, r.status); e.detail = m; throw e;
     });
+  }
+  function fresh(url) {            // GitHub lets the browser reuse an answer for up to 60 seconds. A new try would then get the OLD version (and fail again), so every read gets its own URL.
+    return url + (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now() + Math.floor(Math.random() * 1000);
   }
   function call(repo, method, path, body) {
     var opts = { method: method, headers: { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + cfg.token() } };
     if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    return fetch(API + '/repos/' + repo + path, opts);
+    var url = API + '/repos/' + repo + path;
+    return fetch(method === 'GET' ? fresh(url) : url, opts);
   }
   function req(repo, method, path, body) { return call(repo, method, path, body).then(function (r) { if (!r.ok) return fail(r); return r.json(); }); }
   function reqOrNull(repo, path) {

@@ -303,7 +303,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v47 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v48 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -1862,7 +1862,10 @@ details.tips li { margin-bottom: 4px; }
   function ghFetch(path, opts) {
     opts = opts || {};
     opts.headers = Object.assign({ 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + gh.token }, opts.headers || {});
-    return fetch('https://api.github.com' + path, opts);
+    // GitHub lets the browser reuse an answer for up to 60 seconds. A new try would then get the OLD version (and fail again): every read gets its own URL.
+    var url = 'https://api.github.com' + path;
+    if (!opts.method || String(opts.method).toUpperCase() === 'GET') url += (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now() + Math.floor(Math.random() * 1000);
+    return fetch(url, opts);
   }
   function ghError(r) {
     return r.json().catch(function () { return {}; }).then(function (j) {
@@ -1870,9 +1873,9 @@ details.tips li { margin-bottom: 4px; }
       if (r.status === 401) msg = 'GitHub rejected the token. It may be wrong or expired. Create a new one.';
       else if (r.status === 403) msg = 'The token is not allowed to do this. It needs Contents: Read and write on this repository. ' + m;
       else if (r.status === 404) msg = 'The repository was not found. Check the name and that the token has access to it.';
-      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.';
+      else if (r.status === 409 || (r.status === 422 && /fast forward|sha|does not match|is at/i.test(m))) msg = 'Something else was saved to GitHub at the same moment (often the automatic audio job). Nothing was lost. Wait a moment and press the button again.' + (m ? ' (GitHub says: ' + m + ')' : '');
       else msg = 'GitHub error ' + r.status + (m ? ': ' + m : '');
-      var e = new Error(msg); e.status = r.status; throw e;
+      var e = new Error(msg); e.status = r.status; e.detail = m; throw e;
     });
   }
   function ghGetFile(path) {
@@ -2167,7 +2170,8 @@ details.tips li { margin-bottom: 4px; }
         function (k, total) { vStatus('GitHub is saving something else right now (often the audio job). Trying again\u2026 (' + k + ' of ' + total + ')'); })
       .then(function () { vStatus(s.provider === 'manual' ? 'Saved. GitHub no longer makes audio itself. It only adds the audio you upload in step 3 (Texts for Clipchamp, and audio you made yourself).' : 'Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
       .catch(function (e) {
-        vStatus(e && (e.status === 409 || e.status === 422) ? 'Not saved, because GitHub was busy for about 45 seconds (the automatic audio job saves files all the time). Nothing was lost. Open GitHub > Actions: if a job has a yellow dot, wait until it is green, or press Cancel workflow. Then press Save again.' : 'Not saved. ' + ((e && e.message) || ''), true);
+        var race = e && (e.status === 409 || (e.status === 422 && /fast forward|sha|does not match|is at/i.test(e.detail || '')));
+        vStatus(race ? 'Not saved, because GitHub kept saying that something else was saved at the same moment, for about 45 seconds. Nothing was lost. Open GitHub > Actions: if a job has a yellow dot, wait until it is green, or press Cancel workflow. Then press Save again.' + (e.detail ? ' (GitHub says: ' + e.detail + ')' : '') : 'Not saved. ' + ((e && e.message) || ''), true);
       })
       .then(function () { $('vSave').disabled = false; });
   });
