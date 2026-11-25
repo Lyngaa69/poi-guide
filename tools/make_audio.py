@@ -1178,7 +1178,7 @@ def split_own_audio(samples, rate, n, letters):
     gaps, dur = find_gaps(samples, rate)
     longs = [(a, b) for a, b in gaps if b - a >= LONG_PAUSE]
     if len(longs) != n - 1:
-        raise SplitError('found %d long pauses (%.1f s or longer), but %d are needed between %d stops; %d shorter pauses were found. Put a line of 25 dots (in Clipchamp every dot is a pause of 0.1 s) between the stops, and no long runs of dots inside a stop' % (len(longs), LONG_PAUSE, n - 1, n, len(gaps) - len(longs)))
+        raise SplitError('found %d long pauses (%.1f s or longer), but %d are needed between %d stops; %d shorter pauses were found. Put a line of 25 dots (in Clipchamp every dot is a pause of 0.1 s) between the stops, and press Enter at the end of each line of dots in Clipchamp so that it becomes a blue pause of 2.5 s. Dots that stay as dots are read out as a sound and are not a pause. No long runs of dots inside a stop' % (len(longs), LONG_PAUSE, n - 1, n, len(gaps) - len(longs)))
     t0, t1 = speech_span(samples, rate)
     segs, start = [], max(0.0, t0 - 0.1)
     for a, b in longs:
