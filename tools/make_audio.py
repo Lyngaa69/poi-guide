@@ -1167,10 +1167,13 @@ def speech_span(samples, rate):
     n = int(rate * FRAME); rms = []
     for i in range(0, len(samples) - n + 1, n):
         c = samples[i:i + n]; rms.append(math.sqrt(sum(x * x for x in c) / n))
-    if not rms: raise SplitError('the audio was empty')
+    secs = len(samples) / float(rate)
+    if not rms: raise SplitError('the recording is empty')
+    if max(rms) < 25.0:
+        raise SplitError('the recording has no sound at all (%.1f s of silence). In Clipchamp: press Save (not only Preview) in the text to speech panel, wait until the timeline shows the speech and is as long as the texts, and then press Export. Play the exported file before you add it' % secs)
     thr = max(sorted(rms)[int(len(rms) * 0.9)] * 0.04, 25.0)
     loud = [i for i, v in enumerate(rms) if v >= thr]
-    if not loud: raise SplitError('the audio is silent')
+    if not loud: raise SplitError('the recording has no sound at all (%.1f s of silence)' % secs)
     return loud[0] * FRAME, (loud[-1] + 1) * FRAME
 
 def split_own_audio(samples, rate, n, letters):
@@ -1218,7 +1221,12 @@ def import_one(base, side):
     p = plan_route(gpx, 'piper')
     if p.get('external'): raise ValueError('this route has audio made outside GitHub (%s)' % p['external'])
     samples, rate = decode_mono(audio)
-    segs = split_own_audio(samples, rate, len(idx), [plain_len(items[i - 1][1]) for i in idx])
+    letters = [plain_len(items[i - 1][1]) for i in idx]
+    t0, t1 = speech_span(samples, rate)                        # raises a clear message if the recording is silent
+    need = sum(letters) * 0.045                                  # about this many seconds of speech for these texts (a very fast voice: about half)
+    if (t1 - t0) < 0.4 * need and len(idx) > 1 or (t1 - t0) < 0.25 * need:
+        raise SplitError('the recording has only %.0f s of speech, but these %d stops (%d letters) need about %.0f s. Part of the audio is missing. In Clipchamp: press Save, wait until the timeline is as long as the texts, and then press Export' % (t1 - t0, len(idx), sum(letters), need))
+    segs = split_own_audio(samples, rate, len(idx), letters)
     engine = str(meta.get('engine') or 'manual:own')
     made = []
     for (b, e), i in zip(segs, idx):
