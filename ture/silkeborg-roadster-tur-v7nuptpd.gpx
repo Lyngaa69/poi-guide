@@ -123,6 +123,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <wpt lat="56.197730" lon="9.524751"><name>Start</name><desc>Vi mødes hos Gubsø Garage</desc><extensions><radius xmlns="https://wayside.app/ns/1">25</radius></extensions></wpt>
 <wpt lat="56.172691" lon="9.527754"><name>Silkeborg Langsø</name><desc>Vi krydser Silkeborg Langsø, en af de mange søer i området der tilsammen udgør Silkeborg søerne &lt;breath&gt; og sammen med det bakkede område dermed kaldes Søjhøjlandet</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
 <wpt lat="56.165805" lon="9.534942"><name>Lunden</name><desc>På venstre side passerer vi Lunden, som er et af flere udendørs forsamlingssteder i Silkeborg. Bag den tilhørende bygning skråner området ned mod søen og det store græsareal, der hvert år er vært for mange begivenheder såsom markeder, koncerter, streetfood festival og Silkeborg Automobil Festival kaldet Automania, som afholdes sidste i August.</desc><extensions><radius xmlns="https://wayside.app/ns/1">100</radius></extensions></wpt>
@@ -7117,4 +7162,4 @@
 			</trkpt>
 		</trkseg>
 	</trk>
-<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.196760" lon="9.524891" at="120" type="left"/><turn lat="56.196400" lon="9.527662" at="335" type="right"/><turn lat="56.186286" lon="9.509103" at="1968" type="roundabout"/><turn lat="56.164457" lon="9.528190" at="4960" type="left"/><turn lat="56.166963" lon="9.539899" at="5740" type="right"/><turn lat="56.164398" lon="9.541773" at="6050" type="left"/><turn lat="56.164710" lon="9.551396" at="6650" type="left"/><turn lat="56.170446" lon="9.552855" at="7284" type="right"/><turn lat="56.170025" lon="9.555970" at="7497" type="right"/><turn lat="56.163912" lon="9.555796" at="8189" type="left"/><turn lat="56.135377" lon="9.674391" at="17397" type="slight-right"/><turn lat="56.130381" lon="9.699584" at="19187" type="right"/><turn lat="56.127585" lon="9.702477" at="19687" type="right"/><turn lat="56.094192" lon="9.757323" at="26155" type="right"/><turn lat="56.080708" lon="9.706281" at="29996" type="left"/><turn lat="56.084766" lon="9.577843" at="39287" type="right"/><turn lat="56.093394" lon="9.594753" at="40760" type="slight-right"/><turn lat="56.091543" lon="9.670923" at="45898" type="left"/><turn lat="56.099029" lon="9.683109" at="47191" type="slight-left"/><turn lat="56.103193" lon="9.686523" at="47747" type="roundabout"/><turn lat="56.091533" lon="9.670897" at="49607" type="right"/><turn lat="56.127462" lon="9.561012" at="58328" type="left"/><turn lat="56.122777" lon="9.567038" at="59030" type="slight-right"/><turn lat="56.093972" lon="9.574384" at="62449" type="right"/><turn lat="56.095308" lon="9.549292" at="64190" type="left"/><turn lat="56.029966" lon="9.515054" at="72715" type="right"/><turn lat="56.042270" lon="9.477228" at="75881" type="left"/><turn lat="56.041271" lon="9.446821" at="77885" type="right"/><turn lat="56.071906" lon="9.382738" at="83367" type="sharp-right"/><turn lat="56.091736" lon="9.448034" at="88410" type="left"/><turn lat="56.093010" lon="9.448580" at="88548" type="right"/><turn lat="56.123251" lon="9.463991" at="92820" type="left"/><turn lat="56.146400" lon="9.462037" at="95746" type="right"/><turn lat="56.146644" lon="9.469426" at="96230" type="roundabout"/><turn lat="56.154703" lon="9.504247" at="98680" type="right"/><turn lat="56.149999" lon="9.503217" at="99240" type="slight-left"/><turn lat="56.148231" lon="9.505116" at="99477" type="right"/><turn lat="56.146682" lon="9.503651" at="99696" type="left"/><turn lat="56.145084" lon="9.506486" at="99957" type="right"/><turn lat="56.116045" lon="9.490095" at="103564" type="left"/><turn lat="56.112668" lon="9.501000" at="104390" type="left"/><turn lat="56.110520" lon="9.528228" at="106298" type="right"/><turn lat="56.105385" lon="9.517649" at="107180" type="left"/><turn lat="56.095302" lon="9.548761" at="109566" type="left"/><turn lat="56.114655" lon="9.537399" at="112400" type="right"/><turn lat="56.119756" lon="9.566816" at="114520" type="left"/><turn lat="56.156956" lon="9.549342" at="118930" type="right"/><turn lat="56.156990" lon="9.556230" at="119360" type="left"/><turn lat="56.159791" lon="9.555506" at="119680" type="right"/></turns></extensions></gpx>
+<extensions><turns xmlns="https://wayside.app/ns/1" edited="1"><turn lat="56.196760" lon="9.524891" at="120" type="left"/><turn lat="56.196400" lon="9.527662" at="335" type="right"/><turn lat="56.186286" lon="9.509103" at="1967" type="roundabout"/><turn lat="56.164457" lon="9.528190" at="4959" type="left"/><turn lat="56.166963" lon="9.539899" at="5739" type="right"/><turn lat="56.164398" lon="9.541773" at="6049" type="left"/><turn lat="56.164710" lon="9.551396" at="6649" type="left"/><turn lat="56.170446" lon="9.552855" at="7283" type="right"/><turn lat="56.170025" lon="9.555970" at="7499" type="right"/><turn lat="56.163912" lon="9.555796" at="8187" type="left"/><turn lat="56.135377" lon="9.674391" at="17394" type="slight-right"/><turn lat="56.130381" lon="9.699584" at="19184" type="right"/><turn lat="56.127585" lon="9.702477" at="19684" type="right"/><turn lat="56.094192" lon="9.757323" at="26151" type="right"/><turn lat="56.080708" lon="9.706281" at="29992" type="left"/><turn lat="56.084766" lon="9.577843" at="39282" type="right"/><turn lat="56.093394" lon="9.594753" at="40754" type="slight-right"/><turn lat="56.091543" lon="9.670923" at="45892" type="left"/><turn lat="56.099029" lon="9.683109" at="47185" type="slight-left"/><turn lat="56.103193" lon="9.686523" at="47740" type="roundabout"/><turn lat="56.091533" lon="9.670897" at="49611" type="right"/><turn lat="56.127462" lon="9.561012" at="58320" type="left"/><turn lat="56.122777" lon="9.567038" at="59022" type="slight-right"/><turn lat="56.093972" lon="9.574384" at="62441" type="right"/><turn lat="56.095308" lon="9.549292" at="64182" type="left"/><turn lat="56.029966" lon="9.515054" at="72706" type="right"/><turn lat="56.042270" lon="9.477228" at="75871" type="left"/><turn lat="56.041271" lon="9.446821" at="77875" type="right"/><turn lat="56.071906" lon="9.382738" at="83357" type="sharp-right"/><turn lat="56.091736" lon="9.448034" at="88400" type="left"/><turn lat="56.093010" lon="9.448580" at="88537" type="right"/><turn lat="56.123251" lon="9.463991" at="92810" type="left"/><turn lat="56.146400" lon="9.462037" at="95735" type="right"/><turn lat="56.146644" lon="9.469426" at="96219" type="roundabout"/><turn lat="56.154703" lon="9.504247" at="98669" type="right"/><turn lat="56.149999" lon="9.503217" at="99225" type="slight-left"/><turn lat="56.148231" lon="9.505116" at="99465" type="right"/><turn lat="56.146682" lon="9.503651" at="99685" type="left"/><turn lat="56.145084" lon="9.506486" at="99945" type="right"/><turn lat="56.116045" lon="9.490095" at="103552" type="left"/><turn lat="56.112668" lon="9.501000" at="104384" type="left"/><turn lat="56.110520" lon="9.528228" at="106286" type="right"/><turn lat="56.105385" lon="9.517649" at="107168" type="left"/><turn lat="56.095302" lon="9.548761" at="109554" type="left"/><turn lat="56.114655" lon="9.537399" at="112387" type="right"/><turn lat="56.119756" lon="9.566816" at="114507" type="left"/><turn lat="56.156956" lon="9.549342" at="118916" type="right"/><turn lat="56.156990" lon="9.556230" at="119346" type="left"/><turn lat="56.159791" lon="9.555506" at="119666" type="right"/></turns></extensions></gpx>
