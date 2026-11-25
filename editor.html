@@ -303,7 +303,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v48 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v50 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -659,9 +659,13 @@ details.tips li { margin-bottom: 4px; }
     if ((manifest.failed || []).indexOf(i + 1) !== -1) return { cls: 'wait', text: 'The audio could not be made. The phone voice is used.' };
     var e = manifest.engines ? manifest.engines[i] : manifest.voice;
     if (!e) return { cls: 'wait', text: 'No audio file yet. It is made at the next run (the next morning, if the daily limit is reached). The phone voice is used until then.' };
-    var cls = e.indexOf('gemini:') === 0 ? 'gemini' : e.indexOf('local:') === 0 ? 'local' : 'piper';
-    var cur = manifest.voice;
-    return { cls: cls, text: '<b>' + engineName(e) + '</b>' + (cur && e !== cur && e.indexOf('local:') !== 0 ? ' (older than the current voice, will be remade)' : '') };
+    var own = e.indexOf('local:') === 0 || e.indexOf('manual:') === 0;                 // audio you made yourself (Windows, Clipchamp, ...)
+    var cls = e.indexOf('gemini:') === 0 ? 'gemini' : own ? 'local' : 'piper';
+    var cur = manifest.voice, ownOnly = $('vProvider').value === 'manual';
+    var note = '';
+    if (e.indexOf('manual:') === 0) note = ' (yours: kept as long as the text stays the same)';
+    else if (cur && e !== cur && !own) note = ownOnly ? ' (made with another voice; kept, because the voice is set to \u201Cown audio only\u201D)' : ' (older than the current voice, will be remade)';
+    return { cls: cls, text: '<b>' + engineName(e) + '</b>' + note };
   }
   function renderEngines() {
     document.querySelectorAll('.stop').forEach(function (c, i) {
@@ -1247,7 +1251,7 @@ details.tips li { margin-bottom: 4px; }
     if (!clipParts.length) { msg.textContent = 'No stop needs new audio. Untick "Only the stops that need new audio" to make the texts of all stops.'; return; }
     var total = clipParts.reduce(function (n, p) { return n + p.stops.length; }, 0);
     msg.textContent = total + (total === 1 ? ' stop' : ' stops') + ' in ' + clipParts.length + (clipParts.length === 1 ? ' part' : ' parts') +
-      '. In Clipchamp: Record & create > Text to speech, choose Danish and your voice, and paste a part. THEN, for every line of dots: click at the end of the line and press Enter. Clipchamp turns the dots into a blue pause of 2.5 s. Left as dots they are read out as a strange sound, and the file cannot be cut. Then press Preview and Save.';
+      '. In Clipchamp: Record & create > Text to speech, choose Danish and your voice, and paste a part. THEN, for every line of dots: click at the end of the line and press Enter. Clipchamp turns the dots into a blue pause of 2.5 s. Left as dots they are read out as a strange sound, and the file cannot be cut. THEN PRESS SAVE (not only Preview), wait until the timeline is as long as the text, and export the audio. A file of only 5 seconds is empty: the audio was not saved. Play the file before you add it.';
     var pick = $('clipPick'); pick.innerHTML = '';
     clipParts.forEach(function (p) {
       var minutes = Math.max(1, Math.round(p.words / 130));
@@ -1278,6 +1282,18 @@ details.tips li { margin-bottom: 4px; }
     return !!m || (!!ownAudioBase && ownAudioBase === (slug(els.fileName.value) || 'my-route'));
   }
   function ownAudioAtRisk() { return $('vProvider').value !== 'manual' && hasOwnAudio() && audioNeed() !== 0; }     // Gemini would make audio for the stops that have none
+  function fileDuration(file) {                    // how long the recording is, read from the file itself (null if the browser cannot tell)
+    return new Promise(function (res) {
+      var done = false, a, url;
+      function fin(v) { if (done) return; done = true; try { if (url) URL.revokeObjectURL(url); } catch (e) { } res(v); }
+      try {
+        a = new Audio(); url = URL.createObjectURL(file); a.preload = 'metadata';
+        a.onloadedmetadata = function () { fin(isFinite(a.duration) && a.duration > 0 ? a.duration : null); };
+        a.onerror = function () { fin(null); };
+        setTimeout(function () { fin(null); }, 4000); a.src = url;
+      } catch (e) { fin(null); }
+    });
+  }
   function clipUpload() {
     var up = $('clipUpMsg'), f = $('clipFile').files && $('clipFile').files[0];
     function bad(t) { up.className = 'hint bad'; up.textContent = t; }
@@ -1291,7 +1307,17 @@ details.tips li { margin-bottom: 4px; }
     var base = slug(els.fileName.value) || 'my-route', ext = (/\.([A-Za-z0-9]{2,5})$/.exec(f.name) || [0, 'm4a'])[1].toLowerCase();
     var name = 'rec-' + Date.now() + '.' + ext;
     var desc = { route: base, stops: idx, fps: idx.map(function (n) { return fnv1a(stopPlain(stops[n - 1], n - 1)); }), engine: 'manual:Clipchamp', file: name };
-    $('clipUpload').disabled = true; up.textContent = 'Reading the file\u2026';
+    $('clipUpload').disabled = true; up.textContent = 'Checking the file\u2026';
+    var words = idx.reduce(function (n, k) { return n + wordCount(stopPlain(stops[k - 1], k - 1)); }, 0), needSec = words / 2.7;      // about 160 words a minute
+    fileDuration(f).then(function (dur) {
+      if (dur !== null && needSec > 20 && dur < 0.3 * needSec) {
+        $('clipUpload').disabled = false;
+        return bad('The file is only ' + (dur < 10 ? dur.toFixed(1) : Math.round(dur)) + ' seconds long, but these ' + idx.length + (idx.length === 1 ? ' stop needs' : ' stops need') + ' about ' + Math.round(needSec / 60 * 10) / 10 + ' minutes. The audio is probably missing: in Clipchamp press Save (not only Preview), wait until the timeline is as long as the text, and export again. Play the file first.');
+      }
+      readAndUpload();
+    });
+    function readAndUpload() {
+    up.textContent = 'Reading the file\u2026';
     var r = new FileReader();
     r.onerror = function () { $('clipUpload').disabled = false; bad('The file could not be read.'); };
     r.onload = function () {
@@ -1311,6 +1337,7 @@ details.tips li { margin-bottom: 4px; }
         .then(function () { $('clipUpload').disabled = false; });
     };
     r.readAsArrayBuffer(f);
+    }
   }
   $('clipUpload').addEventListener('click', clipUpload);
 
@@ -2315,7 +2342,13 @@ details.tips li { margin-bottom: 4px; }
       }
       if (failedStops) sum.appendChild(line('wait', failedStops + (failedStops === 1 ? ' stop' : ' stops') + ' could not be made and will not be tried again. Change their text and publish, or tell Claude.'));
       if (unreadable) sum.appendChild(line('wait', unreadable + (unreadable === 1 ? ' route' : ' routes') + ' could not be read (see below).'));
-      (Array.isArray(d.imp) ? d.imp.slice(-3).reverse() : []).forEach(function (e) {     // the last audio you added yourself, and whether it worked
+      var imps = (Array.isArray(d.imp) ? d.imp : []).filter(function (e, k, all) {
+        if (e.ok) return true;
+        var t = Date.parse(String(e.time || '').replace(' ', 'T'));
+        if (!isNaN(t) && Date.now() - t > 3 * 86400000) return false;                                  // a failure older than three days is not shown
+        return !all.slice(k + 1).some(function (x) { return x.ok && x.route === e.route; });           // a failure that a later success for the same route has put right is not shown
+      });
+      imps.slice(-3).reverse().forEach(function (e) {     // the last audio you added yourself, and whether it worked
         sum.appendChild(line(e.ok ? 'gemini' : 'wait', (e.ok ? 'Audio added ' : 'Audio NOT added ') + (e.time || '') + ': ' + (e.route || '') + '. ' + String(e.message || '').slice(0, 260)));
       });
       if (d.lyd && d.lyd.provider === 'manual') { }
