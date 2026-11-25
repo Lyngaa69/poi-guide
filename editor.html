@@ -303,7 +303,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v45 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v46 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -452,7 +452,7 @@ details.tips li { margin-bottom: 4px; }
       <details class="tips" id="clipBox">
         <summary>Texts for Clipchamp, and audio you made yourself</summary>
         <div style="margin-top:10px;">
-          <p class="hint" style="margin-top:0;">For when you make the audio in Microsoft Clipchamp (or another program) instead of with Gemini. 1) Make the texts here and paste each part into Clipchamp (Record &amp; create &gt; Text to speech, Danish, your voice), then save. 2) Export the audio only. 3) Choose the file below. GitHub cuts it at the long pauses, makes one file per stop and adds them to the route. <b>Publish the route first</b>, so the texts on GitHub are the ones you pasted.</p>
+          <p class="hint" style="margin-top:0;">For when you make the audio in Microsoft Clipchamp (or another program) instead of with Gemini. 1) Make the texts here and paste each part into Clipchamp (Record &amp; create &gt; Text to speech, Danish, your voice). Click at the end of every line of dots and press Enter, so Clipchamp makes it a pause of 2.5 s. Then save. 2) Export the audio only. 3) Choose the file below. GitHub cuts it at the long pauses, makes one file per stop and adds them to the route. <b>Publish the route first</b>, so the texts on GitHub are the ones you pasted.</p>
           <label class="check"><input type="checkbox" id="clipOnlyNew" checked><span>Only the stops that need new audio (new or changed text)</span></label>
           <div class="row" style="margin-top:8px;"><button class="btn small" id="clipMake" type="button">Make the texts</button></div>
           <p class="hint" id="clipMsg" role="status"></p>
@@ -1247,12 +1247,12 @@ details.tips li { margin-bottom: 4px; }
     if (!clipParts.length) { msg.textContent = 'No stop needs new audio. Untick "Only the stops that need new audio" to make the texts of all stops.'; return; }
     var total = clipParts.reduce(function (n, p) { return n + p.stops.length; }, 0);
     msg.textContent = total + (total === 1 ? ' stop' : ' stops') + ' in ' + clipParts.length + (clipParts.length === 1 ? ' part' : ' parts') +
-      '. In Clipchamp: Record & create > Text to speech, choose Danish and your voice, paste a part, and save. The lines of 25 dots between the stops become the long pauses (in Clipchamp every dot is a pause of 0.1 second).';
+      '. In Clipchamp: Record & create > Text to speech, choose Danish and your voice, and paste a part. THEN, for every line of dots: click at the end of the line and press Enter. Clipchamp turns the dots into a blue pause of 2.5 s. Left as dots they are read out as a strange sound, and the file cannot be cut. Then press Preview and Save.';
     var pick = $('clipPick'); pick.innerHTML = '';
     clipParts.forEach(function (p) {
       var minutes = Math.max(1, Math.round(p.words / 130));
       var h = document.createElement('p'); h.className = 'hint'; h.style.cssText = 'margin:14px 0 4px;font-weight:700;';
-      h.textContent = 'Part ' + p.n + ' of ' + clipParts.length + ': stops ' + stopsLabel(p.stops) + ' (' + p.stops.length + (p.stops.length === 1 ? ' stop, ' : ' stops, ') + p.words + ' words, about ' + minutes + (minutes === 1 ? ' minute)' : ' minutes)');
+      h.textContent = 'Part ' + p.n + ' of ' + clipParts.length + ': stops ' + stopsLabel(p.stops) + ' (' + p.stops.length + (p.stops.length === 1 ? ' stop, ' : ' stops, ') + p.words + ' words, about ' + minutes + (minutes === 1 ? ' minute' : ' minutes') + (p.stops.length > 1 ? ', ' + (p.stops.length - 1) + (p.stops.length === 2 ? ' line of dots to press Enter on)' : ' lines of dots to press Enter on)') : ')');
       var ta = document.createElement('textarea'); ta.readOnly = true; ta.rows = 6; ta.value = p.text; ta.setAttribute('aria-label', 'Text of part ' + p.n);
       var row = document.createElement('div'); row.className = 'row'; row.style.marginTop = '6px';
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Copy part ' + p.n;
