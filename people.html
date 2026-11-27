@@ -219,7 +219,7 @@ details.tips li { margin-bottom: 4px; }
       <button class="btn sign" id="saveBtn" type="button" disabled>Save and publish</button>
     </div>
   </section>
-  <p class="hint" style="margin-top:28px;text-align:center;">People v50 (20 Nov 2026)</p>
+  <p class="hint" style="margin-top:28px;text-align:center;">People v51 (20 Nov 2026)</p>
 </main>
 
 <script src="access.js"></script>
@@ -278,11 +278,24 @@ details.tips li { margin-bottom: 4px; }
   }
 
   /* ---------- the link to send ---------- */
-  function message(p) {
-    var link = A.linkFor(p.code);
+  function message(p, lang) {                        // the invitation: the link and the few steps that make it work. Danish for the people, English if you choose it
+    var link = A.linkFor(p.code), code = A.prettyCode(p.code);
+    if (lang === 'en') {
+      return 'Hi ' + p.name + '! Here is your personal link to Wayside, an audio guide for road trips:\n\n' + link +
+        '\n\nHow to get started:\n' +
+        '1. Open the link on your phone. On an iPhone it must open in Safari (if it opens inside another app, tap the Share icon and choose Open in Safari).\n' +
+        '2. Tap Check location now, and tap Allow when the phone asks for your location. Wayside shows the steps if location is switched off.\n' +
+        '3. Turn off silent mode and turn up the volume. Wayside plays at media volume.\n' +
+        '4. If you want it on the home screen, add it there afterwards. Then type the code ' + code + ' under Menu > Enter invitation code, because an app on the home screen has its own storage.\n\n' +
+        'The link is personal, so do not pass it on. You can change the language under Menu (Language / Sprog).';
+    }
     return 'Hej ' + p.name + '! Her er dit personlige link til Wayside, en lydguide til bilture:\n\n' + link +
-      '\n\nÅbn linket på din telefon. Husk at slå lydløs fra og skrue op for lyden.\n' +
-      'Linket er personligt, så del det ikke videre. Virker det ikke, kan du skrive koden ' + A.prettyCode(p.code) + ' under Menu > Enter invitation code.';
+      '\n\nSådan kommer du i gang:\n' +
+      '1. Åbn linket på din telefon. På en iPhone skal det åbne i Safari (åbner det inde i en anden app, så tryk på Del-ikonet og vælg Åbn i Safari).\n' +
+      '2. Tryk Tjek placering nu, og tryk Tillad, når telefonen spørger om din placering. Wayside viser trinene, hvis placering er slået fra.\n' +
+      '3. Slå lydløs fra, og skru op for lyden. Wayside spiller med medielydstyrken.\n' +
+      '4. Vil du have det på hjemmeskærmen, så tilføj det dér bagefter. Skriv så koden ' + code + ' under Menu > Indtast invitationskode (på engelsk: Enter invitation code), for en app på hjemmeskærmen har sit eget lager.\n\n' +
+      'Linket er personligt, så del det ikke videre. Sproget kan skiftes under Menu (Language / Sprog).';
   }
   function copyText(text, done) {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
@@ -350,8 +363,10 @@ details.tips li { margin-bottom: 4px; }
     var inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = A.linkFor(p.code); inp.setAttribute('aria-label', 'Link for ' + p.name);
     box.appendChild(el('p', 'hint', state === 'live' ? 'Live. The link is ready to send.' : 'Not confirmed live. The person may see no routes until the site has been updated.'));
     box.appendChild(inp);
-    var row = el('div', 'row');
+    var row = el('div', 'row'), msgState = el('p', 'hint'); msgState.style.margin = '6px 0 0'; msgState.setAttribute('role', 'status');
     function b(label, fn) { var x = el('button', 'btn small', label); x.type = 'button'; x.addEventListener('click', fn); row.appendChild(x); return x; }
+    b('Copy message', function () { copyText(message(p), function (ok) { msgState.textContent = ok ? 'Message copied (Danish).' : 'Copy failed'; }); });
+    b('Copy message (English)', function () { copyText(message(p, 'en'), function (ok) { msgState.textContent = ok ? 'Message copied (English).' : 'Copy failed'; }); });
     var copyBtn = b('Copy link', function () { copyText(inp.value, function (ok) { copyBtn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1800); }); });
     if (navigator.share) b('Share…', function () { navigator.share({ title: 'Wayside', text: message(p) }).catch(function () { }); });
     b('E-mail', function () { location.href = 'mailto:?subject=' + encodeURIComponent('Dit link til Wayside') + '&body=' + encodeURIComponent(message(p)); });
@@ -360,6 +375,7 @@ details.tips li { margin-bottom: 4px; }
     var codeP = el('p', 'hint'); codeP.style.margin = '8px 0 0';
     b('Code', function () { codeP.textContent = codeP.textContent ? '' : 'Code: ' + A.prettyCode(p.code); });
     box.appendChild(row);
+    box.appendChild(msgState);
     box.appendChild(codeP);
     box.appendChild(qrBox);
   }

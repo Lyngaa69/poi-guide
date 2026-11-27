@@ -181,7 +181,6 @@ details.tips li { margin-bottom: 4px; }
     <label class="field"><span>Voice engine</span>
       <select id="vProvider">
         <option value="gemini">Gemini (AI voice, needs the key in GitHub)</option>
-        <option value="piper">Piper (free, runs on GitHub, more robotic)</option>
         <option value="manual">Own audio only (you make it, for example in Clipchamp, and add it in step 3)</option>
       </select>
     </label>
@@ -265,11 +264,6 @@ details.tips li { margin-bottom: 4px; }
       <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
     </a>
 
-    <h3>Pronunciation</h3>
-    <a class="tour" href="udtale.html" style="margin-top:8px;">
-      <span><span class="t-title">Pronunciation of words</span><span class="t-desc">For the Piper voice. Plain respellings also work with Gemini.</span></span>
-      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
-    </a>
   </div>
 </aside>
 
@@ -303,7 +297,7 @@ details.tips li { margin-bottom: 4px; }
         <div class="row"><button class="btn sign" id="cSave" type="button">Save and connect</button></div>
         <p class="status" id="cMsg" role="status"></p>
       </details>
-      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v50 (20 Nov 2026)</p>
+      <p class="hint" id="studioVersion" style="margin-bottom:0;">Studio v51 (20 Nov 2026)</p>
     </div>
 
     <h1>Add stops to a route</h1>
@@ -325,10 +319,6 @@ details.tips li { margin-bottom: 4px; }
 
     <a class="tour" href="people.html" style="margin-bottom:10px;">
       <span><span class="t-title">People</span><span class="t-desc">Invite people to routes and remove them again</span></span>
-      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
-    </a>
-    <a class="tour" href="udtale.html" id="udtaleCard" style="margin-bottom:14px;">
-      <span><span class="t-title">Pronunciation</span><span class="t-desc" id="udtaleDesc">Listen to the versions of each word and choose the best</span></span>
       <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;"><path d="M9 6l6 6-6 6"/></svg>
     </a>
 
@@ -2091,17 +2081,6 @@ details.tips li { margin-bottom: 4px; }
     if (t) deleteRoute(t, null, true);
   });
 
-  function loadUdtaleCount() {
-    if (!window.fetch) return;
-    fetch('ture/udtale/ord.json', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('none'); return r.json(); })
-      .then(function (d) {
-        var n = (d.words || []).filter(function (w) { return w.variants && w.variants.length > 1; }).length;
-        $('udtaleDesc').textContent = n ? n + (n === 1 ? ' word to review' : ' words to review') + ': listen and choose the best version' : 'No words to review right now';
-      })
-      .catch(function () {});
-  }
-
   /* ---------- expressions (Gemini voice) ---------- */
   var EXPRESSIONS = [
     ['Pauses', ['short pause', 'long pause']],
@@ -2150,7 +2129,7 @@ details.tips li { margin-bottom: 4px; }
 
   function vStatus(msg, bad) { var el = $('vStatus'); el.className = 'status' + (bad ? ' bad' : ''); el.textContent = msg || ''; }
   function showVoice(s) {
-    $('vProvider').value = s.provider === 'piper' ? 'piper' : (s.provider === 'manual' ? 'manual' : 'gemini');
+    $('vProvider').value = s.provider === 'manual' ? 'manual' : 'gemini';
     $('vModel').value = s.model || VOICE_DEFAULTS.model;
     if (!$('vModel').value) $('vModel').value = VOICE_DEFAULTS.model;
     $('vVoice').value = s.voice || VOICE_DEFAULTS.voice;
@@ -2192,7 +2171,7 @@ details.tips li { margin-bottom: 4px; }
       batch: $('vBatch').checked
     };
     $('vSave').disabled = true; vStatus('Saving\u2026');
-    var vMsg = 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : (s.provider === 'manual' ? 'own audio only' : 'Piper')) + ')';
+    var vMsg = 'Studio: voice settings (' + (s.provider === 'gemini' ? s.voice : 'own audio only') + ')';
     Access.retry(function () { return ghGetFile('tools/lyd.json').then(function (f) { return ghPut('tools/lyd.json', JSON.stringify(s, null, 2) + '\n', vMsg, f && f.sha); }); }, Access.longRetryDelays,
         function (k, total) { vStatus('GitHub is saving something else right now (often the audio job). Trying again\u2026 (' + k + ' of ' + total + ')'); })
       .then(function () { vStatus(s.provider === 'manual' ? 'Saved. GitHub no longer makes audio itself. It only adds the audio you upload in step 3 (Texts for Clipchamp, and audio you made yourself).' : 'Saved. GitHub now remakes the audio with this voice. With the free Gemini limit only part is made per day, and the rest follows automatically the next mornings.'); })
@@ -2212,7 +2191,6 @@ details.tips li { margin-bottom: 4px; }
     return readStops(doc);
   }
   function voiceNow(lyd, man) {
-    if (lyd && lyd.provider === 'piper') return 'piper-da_DK-talesyntese-medium-v1';
     if (lyd && lyd.model && lyd.voice) return 'gemini:' + lyd.model + ':' + lyd.voice;
     return (man && man.voice) || '';
   }
@@ -2519,7 +2497,6 @@ details.tips li { margin-bottom: 4px; }
   renderConn();
 
   loadExisting();
-  loadUdtaleCount();
 })();
 </script>
 </body>
