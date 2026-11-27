@@ -89,36 +89,12 @@ jobs:
             sudo apt-get install -y -qq ffmpeg
           fi
 
-      - name: Remember the Piper voice between runs
-        if: steps.plan.outputs.piper == 'true'
-        uses: actions/cache@v4
-        with:
-          path: .voice
-          key: voice-da-talesyntese-medium-v1
-
-      - name: Get the Piper voice and tools
-        if: steps.plan.outputs.piper == 'true'
-        run: |
-          set -euxo pipefail
-          command -v bzip2 >/dev/null || sudo apt-get install -y -qq bzip2
-          if [ ! -f .voice/da_DK-talesyntese-medium.onnx ]; then
-            mkdir -p .voice
-            curl -fsSL --retry 3 -o voice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-da_DK-talesyntese-medium.tar.bz2
-            tar xjf voice.tar.bz2 -C .voice --strip-components=1 \
-              vits-piper-da_DK-talesyntese-medium/da_DK-talesyntese-medium.onnx \
-              vits-piper-da_DK-talesyntese-medium/da_DK-talesyntese-medium.onnx.json
-            rm voice.tar.bz2
-          fi
-          python --version
-          python -m pip install --quiet piper-tts
-          python -c "import piper; print('piper ok')"
-
       - name: Make the audio
         id: make
         if: steps.plan.outputs.needed == 'true'
         run: |
           set -euxo pipefail
-          VOICE_DIR=.voice python tools/make_audio.py
+          python tools/make_audio.py
 
       - name: Save the new audio in the repository
         id: save
