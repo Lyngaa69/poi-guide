@@ -2,25 +2,22 @@
 """Makes Danish audio (mp3) for every stop in every route in ture/*.gpx.
 
   python tools/make_audio.py --plan   shows what needs new audio (needs only Python)
-  python tools/make_audio.py          makes the audio (needs piper-tts, ffmpeg and the voice in VOICE_DIR)
+  python tools/make_audio.py          makes the audio: with Gemini (needs GEMINI_API_KEY and ffmpeg), or only adds the recordings you
+                                      made yourself (the voice is set to "own audio only" in Studio)
 
 Files per route <name>.gpx:
   ture/<name>-01.mp3, -02.mp3 ...   one file per stop, in the order of the stops
-  ture/<name>.audio.json            a fingerprint of the text behind each file
-A route whose manifest says  "voice": "local:..."  has audio made outside GitHub (for example with
-tools/windows/lav-lyd.ps1). This program leaves such routes alone.
+  ture/<name>.audio.json            a fingerprint of the text behind each file, and which engine made it
+A route whose manifest says  "voice": "local:..."  has audio made outside GitHub. This program leaves such routes alone.
+A stop whose engine is "manual:..." (audio you made yourself, for example in Clipchamp) is left alone as long as its text is the same.
 
 Wayside only plays a file when its fingerprint matches the current text of the stop,
 so an edited stop never plays old audio.
 
-Word previews for the pronunciation page in Studio are made in ture/udtale/ (ord.json plus one mp3 per variant).
-Words you have decided on are listed in tools/udtale.txt (own pronunciation) or tools/udtale-ok.txt (fine as it is).
-
-Pronunciation fixes live in tools/udtale.txt, one per line:  word = how it should sound
-  torvet = /tˈɒɐ̯ʋəð/      (between / / or [ ]: exact sounds, IPA; IPA copied from the web works)
-  drewsen = drusen          (otherwise: a respelling that the voice reads correctly)
+Respellings for Gemini live in tools/udtale.txt, one per line:  word = a respelling that the voice reads correctly
+  drewsen = drusen          (the word is replaced, in any capitalisation, whole words only)
   ~aa = å                   (starts with ~: replaces these letters inside every word)
-Lines starting with # are ignored. Words match whole words, in any capitalisation.
+Lines starting with # are ignored. (Lines with exact sounds between / / or [ ] were for the old Piper voice and are ignored.)
 """
 import array, base64, io, json, math, os, re, shutil, subprocess, sys, time, wave
 import tempfile
@@ -30,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TURE = ROOT / 'ture'
-VOICE_ID = 'piper-da_DK-talesyntese-medium-v1'
+LEGACY_PIPER_ID = 'piper-da_DK-talesyntese-medium-v1'      # only to recognise old files from the removed Piper voice (they are remade)
 
 # ---------- Danish numbers written as words, so the voice reads them naturally ----------
 UNITS = ['nul', 'en', 'to', 'tre', 'fire', 'fem', 'seks', 'syv', 'otte', 'ni']
@@ -81,40 +78,6 @@ def normalize(t):
 
 # ---------- pronunciation fixes ----------
 # ---------- IPA from the web -> what the voice understands ----------
-PIPER_SYMBOLS = set(" !\"#$'(),-.0123456789:;?^_abcdefhijklmnopqrstuvwxyzæçðøħŋœǀǁǂǃɐɑɒɓɔɕɖɗɘəɚɛɜɞɟɠɡɢɣɤɥɦɧɨɪɫɬɭɮɯɰɱɲɳɴɵɶɸɹɺɻɽɾʀʁʂʃʄʈʉʊʋʌʍʎʏʐʑʒʔʕʘʙʛʜʝʟʡʢʰʲˈˌːˑ˞ˤ̧̩̪̯̺̻̃βεθχᵻ↑↓ⱱ")
-IPA_VOWELS = set('iyɨʉɯuɪʏʊeøɘɵɤoəɛœɜɞʌɔæɐaɶɑɒɚεᵻ')
-IPA_CONSONANTS = set('bcdfɡghjklmnŋpqrstvwxzʁʋðʃɕçʒɹɾʔθβχ')
-
-def sanitize_ipa(s):
-    """Accepts IPA as written on Wikipedia, Wiktionary or ordnet.dk, e.g. [ˈdɑnˌmɑɡ̊], and turns it into
-    what the Piper voice can use: only sounds it knows, the stress mark just before the vowel, and
-    p, t, k for the small-ring (voiceless) stops at the end of a syllable."""
-    s = s.strip().strip('[]/').strip()
-    s = s.replace('g', 'ɡ').replace('.', '').replace('\u203f', '').replace('ˀ', 'ʔ')
-    out = []; i = 0
-    while i < len(s):
-        c = s[i]
-        if c in 'bdɡ' and i + 1 < len(s) and s[i + 1] in '\u030a\u0325':        # b̥ d̥ ɡ̊
-            nxt = s[i + 2] if i + 2 < len(s) else ''
-            coda = nxt == '' or nxt in 'ˈˌ' or nxt in IPA_CONSONANTS
-            out.append({'b': 'p', 'd': 't', 'ɡ': 'k'}[c] if coda else c)
-            i += 2
-            continue
-        out.append(c); i += 1
-    s = ''.join(out)
-    res = []; i = 0                                              # stress mark goes before the vowel, as espeak writes it
-    while i < len(s):
-        c = s[i]
-        if c in 'ˈˌ':
-            j = i + 1
-            while j < len(s) and s[j] not in IPA_VOWELS and s[j] not in 'ˈˌ':
-                j += 1
-            if j < len(s) and s[j] in IPA_VOWELS:
-                res.extend(s[i + 1:j]); res.append(c); i = j
-                continue
-        res.append(c); i += 1
-    return ''.join(ch for ch in res if ch in PIPER_SYMBOLS)
-
 def load_dictionary():
     entries, rules = [], []
     path = ROOT / 'tools' / 'udtale.txt'
@@ -128,7 +91,7 @@ def load_dictionary():
         if not word or not value:
             continue
         if len(value) > 2 and ((value.startswith('/') and value.endswith('/')) or (value.startswith('[') and value.endswith(']'))):
-            value = '[[' + sanitize_ipa(value) + ']]'                  # exact sounds, IPA between / / or [ ]
+            continue                                                    # exact sounds (IPA) were for the removed Piper voice: such lines are ignored
         if word.startswith('~'):
             rules.append((word[1:], value))
         else:
@@ -230,7 +193,7 @@ def read_stops(gpx):
 
 # ---------- voice settings (tools/lyd.json, edited in Studio) ----------
 DEFAULT_SETTINGS = {
-    'provider': 'gemini',                      # 'gemini', 'piper' or 'manual' (the audio is made by you, for example in Clipchamp, and added through Studio)
+    'provider': 'gemini',                      # 'gemini' or 'manual' (the audio is made by you, for example in Clipchamp, and added through Studio)
     'model': 'gemini-3.8-flash-tts',
     'voice': 'Gacrux',
     'stylePreset': 'podcast',
@@ -248,18 +211,16 @@ def load_settings():
     return s
 
 def active_provider():
-    """'piper', 'gemini', 'manual' (you make the audio yourself, for example in Clipchamp), or 'none' (Gemini is chosen but there is no key, so nothing is touched)"""
+    """'gemini', 'manual' (you make the audio yourself, for example in Clipchamp), or 'none' (Gemini is chosen but there is no key, so nothing is touched)"""
     if load_settings()['provider'] == 'manual':
         return 'manual'
-    if load_settings()['provider'] != 'gemini':
-        return 'piper'
     return 'gemini' if os.environ.get('GEMINI_API_KEY', '').strip() else 'none'
 
 def voice_id_for(provider):
     if provider == 'gemini':
         s = load_settings()
         return 'gemini:%s:%s' % (s['model'], s['voice'])
-    return VOICE_ID
+    return 'manual'
 
 def gemini_text(raw):
     """What is sent to Gemini: the stop text with <expressions> kept, respellings and ~rules applied."""
@@ -302,22 +263,19 @@ def guess_engine(path, legacy_voice):
     """For manifests from before the engine list existed: tell the voice from the file itself."""
     rate = mp3_sample_rate(path)
     if rate == 22050:
-        return VOICE_ID
+        return LEGACY_PIPER_ID
     if rate == 24000:
         return legacy_voice if str(legacy_voice).startswith('gemini:') else 'gemini:unknown'
     return str(legacy_voice or '')
 
 # ---------- planning ----------
-def plan_route(gpx, provider='piper'):
+def plan_route(gpx, provider='gemini'):
     base = gpx.stem
     items = read_stops_raw(gpx)
     stops = [p for p, _ in items]
     raws = [r for _, r in items]
     hashes = [fnv1a(s) for s in stops]
-    if provider == 'gemini':
-        spoken_hashes = [gemini_spoken_hash(r) for r in raws]
-    else:
-        spoken_hashes = [fnv1a(spoken(s)) for s in stops]
+    spoken_hashes = [gemini_spoken_hash(r) for r in raws]
     vid = voice_id_for(provider)
     width = max(2, len(str(len(stops))))
     man_path = TURE / (base + '.audio.json')
@@ -383,28 +341,13 @@ def write_manifest(p, made, failed):
     (TURE / (p['base'] + '.audio.json')).write_text(json.dumps(
         {'voice': p['voice_id'], 'stops': p['hashes'], 'spoken': spoken_list, 'engines': engines, 'failed': sorted(failed)}, indent=2) + '\n', encoding='utf-8')
 
-def all_plans(provider='piper'):
+def all_plans(provider='gemini'):
     return [plan_route(g, provider) for g in sorted(TURE.glob('*.gpx')) if read_stops(g)]
 
 def needed(plans):
     return any(p['todo'] or p['orphans'] or not p['manifest_ok'] for p in plans)
 
 # ---------- making audio ----------
-def load_voice():
-    from piper import PiperVoice
-    vdir = Path(os.environ.get('VOICE_DIR', ROOT / '.voice'))
-    onnx = next(vdir.glob('*.onnx'))
-    return PiperVoice.load(str(onnx), config_path=str(onnx) + '.json')
-
-def make_mp3(voice, text, out_mp3, raw=False):
-    wav_path = str(out_mp3) + '.wav'
-    with wave.open(wav_path, 'wb') as w:
-        voice.synthesize_wav(text if raw else spoken(text), w)
-    subprocess.run([ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', wav_path,
-                    '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11,apad=pad_dur=0.4',
-                    '-ac', '1', '-ar', '22050', '-b:a', '64k', str(out_mp3)], check=True)
-    os.remove(wav_path)
-
 # ---------- ffmpeg ----------
 _FFMPEG = None
 def ffmpeg_exe():
@@ -1032,24 +975,7 @@ def generate_gemini(plans):
         BATCH_STATE.write_text(json.dumps(bstate, indent=1) + '\n', encoding='utf-8')
     return S['total_made'], S['daily_hit']
 
-# ---------- word previews (the pronunciation page in Studio) ----------
-UD_DIR = TURE / 'udtale'          # inside ture/, so the existing commit step saves it
-STOP_WORDS = set("""og i på af at en et er den det til med som for der de du jeg han hun vi man ikke kan skal vil har have hvor fra ved om var blev bliver kom kommer går ligger lidt mod over under ind ud op ned her dér da så men eller også både hele hvert denne dette disse sig sin sit deres din dit dig mig nu hvis når dem ham hende os jer sådan sådanne anden andre andet først sidst alle alt noget nogle ingen mere mest meget mange få flere fleste cirka omkring efter før mellem siden indtil igen stadig altså kun bare blot dog jo nok måske ville kunne skulle måtte blive været haft fået givet sat lavet ligget stået gjort sagt set taget kaldt kaldes regnes fundet bygget åbnet holdt kører køre fremme starter turen ruten stoppet stop hvad hvem hvordan hvorfor hvilken hvilke altid aldrig ofte nogen ny nye nyt gamle gammel stor store stort lille små god gode godt dag år tid sted vej side del nord syd øst vest""".split())
-
-def decided_words():
-    keys = {w.lower() for w, _ in DICTIONARY}
-    ok = ROOT / 'tools' / 'udtale-ok.txt'
-    if ok.exists():
-        for line in ok.read_text(encoding='utf-8').splitlines():
-            line = line.strip()
-            if line and not line.startswith('#'):
-                keys.add(line.lower())
-    return keys
-
-def slug(word):
-    s = word.lower().replace('æ', 'ae').replace('ø', 'oe').replace('å', 'aa')
-    return re.sub(r'[^a-z0-9]+', '-', s).strip('-') or 'ord'
-
+# ---------- which routes are in the public list ----------
 def open_route_files():
     """Routes that are in the public list. Invite-only routes and drafts are not, and their texts must not leak into the public word list."""
     try:
@@ -1057,83 +983,6 @@ def open_route_files():
         return {t['fil'] for t in lst if isinstance(t, dict) and t.get('fil') and t.get('vis') is not False}
     except Exception:
         return None
-
-def collect_words():
-    info = {}
-    only = open_route_files()
-    for g in sorted(TURE.glob('*.gpx')):
-        if only is not None and g.name not in only:
-            continue
-        for s in read_stops(g):
-            for mo in re.finditer(r"[A-Za-zÆØÅæøå]+", s):
-                w = mo.group(0); k = w.lower()
-                if k in STOP_WORDS or (len(k) < 4 and not w[0].isupper()):
-                    continue
-                e = info.setdefault(k, {'forms': {}, 'count': 0, 'context': ''})
-                e['count'] += 1
-                e['forms'][w] = e['forms'].get(w, 0) + 1
-                if not e['context']:
-                    a, b = max(0, mo.start() - 42), min(len(s), mo.end() + 42)
-                    e['context'] = ('…' if a else '') + s[a:b].strip() + ('…' if b < len(s) else '')
-    return info
-
-def preview_plan():
-    """what the pronunciation page should show, and whether the preview files are up to date"""
-    try:
-        import nst_convert
-    except Exception:
-        nst_convert = None
-    done = decided_words()
-    words = []
-    for k, e in sorted(collect_words().items()):
-        if k in done:
-            continue
-        shown = max(e['forms'], key=lambda f: e['forms'][f])
-        variants = [{'id': 'A', 'label': 'As now (Piper)', 'value': ''}]
-        how = None
-        if nst_convert:
-            cands, how = nst_convert.candidates(k)
-            variants += [{'id': i, 'label': l, 'value': v} for i, v, l in cands]
-        for v in variants:
-            v['file'] = 'ture/udtale/%s-%s.mp3' % (slug(k), v['id'])
-        words.append({'word': shown, 'key': k, 'count': e['count'], 'context': e['context'], 'how': how or '', 'variants': variants})
-    return {'words': words}
-
-def previews_needed(plan):
-    path = UD_DIR / 'ord.json'
-    try:
-        old = json.loads(path.read_text(encoding='utf-8'))
-    except Exception:
-        old = None
-    if old != plan:
-        return True
-    return any(not (ROOT / v['file']).exists() for w in plan['words'] for v in w['variants'])
-
-def make_previews(plan, voice_loader):
-    UD_DIR.mkdir(exist_ok=True)
-    path = UD_DIR / 'ord.json'
-    try:
-        old = json.loads(path.read_text(encoding='utf-8'))
-    except Exception:
-        old = {'words': []}
-    old_val = {(w['key'], v['id']): v['value'] for w in old['words'] for v in w['variants']}
-    wanted = set(); voice = None
-    for w in plan['words']:
-        for v in w['variants']:
-            out = ROOT / v['file']; wanted.add(out.name)
-            if out.exists() and old_val.get((w['key'], v['id'])) == v['value']:
-                continue
-            try:
-                if voice is None: voice = voice_loader()
-                text = w['key'] if v['id'] == 'A' else '[[' + v['value'].strip('/') + ']]'
-                make_mp3(voice, text, out, raw=True)
-            except Exception as e:
-                print('::warning::No preview for %s %s: %s: %s' % (w['key'], v['id'], type(e).__name__, e))
-    for f in UD_DIR.glob('*.mp3'):
-        if f.name not in wanted:
-            f.unlink()
-    path.write_text(json.dumps(plan, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    print('previews: %d words listed' % len(plan['words']))
 
 # ---------- audio that you made yourself (for example in Clipchamp) ----------
 # Studio uploads the recording and a small description (ture/inbox/<route>/<name>.json: which stops, and the fingerprint of each text).
@@ -1218,7 +1067,7 @@ def import_one(base, side):
     for k, i in enumerate(idx):
         if fnv1a(items[i - 1][0]) != fps[k]:
             raise ValueError('the text of stop %d is not the same as the text the audio was made for. Publish the texts first, then add the audio (or make the texts again)' % i)
-    p = plan_route(gpx, 'piper')
+    p = plan_route(gpx, 'gemini')
     if p.get('external'): raise ValueError('this route has audio made outside GitHub (%s)' % p['external'])
     samples, rate = decode_mono(audio)
     letters = [plain_len(items[i - 1][1]) for i in idx]
@@ -1310,8 +1159,6 @@ def main():
             print('::warning::The voice is set to Gemini, but GEMINI_API_KEY is not set in GitHub. No audio is made until it is.')
         elif provider == 'gemini':
             print('audio engine: Gemini (%s, %s)' % (s['model'], s['voice']))
-        else:
-            print('audio engine: Piper')
         for p in plans:
             if p.get('external'):
                 print('%s: %d stops, audio made outside GitHub (%s), left alone' % (p['base'], len(p['stops']), p['external']))
@@ -1326,17 +1173,11 @@ def main():
             reqs0 = sum(len(make_groups(q, allow0)) for q in mine)
             if stops0:
                 print('requests needed (estimate): %d for %d stops%s. The free level allows about 10 a day.' % (reqs0, stops0, ', several stops per request' if allow0 and reqs0 < stops0 else ''))
-        pneeded = False
-        if provider == 'piper':
-            pplan = preview_plan()
-            pneeded = previews_needed(pplan)
-            print('word previews: %d words to review%s' % (len(pplan['words']), ', needs updating' if pneeded else ', up to date'))
-        flag = 'true' if (needed(plans) or pneeded or pending) else 'false'
+        flag = 'true' if (needed(plans) or pending) else 'false'
         print('needed=' + flag)
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                 f.write('needed=%s\n' % flag)
-                f.write('piper=%s\n' % ('true' if (flag == 'true' and provider == 'piper') else 'false'))
         return
     added = ingest_inbox()                                    # recordings you made yourself come first, so they are not made again
     if added and provider not in ('none', 'manual'):
@@ -1365,30 +1206,6 @@ def main():
         set_output('more', 'true' if more else 'false')
         return
     set_output('more', 'false')
-    voice = None
-    for p in plans:
-        if p.get('external'):
-            continue
-        for path in p['orphans']:
-            path.unlink(); print('removed', path.name)
-        failed = set(p['failed']) - set(p['todo'])
-        made = {}
-        for i in p['todo']:
-            out = TURE / ('%s-%0*d.mp3' % (p['base'], p['width'], i))
-            try:
-                if voice is None: voice = load_voice()
-                make_mp3(voice, p['stops'][i - 1], out)
-                made[i] = p['voice_id']
-                failed.discard(i)
-                print('made', out.name)
-            except Exception as e:          # keep going; Wayside uses the phone voice for this stop
-                failed.add(i)
-                if out.exists(): out.unlink()
-                print('::warning::No audio for stop %d in %s: %s: %s' % (i, p['base'], type(e).__name__, e))
-        write_manifest(p, made, failed)
-    pplan = preview_plan()
-    if previews_needed(pplan):
-        make_previews(pplan, load_voice)
 
 if __name__ == '__main__':
     main()
